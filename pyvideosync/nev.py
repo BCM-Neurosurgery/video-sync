@@ -26,7 +26,6 @@ class Nev:
         self.timestampResolution = self.get_basic_header()["TimeStampResolution"]
         self.timeOrigin = self.get_basic_header()["TimeOrigin"]
 
-
     def get_basic_header(self) -> dict:
         return self.nevDict["basic_header"]
 
@@ -85,8 +84,8 @@ class Nev:
         - no way to reconstruct if not multiple of 5
 
         Returns:
-        TimeStamps  chunk_serial unixTime
-        37347215    619155       xxxxxxxxxx
+        TimeStamps  chunk_serial UTCTimeStamp
+        37347215    619155       2024-04-16 22:28:17.310167
         """
         df = df[df["InsertionReason"] == 129]
         results = []
@@ -96,7 +95,9 @@ class Nev:
                 nums = [x for x in group["UnparsedData"]]
                 decimal_number = self.bits_to_decimal(nums)
                 timestamp = group["TimeStamps"].iloc[0]
-                unixTime = utils.ts2unix(self.timeOrigin, self.timestampResolution, timestamp)
+                unixTime = utils.ts2unix(
+                    self.timeOrigin, self.timestampResolution, timestamp
+                )
                 results.append((timestamp, decimal_number, unixTime))
         return pd.DataFrame.from_records(
             results, columns=["TimeStamps", "chunk_serial", "UTCTimeStamp"]
@@ -117,8 +118,8 @@ class Nev:
     def get_chunk_serial_df(self):
         """
         Returns:
-        TimeStamps  chunk_serial
-        37347215    619155
+        TimeStamps  chunk_serial UTCTimeStamp
+        37347215    619155       2024-04-16 22:28:17.310167
         """
         # 1st, check there's UnparsedData
         assert self.has_unparsed_data()
