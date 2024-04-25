@@ -3,7 +3,7 @@ import os
 from brpylib import NevFile
 import pandas as pd
 import numpy as np
-import utils
+from pyvideosync import utils
 
 
 class Nev:

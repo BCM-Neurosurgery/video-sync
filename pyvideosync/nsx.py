@@ -1,7 +1,7 @@
 import pandas as pd
 from brpylib import NsxFile
 from typing import List
-import utils
+from pyvideosync import utils
 
 
 class Nsx:
@@ -18,12 +18,17 @@ class Nsx:
         self.timeOrigin = self.get_basic_header()["TimeOrigin"]
         self.extended_headers_df = self.get_extended_headers_df()
         self.memmapData = self.get_data()["data"][0]
+        # TODO: the data header might have multiple timestamps
+        self.timeStamp = self.get_data_headers()[0]["Timestamp"]
 
     def get_basic_header(self):
         return self.nsxDict["basic_header"]
 
     def get_data(self):
         return self.nsxData
+
+    def get_data_headers(self) -> list:
+        return self.get_data()["data_headers"]
 
     def get_extended_headers(self) -> List[dict]:
         return self.nsxDict["extended_headers"]
@@ -47,7 +52,7 @@ class Nsx:
         # find the data
         channel_data = self.memmapData[row_index]
         channel_df = pd.DataFrame(channel_data, columns=["Amplitude"])
-        channel_df["TimeStamp"] = channel_df.index
+        channel_df["TimeStamp"] = [self.timeStamp + i for i in range(len(channel_df))]
         channel_df["UTCTimeStamp"] = channel_df["TimeStamp"].map(
             lambda x: utils.ts2unix(self.timeOrigin, self.timestampResolution, x)
         )
