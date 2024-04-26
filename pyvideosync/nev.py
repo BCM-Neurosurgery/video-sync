@@ -71,23 +71,61 @@ class Nev:
         # Convert the concatenated binary string to a decimal number
         return int(full_binary_string, 2)
 
-    def reconstruct_from_dataframe(self, df) -> pd.DataFrame:
+    def get_digital_events_df(self):
         """
-        TimeStamps 	InsertionReason UnparsedData
-        37347213 	1 	            65316
-        37347214 	1 	            65535
-        37347215 	129 	        19
-        37347218 	129 	        101
-        37347221 	129 	        37
+        Just get the unmodified digital_events in df
+        Returns
+                InsertionReason 	TimeStamps 	UnparsedData
+        0 	1 	                1345817 	65319
+        1 	1 	                1345818 	65535
+        2 	129 	            1345819 	40
+        3 	129 	            1345822 	76
+        4 	129 	            1345825 	35
+        """
+        return pd.DataFrame.from_records(self.get_data()["digital_events"])
 
-        TODO:
-        - no way to reconstruct if not multiple of 5
+    def get_cleaned_digital_events_df(self):
+        """
+        only keep the rows which satisfy
+        1. InsertionReason == 129
+        2. the length of such group is 5
+        3. 0 <= UnparsedData <= 127 (should be true enforced by hardware)
+
+        Returns
+            InsertionReason 	TimeStamps 	UnparsedData
+        2 	129 	            1345819 	40
+        3 	129 	            1345822 	76
+        4 	129 	            1345825 	35
+        5 	129 	            1345828 	0
+        6 	129 	            1345831 	0
+        """
+        digital_events_df = self.get_digital_events_df()
+        # True indicates a change from 1 -> 129 or 129 -> 1
+        digital_events_df["group"] = (
+            digital_events_df["InsertionReason"]
+            != digital_events_df["InsertionReason"].shift(1)
+        ).cumsum()
+        # Count the size of each group and assign True where the group size
+        # is 5 and the reason is 129
+        digital_events_df["keeprows"] = digital_events_df.groupby("group")[
+            "InsertionReason"
+        ].transform(lambda x: (x == 129) & (x.size == 5))
+        digital_events_df = digital_events_df[digital_events_df["keeprows"] == True]
+        digital_events_df = digital_events_df.drop(["group", "keeprows"], axis=1)
+        return digital_events_df
+
+    def get_chunk_serial_df(self):
+        """
+        From the cleaned digital_events_df, group by every 5 rows
+        and reconstruct
 
         Returns:
-        TimeStamps  chunk_serial UTCTimeStamp
-        37347215    619155       2024-04-16 22:28:17.310167
+            TimeStamps 	    chunk_serial 	UTCTimeStamp
+        0 	1345819 	    583208 	        2024-04-16 21:48:17.194633
+        1 	1346821 	    583209 	        2024-04-16 21:48:17.228033
         """
-        df = df[df["InsertionReason"] == 129]
+        assert self.has_unparsed_data()
+        df = self.get_cleaned_digital_events_df()
         results = []
         for i in range(0, len(df), 5):
             group = df.iloc[i : i + 5]
@@ -114,15 +152,3 @@ class Nev:
         ):
             return True
         return False
-
-    def get_chunk_serial_df(self):
-        """
-        Returns:
-        TimeStamps  chunk_serial UTCTimeStamp
-        37347215    619155       2024-04-16 22:28:17.310167
-        """
-        # 1st, check there's UnparsedData
-        assert self.has_unparsed_data()
-        # 2nd, get df
-        df = pd.DataFrame.from_records(self.get_data()["digital_events"])
-        return self.reconstruct_from_dataframe(df)
