@@ -39,18 +39,23 @@ class Nsx:
         """
         return pd.DataFrame.from_records(self.get_extended_headers())
 
+    def get_channel_array(self, channel: str):
+        """
+        Args:
+            channel: e.g. "RoomMic2"
+        """
+        row_index = self.extended_headers_df[
+            self.extended_headers_df["ElectrodeLabel"] == channel
+        ].index.item()
+        return self.memmapData[row_index]
+
     def get_channel_df(self, channel: str):
         """
         headers
         TimeStamps, Amplitude, UTCTimeStamp
         0           425        2024-04-16 22:28:17.310167
         """
-        # 1st, find index of that row
-        row_index = self.extended_headers_df[
-            self.extended_headers_df["ElectrodeLabel"] == channel
-        ].index.item()
-        # find the data
-        channel_data = self.memmapData[row_index]
+        channel_data = self.get_channel_array(channel)
         channel_df = pd.DataFrame(channel_data, columns=["Amplitude"])
         channel_df["TimeStamp"] = [self.timeStamp + i for i in range(len(channel_df))]
         channel_df["UTCTimeStamp"] = channel_df["TimeStamp"].map(
