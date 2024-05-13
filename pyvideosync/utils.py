@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from scipy.io.wavfile import write
-import numpy as np
 import matplotlib.pyplot as plt
+import cv2
 
 
 def ts2unix(time_origin, resolution, ts) -> datetime:
@@ -29,26 +29,6 @@ def ts2unix(time_origin, resolution, ts) -> datetime:
     return base_time + timedelta(microseconds=(ts * 1000000 / resolution))
 
 
-def jsonts2datetime(ts: int) -> str:
-    """
-    Convert a json ts to a human-readable datetime
-    ts: e.g. 19510020193080
-    """
-    full_bits = bin(ts)[2:]  # Get the binary without '0b' prefix
-    seconds_bits = full_bits[:-32]  # Assuming the last 32 bits are nanoseconds
-    nanoseconds_bits = full_bits[-32:]
-
-    # Convert these bits to integers
-    seconds = int(seconds_bits, 2)
-    nanoseconds = int(nanoseconds_bits, 2)
-
-    # Construct datetime
-    dt = datetime.fromtimestamp(seconds + nanoseconds / 1e9)
-
-    # Print the formatted datetime
-    print(dt.strftime("%Y-%m-%d %H:%M:%S.%f"))
-
-
 def analog2audio(analog, sample_rate: int, out_path: str):
     """
     Convert analog signal to wav audio
@@ -58,22 +38,6 @@ def analog2audio(analog, sample_rate: int, out_path: str):
         out_path: e.g. "output_audio.wav"
     """
     write(out_path, sample_rate, analog)
-
-
-def find_subarray_starting_with_sequence(arr, sequence):
-    # Convert the sequence to a numpy array for efficient comparison
-    sequence = np.array(sequence)
-    sequence_length = len(sequence)
-
-    # Iterate through the array to find the sequence
-    for i in range(len(arr) - sequence_length + 1):  # +1 to include end point
-        # Check if the subarray starting at index i matches the sequence
-        if np.array_equal(arr[i : i + sequence_length], sequence):
-            # Return the subarray starting from this index
-            return arr[i:]
-
-    # Return None if no matching subarray is found
-    return None
 
 
 def plot_diff_histogram(df, col):
@@ -94,6 +58,7 @@ def plot_diff_distribution(df, col):
     """
     Plot the distribution of diff in col
     """
+    df = df.copy()
     df["difference"] = df[col].diff()
     value_counts = df["difference"].value_counts().sort_index()
 
@@ -116,3 +81,36 @@ def plot_diff_distribution(df, col):
         )  # ha is horizontal alignment
 
     plt.show()
+
+
+def get_fps(video_path: str) -> float:
+    """Get fps of a video
+
+    Args:
+        video_path (str): the path to the video
+
+    Returns:
+        float: fps
+    """
+    cap = cv2.VideoCapture(video_path)
+
+    if not cap.isOpened():
+        print("could not open :", video_path)
+        return
+    return cap.get(cv2.CAP_PROP_FPS)
+
+
+def frame2min(frames: int, fps: int) -> str:
+    """Convert number of frames to length in 00:00 format
+
+    Args:
+        frames (int): total number of frames
+        fps (int): fps of this video
+
+    Returns:
+        str: length of video in 00:00 format
+    """
+    total_seconds = frames / fps
+    minutes = int(total_seconds // 60)
+    seconds = int(total_seconds % 60)
+    return f"{minutes:02}:{seconds:02}"
