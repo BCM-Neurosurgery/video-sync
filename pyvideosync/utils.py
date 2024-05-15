@@ -114,3 +114,15 @@ def frame2min(frames: int, fps: int) -> str:
     minutes = int(total_seconds // 60)
     seconds = int(total_seconds % 60)
     return f"{minutes:02}:{seconds:02}"
+
+
+def to_16bit_binary(number: int) -> int:
+    """convert number to 16-bit binary
+
+    Args:
+        number (int): e.g. 65535
+
+    Returns:
+        int: 1111111111111111
+    """
+    return format(number, "016b")
