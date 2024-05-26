@@ -4,6 +4,7 @@ from brpylib import NevFile
 import pandas as pd
 import numpy as np
 from pyvideosync import utils
+import matplotlib.pyplot as plt
 
 
 class Nev:
@@ -152,3 +153,50 @@ class Nev:
         ):
             return True
         return False
+
+    def plot_cam_exposure_all(self, save_dir: str, first_n_rows: int = 200) -> None:
+        """Plot cam exposure signals for all cameras
+
+        Args:
+            first_n_rows (int): first n rows of the camera
+            save_dir (str): dir to save the plots
+        """
+        if not save_dir:
+            raise ValueError("save_dir cannot be empty")
+
+        # get digital events df
+        digital_events_df = self.get_digital_events_df()
+
+        # only keep the part where InsertionReason == 1
+        digital_events_df = digital_events_df[digital_events_df["InsertionReason"] == 1]
+
+        # get a subset of digital events df if first_n_rows is specified
+        if first_n_rows is not None:
+            digital_events_df_small = digital_events_df.iloc[:first_n_rows].copy()
+        else:
+            digital_events_df_small = digital_events_df.copy()
+
+        # Format UnparsedData to 16-bit
+        digital_events_df_small.loc[:, "UnparsedDataBin"] = digital_events_df_small[
+            "UnparsedData"
+        ].apply(lambda x: utils.to_16bit_binary(x))
+
+        # plot
+        plt.figure(figsize=(15, 10))
+
+        for i in range(16):
+            filled_df = utils.fill_missing_data(digital_events_df_small, bit_number=i)
+            plt.plot(
+                filled_df["TimeStamps"], filled_df[f"Bit{i}"] + i, label=f"Bit{i}"
+            )  # Offset each bit for stacking
+
+        plt.title("All 16 Bits Distribution Over Time")
+        plt.xlabel("Timestamp")
+        plt.ylabel("Bit Value")
+        plt.yticks(range(16), [f"Bit{i}" for i in range(16)])
+        plt.grid(True)
+        plt.legend(loc="upper right")
+        os.makedirs(save_dir, exist_ok=True)
+        save_path = os.path.join(save_dir, "cam_exposure_all.png")
+        plt.savefig(save_path)
+        plt.show()

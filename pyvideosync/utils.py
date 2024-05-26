@@ -2,6 +2,9 @@ from datetime import datetime, timedelta
 from scipy.io.wavfile import write
 import matplotlib.pyplot as plt
 import cv2
+import os
+import json
+import pandas as pd
 
 
 def ts2unix(time_origin, resolution, ts) -> datetime:
@@ -116,13 +119,236 @@ def frame2min(frames: int, fps: int) -> str:
     return f"{minutes:02}:{seconds:02}"
 
 
-def to_16bit_binary(number: int) -> int:
+def to_16bit_binary(number: int) -> str:
     """convert number to 16-bit binary
 
     Args:
         number (int): e.g. 65535
 
     Returns:
-        int: 1111111111111111
+        str: 1111111111111111
     """
     return format(number, "016b")
+
+
+def make_bit_column(nev_digital_events_df, bit_number: int):
+    """
+    Make another column called "Bit{bit_number}"
+
+    Args:
+        nev_digital_events_df:
+        InsertionReason 	TimeStamps 	UnparsedData 	UnparsedDataBin
+    0 	1 	                149848003 	65535 	        1111111111111111
+    1 	129 	            149848077 	45 	            0000000000101101
+    2 	129 	            149848080 	39 	            0000000000100111
+    3 	129 	            149848083 	33 	            0000000000100001
+
+    Returns:
+        df
+        InsertionReason 	TimeStamps 	UnparsedData 	UnparsedDataBin    Bit{bit_number}
+    0 	1 	                149848003 	65535 	        1111111111111111   1
+    1 	129 	            149848077 	45 	            0000000000101101   0
+    """
+    df = nev_digital_events_df.copy()
+    df[f"Bit{bit_number}"] = df["UnparsedDataBin"].apply(lambda x: int(x[bit_number]))
+    return df
+
+
+def plot_bit_distribution(df, bit_column: str, save_dir=None):
+    """
+    Plot the distribution of a specified bit from 'UnparsedDataBin' against timestamps and save the plot if a directory is specified.
+
+    Args:
+        df (DataFrame):
+
+        InsertionReason 	TimeStamps 	UnparsedData 	UnparsedDataBin    Bit{bit_number}
+    0 	1 	                149848003 	65535 	        1111111111111111   1
+    1 	129 	            149848077 	45 	            0000000000101101   0
+
+        bit_column (str): e.g. "Bit0"
+        save_dir (str): Directory to save the plot. If None, the plot is not saved.
+    """
+    # Plotting
+    plt.figure(figsize=(15, 8))  # Larger figure size for better visibility
+    plt.plot(df["TimeStamps"], df[bit_column], alpha=0.5)
+    plt.title(f"Distribution of {bit_column} Over Time")
+    plt.xlabel("Timestamp")
+    plt.ylabel(f"{bit_column} Value")
+    plt.grid(True)
+
+    # Save the plot if a save directory is specified
+    if save_dir:
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        file_path = os.path.join(save_dir, f"{bit_column}_distribution.png")
+        plt.savefig(file_path)
+        plt.close()
+        print(f"Plot saved to {file_path}")
+    else:
+        plt.show()
+
+
+def plot_all_bits(df):
+    """
+    Plot all 16 bits against timestamps in the same plot, stacked upon each other.
+
+    Args:
+        df (DataFrame): The DataFrame with bit columns.
+        df (DataFrame):
+
+        InsertionReason 	TimeStamps 	UnparsedData 	UnparsedDataBin
+    0 	1 	                149848003 	65535 	        1111111111111111
+    1 	129 	            149848077 	45 	            0000000000101101
+
+        time_column (str): The column name for the timestamps.
+    """
+    plt.figure(figsize=(15, 10))  # Larger figure size for better visibility
+
+    for i in range(16):
+        df_copy = df.copy()
+        df_copy = make_bit_column(df_copy, i)
+        plt.plot(
+            df_copy["TimeStamps"], df_copy[f"Bit{i}"] + i, label=f"Bit{i}"
+        )  # Offset each bit for stacking
+
+    plt.title("All 16 Bits Distribution Over Time")
+    plt.xlabel("Timestamp")
+    plt.ylabel("Bit Value")
+    plt.yticks(range(16), [f"Bit{i}" for i in range(16)])
+    plt.grid(True)
+    plt.legend(loc="upper right")
+    plt.show()
+
+
+def analyze_bit_distribution(df, bit_column: str, save_dir=None):
+    """
+    Analyze the distribution of bit values in the DataFrame and save the summary as a JSON file if specified.
+
+    Args:
+
+        InsertionReason 	TimeStamps 	UnparsedData 	UnparsedDataBin    Bit{bit_number}
+    0 	1 	                149848003 	65535 	        1111111111111111   1
+    1 	129 	            149848077 	45 	            0000000000101101   0
+
+        bit_column (str): e.g. "Bit0"
+        save_dir (str): The path to save the JSON file. If None, the file is not saved.
+
+    Returns:
+        summary (dict): A dictionary containing the analysis summary.
+    """
+    timestamps = df["TimeStamps"].values
+    bits = df[bit_column].values
+
+    one_durations = []
+    zero_durations = []
+    gaps_between_ones = []
+    delays_after_one = []
+    delays_after_zero = []
+    first_ones_durations = []
+    first_zeros_durations = []
+
+    current_bit = bits[0]
+    start_time = timestamps[0]
+    last_one_end_time = None
+    last_zero_end_time = None
+    last_one_start_time = None
+    last_zero_start_time = None
+
+    for i in range(1, len(bits)):
+        if bits[i] != current_bit:
+            end_time = timestamps[i - 1]
+            duration = int(end_time - start_time)
+
+            if current_bit == 1:
+                # End of a chunk of 1s
+                one_durations.append(duration)
+                if last_one_end_time is not None:
+                    # Calculate the gap between the end of the last 1s chunk and the start of the current 1s chunk
+                    gaps_between_ones.append(int(start_time - last_one_end_time))
+                if last_one_start_time is not None:
+                    # Calculate the duration between the first 1s in consecutive 1s groups
+                    first_ones_durations.append(int(start_time - last_one_start_time))
+                last_one_end_time = end_time
+                last_one_start_time = start_time
+                # Delay until the next 0 occurs after 1s end
+                if i < len(bits) and bits[i] == 0:
+                    delays_after_one.append(int(timestamps[i] - end_time))
+            else:
+                # End of a chunk of 0s
+                zero_durations.append(duration)
+                if last_zero_start_time is not None:
+                    # Calculate the duration between the first 0s in consecutive 0s groups
+                    first_zeros_durations.append(int(start_time - last_zero_start_time))
+                last_zero_start_time = start_time
+                # Delay until the next 1 occurs after 0s end
+                if i < len(bits) and bits[i] == 1:
+                    delays_after_zero.append(int(timestamps[i] - end_time))
+
+            # Update for the next segment
+            current_bit = bits[i]
+            start_time = timestamps[i]
+
+    # Handle the last segment if it ends at the last index
+    end_time = timestamps[-1]
+    duration = int(end_time - start_time)
+    if current_bit == 1:
+        one_durations.append(duration)
+        if last_one_end_time is not None:
+            gaps_between_ones.append(int(start_time - last_one_end_time))
+        if last_one_start_time is not None:
+            first_ones_durations.append(int(start_time - last_one_start_time))
+    else:
+        zero_durations.append(duration)
+        if last_zero_start_time is not None:
+            first_zeros_durations.append(int(start_time - last_zero_start_time))
+
+    summary = {
+        "one_durations": one_durations,
+        "zero_durations": zero_durations,
+        "gaps_between_ones": gaps_between_ones,
+        "delays_after_one": delays_after_one,
+        "delays_after_zero": delays_after_zero,
+        "first_ones_durations": first_ones_durations,
+        "first_zeros_durations": first_zeros_durations,
+    }
+
+    # Save the summary as a JSON file if a save path is specified
+    if save_dir:
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        output_json = os.path.join(save_dir, f"{bit_column}_summary.json")
+        with open(output_json, "w") as json_file:
+            json.dump(summary, json_file, indent=4)
+        print(f"Summary saved to {output_json}")
+
+    return summary
+
+
+def fill_missing_data(nev_digital_events_df, bit_number: int):
+    """
+    Fill in the missing data points for UnparsedDataBin values so that every timestamp within the range is accounted for.
+
+    Args:
+        nev_digital_events_df (DataFrame): The DataFrame containing the data.
+        bit_number (int): The nth bit starting from the left.
+
+    Returns:
+        filled_df (DataFrame): The DataFrame with missing data points filled.
+    """
+    # Create a new DataFrame with continuous timestamps
+    df = make_bit_column(nev_digital_events_df, bit_number)
+    df["TimeStamps"] = df["TimeStamps"].astype(int)
+    min_timestamp = df["TimeStamps"].min()
+    max_timestamp = df["TimeStamps"].max()
+    all_timestamps = pd.DataFrame(
+        {"TimeStamps": range(min_timestamp, max_timestamp + 1)}
+    )
+
+    # Merge the original DataFrame with the continuous timestamps DataFrame
+    filled_df = all_timestamps.merge(df, on="TimeStamps", how="left")
+
+    # Forward fill the missing values in the bit column
+    filled_df[f"Bit{bit_number}"] = filled_df[f"Bit{bit_number}"].ffill().bfill()
+    filled_df[f"Bit{bit_number}"] = filled_df[f"Bit{bit_number}"].astype(int)
+
+    return filled_df
