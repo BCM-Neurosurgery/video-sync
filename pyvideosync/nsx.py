@@ -1,6 +1,7 @@
 import pandas as pd
 from brpylib import NsxFile
 from typing import List
+import numpy as np
 from pyvideosync import utils
 
 
@@ -14,30 +15,29 @@ class Nsx:
         self.init_vars()
 
     def init_vars(self):
-        self.timestampResolution = self.get_basic_header()["TimeStampResolution"]
-        self.timeOrigin = self.get_basic_header()["TimeOrigin"]
-        self.extended_headers_df = self.get_extended_headers_df()
-        self.memmapData = self.get_data()["data"][0]
+        self.basic_header = self.nsxDict["basic_header"]
+        self.extended_headers = self.nsxDict["extended_headers"]
+        self.timestampResolution = self.basic_header["TimeStampResolution"]
+        self.timeOrigin = self.basic_header["TimeOrigin"]
+        self.extended_headers_df = pd.DataFrame.from_records(
+            self.get_extended_headers()
+        )
+        self.data = self.nsxData
+        self.memmapData = self.data["data"][0]
         # TODO: the data header might have multiple timestamps
-        self.timeStamp = self.get_data_headers()[0]["Timestamp"]
+        self.timeStamp = self.data["data_headers"][0]["Timestamp"]
 
     def get_basic_header(self):
-        return self.nsxDict["basic_header"]
+        return self.basic_header
 
     def get_data(self):
-        return self.nsxData
-
-    def get_data_headers(self) -> list:
-        return self.get_data()["data_headers"]
+        return self.data
 
     def get_extended_headers(self) -> List[dict]:
-        return self.nsxDict["extended_headers"]
+        return self.extended_headers
 
     def get_extended_headers_df(self) -> pd.DataFrame:
-        """
-        get extended headers in pd.DataFrame
-        """
-        return pd.DataFrame.from_records(self.get_extended_headers())
+        return self.extended_headers_df
 
     def get_channel_array(self, channel: str):
         """
@@ -56,9 +56,12 @@ class Nsx:
         0           425        2024-04-16 22:28:17.310167
         """
         channel_data = self.get_channel_array(channel)
+        num_samples = len(channel_data)
         channel_df = pd.DataFrame(channel_data, columns=["Amplitude"])
-        channel_df["TimeStamp"] = [self.timeStamp + i for i in range(len(channel_df))]
-        channel_df["UTCTimeStamp"] = channel_df["TimeStamp"].map(
+        channel_df["TimeStamp"] = np.arange(
+            self.timeStamp, self.timeStamp + num_samples
+        )
+        channel_df["UTCTimeStamp"] = channel_df["TimeStamp"].apply(
             lambda x: utils.ts2unix(self.timeOrigin, self.timestampResolution, x)
         )
         # reordering
