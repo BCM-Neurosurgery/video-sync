@@ -24,14 +24,16 @@ class Nev:
         """
         Initialize other variables
         """
+        self.basic_header = self.nevDict["basic_header"]
+        self.extended_headers = self.nevDict["extended_headers"]
         self.timestampResolution = self.get_basic_header()["TimeStampResolution"]
         self.timeOrigin = self.get_basic_header()["TimeOrigin"]
 
     def get_basic_header(self) -> dict:
-        return self.nevDict["basic_header"]
+        return self.basic_header
 
     def get_extended_headers(self) -> list:
-        return self.nevDict["extended_headers"]
+        return self.extended_headers
 
     def get_num_electrodeID(self):
         """
