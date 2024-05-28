@@ -53,7 +53,7 @@ class Nev:
         """
         Return the time origin
         """
-        return self.get_basic_header()["TimeOrigin"]
+        return self.timeOrigin
 
     def get_data(self):
         return self.nevData
@@ -154,7 +154,12 @@ class Nev:
             return True
         return False
 
-    def plot_cam_exposure_all(self, save_dir: str, first_n_rows: int = 200) -> None:
+    def plot_cam_exposure_all(
+        self,
+        save_dir: str,
+        first_n_rows: int = 200,
+        save_name: str = "cam_exposure_all.png",
+    ) -> None:
         """Plot cam exposure signals for all cameras
 
         Args:
@@ -197,6 +202,6 @@ class Nev:
         plt.grid(True)
         plt.legend(loc="upper right")
         os.makedirs(save_dir, exist_ok=True)
-        save_path = os.path.join(save_dir, "cam_exposure_all.png")
+        save_path = os.path.join(save_dir, save_name)
         plt.savefig(save_path)
         plt.show()
