@@ -1,17 +1,15 @@
 """
 TODO:
-1. add debugging mode for plotting
-2. create directories if not exist
+1. Add debugging mode for plotting
+2. Create directories if they do not exist
 """
 
 import os
-import json
 import logging
 import pytz
 from datetime import datetime
 import cv2
 import numpy as np
-import pandas as pd
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from pyvideosync.nev import Nev
@@ -32,37 +30,12 @@ def log_with_eastern_time(message):
     logger.info(f"{now} - {message}")
 
 
-def load_nev(nev_path: str, save_dir: str):
-    """
-    Load the NEV file and retrieve digital events and chunk serial data.
-
-    Args:
-        nev_path (str): Path to the NEV file.
-        save_dir (str): Directory to save plots.
-
-    Returns:
-        tuple: DataFrames containing the digital events and chunk serial data.
-    """
-    nev = Nev(nev_path)
-    nev_digital_events_df = nev.get_digital_events_df()
-    first_n_rows = 200
-    nev.plot_cam_exposure_all(save_dir, first_n_rows)
-    nev_chunk_serial_df = nev.get_chunk_serial_df()
-    return nev_digital_events_df, nev_chunk_serial_df
-
-
-def plot_histogram(
-    data: pd.DataFrame,
-    column: str,
-    save_path: str,
-    color: str = "skyblue",
-    alpha: float = 0.7,
-):
+def plot_histogram(data, column, save_path, color="skyblue", alpha=0.7):
     """
     Plot a histogram of the differences in the specified column of the DataFrame.
 
     Args:
-        data (DataFrame): DataFrame containing the data to plot.
+        data (pd.DataFrame): DataFrame containing the data to plot.
         column (str): Column name to calculate differences and plot histogram.
         save_path (str): Path to save plot.
         color (str): Color of the histogram bars.
@@ -83,7 +56,7 @@ def plot_histogram(
     plt.savefig(save_path)
 
 
-def load_camera_json(json_path: str, cam_serial: str):
+def load_camera_json(json_path, cam_serial):
     """
     Load the camera JSON file and retrieve the camera data for the specified camera serial.
 
@@ -92,11 +65,10 @@ def load_camera_json(json_path: str, cam_serial: str):
         cam_serial (str): Camera serial number to retrieve data for.
 
     Returns:
-        DataFrame: DataFrame containing the camera data.
+        pd.DataFrame: DataFrame containing the camera data.
     """
     videojson = Videojson(json_path)
-    camera_df = videojson.get_camera_df(cam_serial)
-    return camera_df
+    return videojson.get_camera_df(cam_serial)
 
 
 def reconstruct_frame_id(df):
@@ -104,20 +76,14 @@ def reconstruct_frame_id(df):
     Reconstruct the frame IDs to continue after 65535 instead of rolling over.
 
     Args:
-        df (DataFrame): DataFrame containing the frame IDs.
+        df (pd.DataFrame): DataFrame containing the frame IDs.
 
     Returns:
-        DataFrame: DataFrame with reconstructed frame IDs.
+        pd.DataFrame: DataFrame with reconstructed frame IDs.
     """
     frame_ids = df["frame_id"].to_numpy()
-    counters = [0]
-    counter = 0
-    for i in range(1, len(frame_ids)):
-        if frame_ids[i - 1] > frame_ids[i]:
-            counter += 1
-        counters.append(counter)
-    frame_ids = frame_ids + 65535 * np.array(counters)
-    df["frame_ids_reconstructed"] = frame_ids
+    counters = np.cumsum(np.diff(frame_ids) < 0)
+    df["frame_ids_reconstructed"] = frame_ids + 65535 * counters
     return df
 
 
@@ -126,16 +92,15 @@ def merge_data(nev_chunk_serial_df, camera_df):
     Merge NEV chunk serial data with camera data on chunk serial.
 
     Args:
-        nev_chunk_serial_df (DataFrame): DataFrame containing NEV chunk serial data.
-        camera_df (DataFrame): DataFrame containing camera data.
+        nev_chunk_serial_df (pd.DataFrame): DataFrame containing NEV chunk serial data.
+        camera_df (pd.DataFrame): DataFrame containing camera data.
 
     Returns:
-        DataFrame: Merged DataFrame.
+        pd.DataFrame: Merged DataFrame.
     """
-    chunk_serial_joined = nev_chunk_serial_df.merge(
+    return nev_chunk_serial_df.merge(
         camera_df, left_on="chunk_serial", right_on="chunk_serial_data", how="inner"
     )
-    return chunk_serial_joined
 
 
 def slice_video(input_file, output_file, frames_to_keep):
@@ -225,7 +190,7 @@ def main():
     log_with_eastern_time("Loading NS5 file")
     ns5 = Nsx(ns5_path)
     ns5_sample_resolution = ns5.get_sample_resolution()
-    log_with_eastern_time(f"ns5 sample resolution: {ns5_sample_resolution}")
+    log_with_eastern_time(f"NS5 sample resolution: {ns5_sample_resolution}")
     ns5_channel_df = ns5.get_channel_df(config["channel_name"])
     ns5_channel_df["Amplitude"].plot()
     plt.title(f"{config['channel_name']} Amplitude")
@@ -235,7 +200,7 @@ def main():
     utils.analog2audio(
         ns5_channel_df["Amplitude"].to_numpy(), ns5_sample_resolution, audio_output_path
     )
-    log_with_eastern_time(f"saved ns5 original audio to {audio_output_path}")
+    log_with_eastern_time(f"Saved NS5 original audio to {audio_output_path}")
 
     log_with_eastern_time("Loading camera JSON file")
     camera_df = load_camera_json(json_path, cam_serial)
@@ -258,16 +223,16 @@ def main():
 
     log_with_eastern_time("Slicing video")
     slice_video(video_path, output_video_path, frame_id)
-    log_with_eastern_time(f"save sliced video to {output_video_path}")
+    log_with_eastern_time(f"Saved sliced video to {output_video_path}")
 
     log_with_eastern_time("Processing valid audio")
     valid_audio = utils.keep_valid_audio(chunk_serial_joined)
     utils.analog2audio(valid_audio, ns5_sample_resolution, audio_output_path)
-    log_with_eastern_time(f"save sliced audio to {audio_output_path}")
+    log_with_eastern_time(f"Saved sliced audio to {audio_output_path}")
 
     log_with_eastern_time("Aligning audio and video")
     align_audio_video(output_video_path, audio_output_path, final_output_path)
-    log_with_eastern_time(f"final video saved to {final_output_path}")
+    log_with_eastern_time(f"Final video saved to {final_output_path}")
 
 
 if __name__ == "__main__":
