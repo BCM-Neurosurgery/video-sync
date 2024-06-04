@@ -1,35 +1,44 @@
 import os
 import json
+import logging
+import pytz
+from datetime import datetime
 import cv2
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from datetime import datetime
-from collections import Counter
-from brpylib import NevFile, NsxFile
 from pyvideosync.nev import Nev
 from pyvideosync.nsx import Nsx
-from pyvideosync.match import Match
 from pyvideosync.videojson import Videojson
 from pyvideosync import utils
-import soundfile as sf
 from moviepy.editor import VideoFileClip, AudioFileClip
+import yaml
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+eastern = pytz.timezone("US/Eastern")
 
 
-def load_nev(nev_path: str):
+def log_with_eastern_time(message):
+    now = datetime.now(eastern).strftime("%Y-%m-%d %H:%M:%S %Z%z")
+    logger.info(f"{now} - {message}")
+
+
+def load_nev(nev_path: str, save_dir: str):
     """
     Load the NEV file and retrieve digital events and chunk serial data.
 
     Args:
         nev_path (str): Path to the NEV file.
+        save_dir (str): Directory to save plots.
 
     Returns:
         tuple: DataFrames containing the digital events and chunk serial data.
     """
     nev = Nev(nev_path)
     nev_digital_events_df = nev.get_digital_events_df()
-    save_dir = "output/plots_updated"
     first_n_rows = 200
     nev.plot_cam_exposure_all(save_dir, first_n_rows)
     nev_chunk_serial_df = nev.get_chunk_serial_df()
@@ -63,13 +72,14 @@ def plot_histogram(
     plt.show()
 
 
-def load_ns5(ns5_path: str, channel_name: str = "RoomMic2"):
+def load_ns5(ns5_path: str, channel_name: str, audio_output_path: str):
     """
     Load the NS5 file and retrieve the audio data for the specified channel.
 
     Args:
         ns5_path (str): Path to the NS5 file.
         channel_name (str): Name of the audio channel to retrieve data for.
+        audio_output_path (str): Path to save the audio output.
 
     Returns:
         DataFrame: DataFrame containing the audio data for the specified channel.
@@ -81,10 +91,8 @@ def load_ns5(ns5_path: str, channel_name: str = "RoomMic2"):
     plt.title(f"{channel_name} Amplitude")
     plt.xlabel("TimeStamps")
     plt.show()
-    os.makedirs("./output/audio", exist_ok=True)
-    utils.analog2audio(
-        ns5_channel_df["Amplitude"].to_numpy(), 30000, "./output/audio/ns5_003.wav"
-    )
+    os.makedirs(os.path.dirname(audio_output_path), exist_ok=True)
+    utils.analog2audio(ns5_channel_df["Amplitude"].to_numpy(), 30000, audio_output_path)
     return ns5_channel_df
 
 
@@ -154,7 +162,7 @@ def slice_video(input_file, output_file, frames_to_keep):
     """
     cap = cv2.VideoCapture(input_file)
     if not cap.isOpened():
-        print("Error opening video file.")
+        log_with_eastern_time("Error opening video file.")
         return
 
     frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -184,7 +192,7 @@ def slice_video(input_file, output_file, frames_to_keep):
     cap.release()
     out.release()
     cv2.destroyAllWindows()
-    print("Video processing completed.")
+    log_with_eastern_time("Video processing completed.")
 
 
 def align_audio_video(video_path, audio_path, output_path):
@@ -207,36 +215,45 @@ def main():
     Main function to orchestrate the loading, processing, and merging of NEV, NS5, and camera data,
     and aligning the audio with the video.
     """
-    indir = "/home/yewen/BCM/videosync/05302024"
-    cam_serial = "23512906"
-    nev_path = os.path.join(indir, "nsp/20240530-113523/NSP1-20240530-113523-003.nev")
-    ns5_path = os.path.join(indir, "nsp/20240530-113523/NSP1-20240530-113523-003.ns5")
-    json_path = os.path.join(indir, "video/video_sync_test_0530_20240530_115639.json")
-    video_path = os.path.join(
-        indir, "video/video_sync_test_0530_20240530_115639.23512906.mp4"
-    )
-    output_video_path = os.path.join(
-        indir, "./output/video/video_23512906_sliced_with_valid_frames.mp4"
-    )
-    audio_output_path = os.path.join(indir, "./output/audio/valid_audio_29995.wav")
-    final_output_path = os.path.join(
-        indir, "./output/video/audio_video_aligned_0530_29995.mp4"
-    )
+    with open("config.yaml", "r") as f:
+        config = yaml.safe_load(f)
 
-    nev_digital_events_df, nev_chunk_serial_df = load_nev(nev_path)
-    ns5_channel_df = load_ns5(ns5_path)
+    indir = config["indir"]
+    cam_serial = config["cam_serial"]
+    nev_path = os.path.join(indir, config["nev_path"])
+    ns5_path = os.path.join(indir, config["ns5_path"])
+    json_path = os.path.join(indir, config["json_path"])
+    video_path = os.path.join(indir, config["video_path"])
+    output_video_path = os.path.join(indir, config["output_video_path"])
+    audio_output_path = os.path.join(indir, config["audio_output_path"])
+    final_output_path = os.path.join(indir, config["final_output_path"])
+    save_dir = config["save_dir"]
+
+    log_with_eastern_time("Loading NEV file")
+    nev_digital_events_df, nev_chunk_serial_df = load_nev(nev_path, save_dir)
+
+    log_with_eastern_time("Loading NS5 file")
+    ns5_channel_df = load_ns5(ns5_path, config["channel_name"], audio_output_path)
+
+    log_with_eastern_time("Loading camera JSON file")
     camera_df = load_camera_json(json_path, cam_serial)
 
+    log_with_eastern_time("Plotting histograms")
     plot_histogram(nev_chunk_serial_df, "chunk_serial")
     plot_histogram(camera_df, "frame_id")
 
+    log_with_eastern_time("Merging data")
     chunk_serial_joined = merge_data(nev_chunk_serial_df, camera_df)
     frame_id = chunk_serial_joined["frame_id"].dropna().astype(int).to_numpy()
+
+    log_with_eastern_time("Slicing video")
     slice_video(video_path, output_video_path, frame_id)
 
+    log_with_eastern_time("Processing valid audio")
     valid_audio = utils.keep_valid_audio(chunk_serial_joined)
     utils.analog2audio(valid_audio, 29995, audio_output_path)
 
+    log_with_eastern_time("Aligning audio and video")
     align_audio_video(output_video_path, audio_output_path, final_output_path)
 
 
