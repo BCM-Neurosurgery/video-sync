@@ -53,6 +53,7 @@ def plot_histogram(data, column, save_path, color="skyblue", alpha=0.7):
             ha="center",
             va="bottom",
         )
+    plt.show()
     plt.savefig(save_path)
 
 
@@ -179,7 +180,7 @@ def main():
     output_video_path = os.path.join(indir, config["output_video_path"])
     audio_output_path = os.path.join(indir, config["audio_output_path"])
     final_output_path = os.path.join(indir, config["final_output_path"])
-    plot_save_dir = config["plot_save_dir"]
+    plot_save_dir = os.path.join(indir, config["plot_save_dir"])
 
     log_with_eastern_time("Loading NEV file")
     nev = Nev(nev_path)
