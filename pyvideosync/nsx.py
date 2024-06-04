@@ -40,6 +40,9 @@ class Nsx:
     def get_extended_headers_df(self) -> pd.DataFrame:
         return self.extended_headers_df
 
+    def get_sample_resolution(self):
+        return self.sampleResolution
+
     def get_channel_array(self, channel: str):
         """
         Args:
