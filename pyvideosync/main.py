@@ -1,3 +1,9 @@
+"""
+TODO:
+1. add debugging mode for plotting
+2. create directories if not exist
+"""
+
 import os
 import json
 import logging
@@ -46,7 +52,11 @@ def load_nev(nev_path: str, save_dir: str):
 
 
 def plot_histogram(
-    data: pd.DataFrame, column: str, color: str = "skyblue", alpha: float = 0.7
+    data: pd.DataFrame,
+    column: str,
+    save_path: str,
+    color: str = "skyblue",
+    alpha: float = 0.7,
 ):
     """
     Plot a histogram of the differences in the specified column of the DataFrame.
@@ -54,6 +64,7 @@ def plot_histogram(
     Args:
         data (DataFrame): DataFrame containing the data to plot.
         column (str): Column name to calculate differences and plot histogram.
+        save_path (str): Path to save plot.
         color (str): Color of the histogram bars.
         alpha (float): Transparency level of the histogram bars.
     """
@@ -69,31 +80,7 @@ def plot_histogram(
             ha="center",
             va="bottom",
         )
-    plt.show()
-
-
-def load_ns5(ns5_path: str, channel_name: str, audio_output_path: str):
-    """
-    Load the NS5 file and retrieve the audio data for the specified channel.
-
-    Args:
-        ns5_path (str): Path to the NS5 file.
-        channel_name (str): Name of the audio channel to retrieve data for.
-        audio_output_path (str): Path to save the audio output.
-
-    Returns:
-        DataFrame: DataFrame containing the audio data for the specified channel.
-    """
-    ns5 = Nsx(ns5_path)
-    ns5_channel_df = ns5.get_channel_df(channel_name)
-    ns5_extended_headers_df = ns5.get_extended_headers_df()
-    ns5_channel_df["Amplitude"].plot()
-    plt.title(f"{channel_name} Amplitude")
-    plt.xlabel("TimeStamps")
-    plt.show()
-    os.makedirs(os.path.dirname(audio_output_path), exist_ok=True)
-    utils.analog2audio(ns5_channel_df["Amplitude"].to_numpy(), 30000, audio_output_path)
-    return ns5_channel_df
+    plt.savefig(save_path)
 
 
 def load_camera_json(json_path: str, cam_serial: str):
@@ -215,7 +202,7 @@ def main():
     Main function to orchestrate the loading, processing, and merging of NEV, NS5, and camera data,
     and aligning the audio with the video.
     """
-    with open("config.yaml", "r") as f:
+    with open("main_configs/config.yaml", "r") as f:
         config = yaml.safe_load(f)
 
     indir = config["indir"]
@@ -227,20 +214,43 @@ def main():
     output_video_path = os.path.join(indir, config["output_video_path"])
     audio_output_path = os.path.join(indir, config["audio_output_path"])
     final_output_path = os.path.join(indir, config["final_output_path"])
-    save_dir = config["save_dir"]
+    plot_save_dir = config["plot_save_dir"]
 
     log_with_eastern_time("Loading NEV file")
-    nev_digital_events_df, nev_chunk_serial_df = load_nev(nev_path, save_dir)
+    nev = Nev(nev_path)
+    first_n_rows = 200
+    nev_chunk_serial_df = nev.get_chunk_serial_df()
+    nev.plot_cam_exposure_all(plot_save_dir, first_n_rows)
 
     log_with_eastern_time("Loading NS5 file")
-    ns5_channel_df = load_ns5(ns5_path, config["channel_name"], audio_output_path)
+    ns5 = Nsx(ns5_path)
+    ns5_sample_resolution = ns5.get_sample_resolution()
+    log_with_eastern_time(f"ns5 sample resolution: {ns5_sample_resolution}")
+    ns5_channel_df = ns5.get_channel_df(config["channel_name"])
+    ns5_channel_df["Amplitude"].plot()
+    plt.title(f"{config['channel_name']} Amplitude")
+    plt.xlabel("TimeStamps")
+    plt.savefig(os.path.join(plot_save_dir, "ns5_audio.png"))
+    os.makedirs(os.path.dirname(audio_output_path), exist_ok=True)
+    utils.analog2audio(
+        ns5_channel_df["Amplitude"].to_numpy(), ns5_sample_resolution, audio_output_path
+    )
+    log_with_eastern_time(f"saved ns5 original audio to {audio_output_path}")
 
     log_with_eastern_time("Loading camera JSON file")
     camera_df = load_camera_json(json_path, cam_serial)
 
-    log_with_eastern_time("Plotting histograms")
-    plot_histogram(nev_chunk_serial_df, "chunk_serial")
-    plot_histogram(camera_df, "frame_id")
+    log_with_eastern_time("Plotting difference histograms")
+    plot_histogram(
+        nev_chunk_serial_df,
+        "chunk_serial",
+        os.path.join(plot_save_dir, "nev_chunk_serial_diff_hist.png"),
+    )
+    plot_histogram(
+        camera_df,
+        "frame_id",
+        os.path.join(plot_save_dir, "camera_json_frame_id_diff_hist.png"),
+    )
 
     log_with_eastern_time("Merging data")
     chunk_serial_joined = merge_data(nev_chunk_serial_df, camera_df)
@@ -248,13 +258,16 @@ def main():
 
     log_with_eastern_time("Slicing video")
     slice_video(video_path, output_video_path, frame_id)
+    log_with_eastern_time(f"save sliced video to {output_video_path}")
 
     log_with_eastern_time("Processing valid audio")
     valid_audio = utils.keep_valid_audio(chunk_serial_joined)
-    utils.analog2audio(valid_audio, 29995, audio_output_path)
+    utils.analog2audio(valid_audio, ns5_sample_resolution, audio_output_path)
+    log_with_eastern_time(f"save sliced audio to {audio_output_path}")
 
     log_with_eastern_time("Aligning audio and video")
     align_audio_video(output_video_path, audio_output_path, final_output_path)
+    log_with_eastern_time(f"final video saved to {final_output_path}")
 
 
 if __name__ == "__main__":
