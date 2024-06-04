@@ -18,6 +18,7 @@ class Nsx:
         self.basic_header = self.nsxDict["basic_header"]
         self.extended_headers = self.nsxDict["extended_headers"]
         self.timestampResolution = self.basic_header["TimeStampResolution"]
+        self.sampleResolution = self.basic_header["SampleResolution"]
         self.timeOrigin = self.basic_header["TimeOrigin"]
         self.extended_headers_df = pd.DataFrame.from_records(
             self.get_extended_headers()
