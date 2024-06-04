@@ -5,6 +5,7 @@ import cv2
 import os
 import json
 import pandas as pd
+import numpy as np
 
 
 def ts2unix(time_origin, resolution, ts) -> datetime:
@@ -352,3 +353,80 @@ def fill_missing_data(nev_digital_events_df, bit_number: int):
     filled_df[f"Bit{bit_number}"] = filled_df[f"Bit{bit_number}"].astype(int)
 
     return filled_df
+
+
+def split2sections(nums: np.array) -> list:
+    """
+    Returns a 2-D list with start and end of each consecutive
+    secton
+
+    nums: e.g. np.array([2, ...NaN..., 3, ...NaN..., 5...NaN...6...Nan...7])
+
+    Returns:
+        [[2, 3], [5, 6, 7]]
+    """
+    # remove NaN
+    nums = nums[~np.isnan(nums)]
+    # convert to Int
+    nums = nums.astype(int)
+    chunks = []
+    current_chunk = []
+    # Iterate over the array
+    for i in range(len(nums)):
+        if i == 0:
+            current_chunk.append(nums[i])
+        else:
+            if nums[i] == nums[i - 1] + 1:
+                current_chunk.append(nums[i])
+            else:
+                chunks.append(current_chunk)
+                current_chunk = [nums[i]]
+
+    # Add the last chunk if not empty
+    if current_chunk:
+        chunks.append(current_chunk)
+
+    return chunks
+
+
+def findMinMax(sections: list):
+    """
+    sections:
+        [[1, 2, 3], [5, 6, 7]]
+    Returns:
+        [[1,3],[5,7]]
+    """
+    res = []
+    for section in sections:
+        res.append([min(section), max(section)])
+    return res
+
+
+# only keep the rows where frame id is consecutive
+def keep_valid_audio(df) -> list:
+    """
+    Only keep the rows of df with valid audio. Keep the rows where the frame_ids are consecutive.
+    Discard the rows where the frame id jumps.
+
+    Returns:
+        valid audio as 1D np.array
+    Algo:
+    - this dataframe will start with a int frame id and end with a int frame id
+    - get the frame id array, remove NaN, convert to int
+    - from that array, return the start and end frame id for each section
+    -
+    """
+    # get frame id array
+    frame_id = df["frame_id"].to_numpy()
+    # split it into consecutive chunks
+    frame_id_sections = split2sections(frame_id)
+    # get the start and end frame id of each section
+    frame_id_start_end = findMinMax(frame_id_sections)
+    # since each frame id is unique
+    # and the index of all_merged is all incrementing by 1
+    indices_to_keep = []
+    for s, e in frame_id_start_end:
+        chunk_start_index = df[df["frame_id"] == s].index[0]
+        chunk_end_index = df[df["frame_id"] == e].index[0]
+        indices_to_keep.extend(range(chunk_start_index, chunk_end_index + 1))
+    return df.iloc[indices_to_keep]["Amplitude"].to_numpy()
