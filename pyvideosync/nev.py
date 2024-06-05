@@ -158,9 +158,8 @@ class Nev:
 
     def plot_cam_exposure_all(
         self,
-        save_dir: str,
+        save_path: str,
         first_n_rows: int = 200,
-        save_name: str = "cam_exposure_all.png",
     ) -> None:
         """Plot cam exposure signals for all cameras
 
@@ -168,9 +167,6 @@ class Nev:
             first_n_rows (int): first n rows of the camera
             save_dir (str): dir to save the plots
         """
-        if not save_dir:
-            raise ValueError("save_dir cannot be empty")
-
         # get digital events df
         digital_events_df = self.get_digital_events_df()
 
@@ -203,7 +199,5 @@ class Nev:
         plt.yticks(range(16), [f"Bit{i}" for i in range(16)])
         plt.grid(True)
         plt.legend(loc="upper right")
-        os.makedirs(save_dir, exist_ok=True)
-        save_path = os.path.join(save_dir, save_name)
         plt.savefig(save_path)
         plt.show()

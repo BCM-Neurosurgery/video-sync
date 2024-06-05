@@ -3,6 +3,8 @@ from brpylib import NsxFile
 from typing import List
 import numpy as np
 from pyvideosync import utils
+import matplotlib.pyplot as plt
+import os
 
 
 class Nsx:
@@ -71,3 +73,36 @@ class Nsx:
         # reordering
         channel_df = channel_df[["TimeStamp", "Amplitude", "UTCTimeStamp"]]
         return channel_df
+
+    def plot_channel_array(self, channel: str, save_path: str):
+        channel_array = self.get_channel_array(channel)
+        plt.plot(channel_array)
+        plt.title(channel)
+        plt.xlabel("TimeStamps")
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        plt.savefig(save_path)
+        plt.show()
+        plt.close()
+
+    def get_channel_df_between_ts(
+        self, channel_df: pd.DataFrame, start_ts: int, end_ts: int
+    ) -> pd.DataFrame:
+        """
+        Get a slice of the ns5 channel DataFrame between start_ts and end_ts.
+
+        Args:
+            channel_df (pd.DataFrame): DataFrame containing channel data.
+            start_ts (int): Start timestamp.
+            end_ts (int): End timestamp.
+
+        Returns:
+            pd.DataFrame: Sliced DataFrame between start_ts and end_ts.
+        """
+        if start_ts > end_ts:
+            raise ValueError("start_ts must be less than or equal to end_ts")
+
+        sliced_df = channel_df[
+            (channel_df["TimeStamp"] >= start_ts) & (channel_df["TimeStamp"] <= end_ts)
+        ]
+
+        return sliced_df
