@@ -8,13 +8,12 @@ import os
 import logging
 import pytz
 from datetime import datetime
-import cv2
 import numpy as np
-from tqdm import tqdm
 import matplotlib.pyplot as plt
 from pyvideosync.nev import Nev
 from pyvideosync.nsx import Nsx
 from pyvideosync.videojson import Videojson
+from pyvideosync.video import Video
 from pyvideosync import utils
 from moviepy.editor import VideoFileClip, AudioFileClip
 import yaml
@@ -104,50 +103,6 @@ def merge_data(nev_chunk_serial_df, camera_df):
     )
 
 
-def slice_video(input_file, output_file, frames_to_keep):
-    """
-    Slice the input video to keep only specified frames.
-
-    Args:
-        input_file (str): Path to the input video file.
-        output_file (str): Path to save the output video file.
-        frames_to_keep (list): List of frame indices to keep in the output video.
-    """
-    cap = cv2.VideoCapture(input_file)
-    if not cap.isOpened():
-        log_with_eastern_time("Error opening video file.")
-        return
-
-    frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    fps = 29.995
-    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-
-    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-    out = cv2.VideoWriter(output_file, fourcc, fps, (frame_width, frame_height))
-
-    frames_to_keep = set(frames_to_keep)
-    pbar = tqdm(total=total_frames, desc="Processing video", unit="frame")
-    current_frame_index = 0
-
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
-
-        if current_frame_index in frames_to_keep:
-            out.write(frame)
-
-        current_frame_index += 1
-        pbar.update(1)
-
-    pbar.close()
-    cap.release()
-    out.release()
-    cv2.destroyAllWindows()
-    log_with_eastern_time("Video processing completed.")
-
-
 def align_audio_video(video_path, audio_path, output_path):
     """
     Align the audio with the video and save the result to a new file.
@@ -223,12 +178,13 @@ def main():
     frame_id = chunk_serial_joined["frame_id"].dropna().astype(int).to_numpy()
 
     log_with_eastern_time("Slicing video")
-    slice_video(video_path, output_video_path, frame_id)
+    video = Video(video_path)
+    video.slice_video(output_video_path, frame_id)
     log_with_eastern_time(f"Saved sliced video to {output_video_path}")
 
     log_with_eastern_time("Processing valid audio")
     valid_audio = utils.keep_valid_audio(chunk_serial_joined)
-    utils.analog2audio(valid_audio, ns5_sample_resolution, audio_output_path)
+    utils.analog2audio(valid_audio, 29800, audio_output_path)
     log_with_eastern_time(f"Saved sliced audio to {audio_output_path}")
 
     log_with_eastern_time("Aligning audio and video")
