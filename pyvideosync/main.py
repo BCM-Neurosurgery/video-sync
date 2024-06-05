@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 eastern = pytz.timezone("US/Eastern")
 
 
-def log_with_eastern_time(message):
+def log_msg(message):
     now = datetime.now(eastern).strftime("%Y-%m-%d %H:%M:%S %Z%z")
     logger.info(f"{now} - {message}")
 
@@ -54,6 +54,7 @@ def plot_histogram(data, column, save_path, color="skyblue", alpha=0.7):
         )
     plt.show()
     plt.savefig(save_path)
+    plt.close()
 
 
 def load_camera_json(json_path, cam_serial):
@@ -85,22 +86,6 @@ def reconstruct_frame_id(df):
     counters = np.cumsum(np.diff(frame_ids) < 0)
     df["frame_ids_reconstructed"] = frame_ids + 65535 * counters
     return df
-
-
-def merge_data(nev_chunk_serial_df, camera_df):
-    """
-    Merge NEV chunk serial data with camera data on chunk serial.
-
-    Args:
-        nev_chunk_serial_df (pd.DataFrame): DataFrame containing NEV chunk serial data.
-        camera_df (pd.DataFrame): DataFrame containing camera data.
-
-    Returns:
-        pd.DataFrame: Merged DataFrame.
-    """
-    return nev_chunk_serial_df.merge(
-        camera_df, left_on="chunk_serial", right_on="chunk_serial_data", how="inner"
-    )
 
 
 def align_audio_video(video_path, audio_path, output_path):
@@ -136,32 +121,26 @@ def main():
     audio_output_path = os.path.join(indir, config["audio_output_path"])
     final_output_path = os.path.join(indir, config["final_output_path"])
     plot_save_dir = os.path.join(indir, config["plot_save_dir"])
+    ns5_channel = config["channel_name"]
 
-    log_with_eastern_time("Loading NEV file")
+    log_msg("Loading NEV file")
     nev = Nev(nev_path)
-    first_n_rows = 200
     nev_chunk_serial_df = nev.get_chunk_serial_df()
-    nev.plot_cam_exposure_all(plot_save_dir, first_n_rows)
+    print(nev_chunk_serial_df.head())
+    nev.plot_cam_exposure_all(os.path.join(plot_save_dir, "cam_exposure_all.png"))
 
-    log_with_eastern_time("Loading NS5 file")
+    log_msg("Loading NS5 file")
     ns5 = Nsx(ns5_path)
-    ns5_sample_resolution = ns5.get_sample_resolution()
-    log_with_eastern_time(f"NS5 sample resolution: {ns5_sample_resolution}")
-    ns5_channel_df = ns5.get_channel_df(config["channel_name"])
-    ns5_channel_df["Amplitude"].plot()
-    plt.title(f"{config['channel_name']} Amplitude")
-    plt.xlabel("TimeStamps")
-    plt.savefig(os.path.join(plot_save_dir, "ns5_audio.png"))
-    os.makedirs(os.path.dirname(audio_output_path), exist_ok=True)
-    utils.analog2audio(
-        ns5_channel_df["Amplitude"].to_numpy(), ns5_sample_resolution, audio_output_path
+    ns5_channel_df = ns5.get_channel_df(ns5_channel)
+    ns5.plot_channel_array(
+        config["channel_name"], os.path.join(plot_save_dir, f"ns5_{ns5_channel}.png")
     )
-    log_with_eastern_time(f"Saved NS5 original audio to {audio_output_path}")
 
-    log_with_eastern_time("Loading camera JSON file")
+    log_msg("Loading camera JSON file")
     camera_df = load_camera_json(json_path, cam_serial)
+    print(camera_df.head())
 
-    log_with_eastern_time("Plotting difference histograms")
+    log_msg("Plotting difference histograms")
     plot_histogram(
         nev_chunk_serial_df,
         "chunk_serial",
@@ -173,23 +152,41 @@ def main():
         os.path.join(plot_save_dir, "camera_json_frame_id_diff_hist.png"),
     )
 
-    log_with_eastern_time("Merging data")
-    chunk_serial_joined = merge_data(nev_chunk_serial_df, camera_df)
-    frame_id = chunk_serial_joined["frame_id"].dropna().astype(int).to_numpy()
+    log_msg("Merging NEV and Camera JSON")
+    chunk_serial_joined = nev_chunk_serial_df.merge(
+        camera_df, left_on="chunk_serial", right_on="chunk_serial_data", how="inner"
+    )
 
-    log_with_eastern_time("Slicing video")
-    video = Video(video_path)
-    video.slice_video(output_video_path, frame_id)
-    log_with_eastern_time(f"Saved sliced video to {output_video_path}")
+    log_msg("Merging with NS5")
+    ns5_slice = ns5.get_channel_df_between_ts(
+        ns5_channel_df,
+        chunk_serial_joined.iloc[0]["TimeStamps"],
+        chunk_serial_joined.iloc[-1]["TimeStamps"],
+    )
+    all_merged = ns5_slice.merge(
+        chunk_serial_joined, left_on="TimeStamp", right_on="TimeStamps", how="left"
+    )
+    frame_id = all_merged["frame_id"].dropna().astype(int).to_numpy()
 
-    log_with_eastern_time("Processing valid audio")
-    valid_audio = utils.keep_valid_audio(chunk_serial_joined)
-    utils.analog2audio(valid_audio, 29800, audio_output_path)
-    log_with_eastern_time(f"Saved sliced audio to {audio_output_path}")
+    # log_msg("Slicing video")
+    # video = Video(video_path)
+    # video.slice_video(output_video_path, frame_id)
+    # log_msg(f"Saved sliced video to {output_video_path}")
 
-    log_with_eastern_time("Aligning audio and video")
+    log_msg("Processing valid audio")
+    saved_video = Video(output_video_path)
+    valid_audio = utils.keep_valid_audio(all_merged)
+    saved_sample_rate = utils.get_sample_rate(
+        len(valid_audio),
+        saved_video.get_length(),
+    )
+    log_msg(f"Saved sample rate: {saved_sample_rate}")
+    utils.analog2audio(valid_audio, saved_sample_rate, audio_output_path)
+    log_msg(f"Saved sliced audio to {audio_output_path}")
+
+    log_msg("Aligning audio and video")
     align_audio_video(output_video_path, audio_output_path, final_output_path)
-    log_with_eastern_time(f"Final video saved to {final_output_path}")
+    log_msg(f"Final video saved to {final_output_path}")
 
 
 if __name__ == "__main__":
