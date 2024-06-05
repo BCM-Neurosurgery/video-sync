@@ -416,6 +416,8 @@ def keep_valid_audio(df) -> list:
     - from that array, return the start and end frame id for each section
     -
     """
+    # reset index
+    df = df.reset_index(drop=True)
     # get frame id array
     frame_id = df["frame_id"].to_numpy()
     # split it into consecutive chunks
