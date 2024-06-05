@@ -1,6 +1,6 @@
 import cv2
 from pyvideosync import utils
-import tqdm
+from tqdm import tqdm
 
 
 class Video:
