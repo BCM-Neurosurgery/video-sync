@@ -168,10 +168,10 @@ def main():
     )
     frame_id = all_merged["frame_id"].dropna().astype(int).to_numpy()
 
-    # log_msg("Slicing video")
-    # video = Video(video_path)
-    # video.slice_video(output_video_path, frame_id)
-    # log_msg(f"Saved sliced video to {output_video_path}")
+    log_msg("Slicing video")
+    video = Video(video_path)
+    video.slice_video(output_video_path, frame_id)
+    log_msg(f"Saved sliced video to {output_video_path}")
 
     log_msg("Processing valid audio")
     saved_video = Video(output_video_path)
