@@ -112,6 +112,13 @@ def main():
     with open("main_configs/config.yaml", "r") as f:
         config = yaml.safe_load(f)
 
+    debug_mode = config.get("debug_mode", False)
+
+    if debug_mode:
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.INFO)
+
     indir = config["indir"]
     cam_serial = config["cam_serial"]
     nev_path = os.path.join(indir, config["nev_path"])
@@ -127,36 +134,42 @@ def main():
     log_msg("Loading NEV file")
     nev = Nev(nev_path)
     nev_chunk_serial_df = nev.get_chunk_serial_df()
-    log_msg(f"nev_chunk_serial_df:\n{nev_chunk_serial_df.head()}")
-    nev.plot_cam_exposure_all(os.path.join(plot_save_dir, "cam_exposure_all.png"))
+    if debug_mode:
+        log_msg(f"nev_chunk_serial_df:\n{nev_chunk_serial_df.head()}")
+        nev.plot_cam_exposure_all(os.path.join(plot_save_dir, "cam_exposure_all.png"))
 
     log_msg("Loading NS5 file")
     ns5 = Nsx(ns5_path)
     ns5_channel_df = ns5.get_channel_df(ns5_channel)
-    ns5.plot_channel_array(
-        config["channel_name"], os.path.join(plot_save_dir, f"ns5_{ns5_channel}.png")
-    )
+    if debug_mode:
+        log_msg(f"nev_chunk_serial_df:\n{nev_chunk_serial_df.head()}")
+        ns5.plot_channel_array(
+            config["channel_name"],
+            os.path.join(plot_save_dir, f"ns5_{ns5_channel}.png"),
+        )
 
     log_msg("Loading camera JSON file")
     camera_df = load_camera_json(json_path, cam_serial)
-    log_msg(f"camera json df:\n{camera_df.head()}")
-
-    log_msg("Plotting difference histograms")
-    plot_histogram(
-        nev_chunk_serial_df,
-        "chunk_serial",
-        os.path.join(plot_save_dir, "nev_chunk_serial_diff_hist.png"),
-    )
-    plot_histogram(
-        camera_df,
-        "frame_id",
-        os.path.join(plot_save_dir, "camera_json_frame_id_diff_hist.png"),
-    )
+    if debug_mode:
+        log_msg(f"camera json df:\n{camera_df.head()}")
+        log_msg("Plotting difference histograms")
+        plot_histogram(
+            nev_chunk_serial_df,
+            "chunk_serial",
+            os.path.join(plot_save_dir, "nev_chunk_serial_diff_hist.png"),
+        )
+        plot_histogram(
+            camera_df,
+            "frame_id",
+            os.path.join(plot_save_dir, "camera_json_frame_id_diff_hist.png"),
+        )
 
     log_msg("Merging NEV and Camera JSON")
     chunk_serial_joined = nev_chunk_serial_df.merge(
         camera_df, left_on="chunk_serial", right_on="chunk_serial_data", how="inner"
     )
+    if debug_mode:
+        log_msg(f"chunk_serial_df_joined:\n{chunk_serial_joined.head()}")
 
     log_msg("Merging with NS5")
     ns5_slice = ns5.get_channel_df_between_ts(
@@ -168,6 +181,8 @@ def main():
         chunk_serial_joined, left_on="TimeStamp", right_on="TimeStamps", how="left"
     )
     frame_id = all_merged["frame_id"].dropna().astype(int).to_numpy()
+    if debug_mode:
+        log_msg(f"all_merged_df:\n{all_merged.head()}")
 
     log_msg("Slicing video")
     video = Video(video_path)
