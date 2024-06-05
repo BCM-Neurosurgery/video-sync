@@ -1,6 +1,5 @@
 """
 TODO:
-1. Add debugging mode for plotting
 2. Create directories if they do not exist
 """
 
@@ -19,13 +18,45 @@ from moviepy.editor import VideoFileClip, AudioFileClip
 import yaml
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-eastern = pytz.timezone("US/Eastern")
+central = pytz.timezone("US/Central")
 
 
-def log_msg(message):
-    now = datetime.now(eastern).strftime("%Y-%m-%d %H:%M:%S %Z%z")
+def configure_logging(debug_mode, log_dir):
+    log_level = logging.DEBUG if debug_mode else logging.INFO
+
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+
+    current_time = datetime.now(central).strftime("%Y%m%d_%H%M%S")
+    log_file_path = os.path.join(log_dir, f"log_{current_time}.log")
+
+    logger = logging.getLogger(__name__)
+    logger.setLevel(log_level)
+
+    # Create handlers
+    c_handler = logging.StreamHandler()
+    f_handler = logging.FileHandler(log_file_path)
+
+    # Set level for handlers
+    c_handler.setLevel(log_level)
+    f_handler.setLevel(log_level)
+
+    # Create formatters and add it to handlers
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+    c_handler.setFormatter(formatter)
+    f_handler.setFormatter(formatter)
+
+    # Add handlers to the logger
+    logger.addHandler(c_handler)
+    logger.addHandler(f_handler)
+
+    return logger
+
+
+def log_msg(logger, message):
+    now = datetime.now(central).strftime("%Y-%m-%d %H:%M:%S %Z%z")
     logger.info(f"{now} - {message}")
 
 
@@ -113,11 +144,9 @@ def main():
         config = yaml.safe_load(f)
 
     debug_mode = config.get("debug_mode", False)
+    log_file_dir = config["log_file_dir"]
 
-    if debug_mode:
-        logging.basicConfig(level=logging.DEBUG)
-    else:
-        logging.basicConfig(level=logging.INFO)
+    logger = configure_logging(debug_mode, log_file_dir)
 
     indir = config["indir"]
     cam_serial = config["cam_serial"]
@@ -131,28 +160,28 @@ def main():
     plot_save_dir = os.path.join(indir, config["plot_save_dir"])
     ns5_channel = config["channel_name"]
 
-    log_msg("Loading NEV file")
+    log_msg(logger, "Loading NEV file")
     nev = Nev(nev_path)
     nev_chunk_serial_df = nev.get_chunk_serial_df()
     if debug_mode:
-        log_msg(f"nev_chunk_serial_df:\n{nev_chunk_serial_df.head()}")
+        log_msg(logger, f"nev_chunk_serial_df:\n{nev_chunk_serial_df.head()}")
         nev.plot_cam_exposure_all(os.path.join(plot_save_dir, "cam_exposure_all.png"))
 
-    log_msg("Loading NS5 file")
+    log_msg(logger, "Loading NS5 file")
     ns5 = Nsx(ns5_path)
     ns5_channel_df = ns5.get_channel_df(ns5_channel)
     if debug_mode:
-        log_msg(f"nev_chunk_serial_df:\n{nev_chunk_serial_df.head()}")
+        log_msg(logger, f"nev_chunk_serial_df:\n{nev_chunk_serial_df.head()}")
         ns5.plot_channel_array(
             config["channel_name"],
             os.path.join(plot_save_dir, f"ns5_{ns5_channel}.png"),
         )
 
-    log_msg("Loading camera JSON file")
+    log_msg(logger, "Loading camera JSON file")
     camera_df = load_camera_json(json_path, cam_serial)
     if debug_mode:
-        log_msg(f"camera json df:\n{camera_df.head()}")
-        log_msg("Plotting difference histograms")
+        log_msg(logger, f"camera json df:\n{camera_df.head()}")
+        log_msg(logger, "Plotting difference histograms")
         plot_histogram(
             nev_chunk_serial_df,
             "chunk_serial",
@@ -164,14 +193,14 @@ def main():
             os.path.join(plot_save_dir, "camera_json_frame_id_diff_hist.png"),
         )
 
-    log_msg("Merging NEV and Camera JSON")
+    log_msg(logger, "Merging NEV and Camera JSON")
     chunk_serial_joined = nev_chunk_serial_df.merge(
         camera_df, left_on="chunk_serial", right_on="chunk_serial_data", how="inner"
     )
     if debug_mode:
-        log_msg(f"chunk_serial_df_joined:\n{chunk_serial_joined.head()}")
+        log_msg(logger, f"chunk_serial_df_joined:\n{chunk_serial_joined.head()}")
 
-    log_msg("Merging with NS5")
+    log_msg(logger, "Merging with NS5")
     ns5_slice = ns5.get_channel_df_between_ts(
         ns5_channel_df,
         chunk_serial_joined.iloc[0]["TimeStamps"],
@@ -182,27 +211,27 @@ def main():
     )
     frame_id = all_merged["frame_id"].dropna().astype(int).to_numpy()
     if debug_mode:
-        log_msg(f"all_merged_df:\n{all_merged.head()}")
+        log_msg(logger, f"all_merged_df:\n{all_merged.head()}")
 
-    log_msg("Slicing video")
+    log_msg(logger, "Slicing video")
     video = Video(video_path)
     video.slice_video(output_video_path, frame_id)
-    log_msg(f"Saved sliced video to {output_video_path}")
+    log_msg(logger, f"Saved sliced video to {output_video_path}")
 
-    log_msg("Processing valid audio")
+    log_msg(logger, "Processing valid audio")
     saved_video = Video(output_video_path)
     valid_audio = utils.keep_valid_audio(all_merged)
     saved_sample_rate = utils.get_sample_rate(
         len(valid_audio),
         saved_video.get_length(),
     )
-    log_msg(f"Saved sample rate: {saved_sample_rate}")
+    log_msg(logger, f"Saved sample rate: {saved_sample_rate}")
     utils.analog2audio(valid_audio, saved_sample_rate, audio_output_path)
-    log_msg(f"Saved sliced audio to {audio_output_path}")
+    log_msg(logger, f"Saved sliced audio to {audio_output_path}")
 
-    log_msg("Aligning audio and video")
+    log_msg(logger, "Aligning audio and video")
     align_audio_video(output_video_path, audio_output_path, final_output_path)
-    log_msg(f"Final video saved to {final_output_path}")
+    log_msg(logger, f"Final video saved to {final_output_path}")
 
 
 if __name__ == "__main__":
