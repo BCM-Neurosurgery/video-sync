@@ -1,5 +1,6 @@
 import cv2
 from pyvideosync import utils
+import tqdm
 
 
 class Video:
@@ -54,3 +55,47 @@ class Video:
 
     def get_frame_height(self) -> int:
         return self.frame_height
+
+    def slice_video(self, output_file: str, frames_to_keep: list):
+        """
+        Slices the video to only keep the frames specified in frames_to_keep and saves it to output_file.
+
+        Parameters:
+        ----------
+        output_file : str
+            The path to save the output video file.
+        frames_to_keep : list
+            A list of frame indices to keep in the output video.
+        """
+        # Get video properties
+        frame_width = self.get_frame_width()
+        frame_height = self.get_frame_height()
+        fps = self.get_fps()
+        total_frames = self.get_frame_count()
+
+        # Define the codec and create VideoWriter object
+        fourcc = cv2.VideoWriter_fourcc(*"mp4v")  # or 'XVID'
+        out = cv2.VideoWriter(output_file, fourcc, fps, (frame_width, frame_height))
+
+        frames_to_keep = set(frames_to_keep)  # Convert list to set for fast lookup
+
+        # Initialize the progress bar
+        pbar = tqdm(total=total_frames, desc="Processing video", unit="frame")
+
+        current_frame_index = 0
+        while True:
+            ret, frame = self.capture.read()
+            if not ret:
+                break
+
+            if current_frame_index in frames_to_keep:
+                out.write(frame)
+
+            current_frame_index += 1
+            pbar.update(1)
+
+        pbar.close()
+        # Release everything when job is finished
+        self.capture.release()
+        out.release()
+        cv2.destroyAllWindows()
