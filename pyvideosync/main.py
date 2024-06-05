@@ -148,16 +148,15 @@ def main():
 
     logger = configure_logging(debug_mode, log_file_dir)
 
-    indir = config["indir"]
     cam_serial = config["cam_serial"]
-    nev_path = os.path.join(indir, config["nev_path"])
-    ns5_path = os.path.join(indir, config["ns5_path"])
-    json_path = os.path.join(indir, config["json_path"])
-    video_path = os.path.join(indir, config["video_path"])
-    output_video_path = os.path.join(indir, config["output_video_path"])
-    audio_output_path = os.path.join(indir, config["audio_output_path"])
-    final_output_path = os.path.join(indir, config["final_output_path"])
-    plot_save_dir = os.path.join(indir, config["plot_save_dir"])
+    nev_path = config["nev_path"]
+    ns5_path = config["ns5_path"]
+    json_path = config["json_path"]
+    video_path = config["video_path"]
+    output_video_path = config["output_video_path"]
+    audio_output_path = config["audio_output_path"]
+    final_output_path = config["final_output_path"]
+    plot_save_dir = config["plot_save_dir"]
     ns5_channel = config["channel_name"]
 
     log_msg(logger, "Loading NEV file")
