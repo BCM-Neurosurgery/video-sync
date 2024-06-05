@@ -52,8 +52,9 @@ def plot_histogram(data, column, save_path, color="skyblue", alpha=0.7):
             ha="center",
             va="bottom",
         )
-    plt.show()
+    plt.title(column)
     plt.savefig(save_path)
+    plt.show()
     plt.close()
 
 
@@ -126,7 +127,7 @@ def main():
     log_msg("Loading NEV file")
     nev = Nev(nev_path)
     nev_chunk_serial_df = nev.get_chunk_serial_df()
-    print(nev_chunk_serial_df.head())
+    log_msg(f"nev_chunk_serial_df:\n{nev_chunk_serial_df.head()}")
     nev.plot_cam_exposure_all(os.path.join(plot_save_dir, "cam_exposure_all.png"))
 
     log_msg("Loading NS5 file")
@@ -138,7 +139,7 @@ def main():
 
     log_msg("Loading camera JSON file")
     camera_df = load_camera_json(json_path, cam_serial)
-    print(camera_df.head())
+    log_msg(f"camera json df:\n{camera_df.head()}")
 
     log_msg("Plotting difference histograms")
     plot_histogram(
