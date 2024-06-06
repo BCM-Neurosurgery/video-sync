@@ -242,21 +242,17 @@ def main():
     if debug_mode:
         log_msg(logger, f"all_merged_df:\n{all_merged.head()}")
 
+    log_msg(logger, "Processing valid audio")
+    valid_audio = utils.keep_valid_audio(all_merged)
+    utils.analog2audio(valid_audio, ns5.get_sample_resolution(), audio_output_path)
+    log_msg(logger, f"Saved sliced audio to {audio_output_path}")
+
     log_msg(logger, "Slicing video")
     video = Video(video_path)
-    video.slice_video(output_video_path, frame_id)
+    output_fps = len(frame_id) / (len(valid_audio) / ns5.get_sample_resolution())
+    log_msg(logger, f"Output video fps: {output_fps}")
+    video.slice_video(output_video_path, frame_id, output_fps)
     log_msg(logger, f"Saved sliced video to {output_video_path}")
-
-    log_msg(logger, "Processing valid audio")
-    saved_video = Video(output_video_path)
-    valid_audio = utils.keep_valid_audio(all_merged)
-    saved_sample_rate = utils.get_sample_rate(
-        len(valid_audio),
-        saved_video.get_length(),
-    )
-    log_msg(logger, f"Saved sample rate: {saved_sample_rate}")
-    utils.analog2audio(valid_audio, saved_sample_rate, audio_output_path)
-    log_msg(logger, f"Saved sliced audio to {audio_output_path}")
 
     log_msg(logger, "Aligning audio and video")
     align_audio_video(output_video_path, audio_output_path, final_output_path)

@@ -414,13 +414,3 @@ def keep_valid_audio(df) -> list:
         chunk_end_index = df[df["frame_id"] == e].index[0]
         indices_to_keep.extend(range(chunk_start_index, chunk_end_index + 1))
     return df.iloc[indices_to_keep]["Amplitude"].to_numpy()
-
-
-def get_sample_rate(audio_length: int, video_duration: int):
-    """Cal sample rate to match duration of video
-
-    Args:
-        video_duration (int): video duration in seconds.
-        audio_length (int): number of data points in audio.
-    """
-    return int(audio_length / video_duration)
