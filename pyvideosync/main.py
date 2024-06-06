@@ -16,6 +16,7 @@ from pyvideosync.video import Video
 from pyvideosync import utils
 from moviepy.editor import VideoFileClip, AudioFileClip
 import yaml
+import argparse
 
 # Configure logging
 central = pytz.timezone("US/Central")
@@ -161,7 +162,18 @@ def align_audio_video(video_path, audio_path, output_path):
 
 
 def main():
-    with open("main_configs/config.yaml", "r") as f:
+    parser = argparse.ArgumentParser(
+        description="Process and merge NEV, NS5, and camera data, then align audio with video."
+    )
+    parser.add_argument(
+        "--config",
+        type=str,
+        default="main_configs/config.yaml",
+        help="Path to the configuration file",
+    )
+    args = parser.parse_args()
+
+    with open(args.config, "r") as f:
         config = yaml.safe_load(f)
 
     validate_config(config)
