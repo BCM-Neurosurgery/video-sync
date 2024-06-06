@@ -66,6 +66,25 @@ def create_directories(directories: list):
             os.makedirs(directory)
 
 
+def validate_config(config):
+    required_fields = [
+        "cam_serial",
+        "nev_path",
+        "ns5_path",
+        "json_path",
+        "video_path",
+        "output_video_path",
+        "audio_output_path",
+        "final_output_path",
+        "plot_save_dir",
+        "channel_name",
+        "log_file_dir",
+    ]
+    missing_fields = [field for field in required_fields if field not in config]
+    if missing_fields:
+        raise ValueError(f"Missing required config fields: {', '.join(missing_fields)}")
+
+
 def plot_histogram(data, column, save_path, color="skyblue", alpha=0.7):
     """
     Plot a histogram of the differences in the specified column of the DataFrame.
@@ -144,6 +163,8 @@ def align_audio_video(video_path, audio_path, output_path):
 def main():
     with open("main_configs/config.yaml", "r") as f:
         config = yaml.safe_load(f)
+
+    validate_config(config)
 
     debug_mode = config.get("debug_mode", False)
     log_file_dir = config["log_file_dir"]
