@@ -115,21 +115,6 @@ def plot_histogram(data, column, save_path, color="skyblue", alpha=0.7):
     plt.close()
 
 
-def load_camera_json(json_path, cam_serial):
-    """
-    Load the camera JSON file and retrieve the camera data for the specified camera serial.
-
-    Args:
-        json_path (str): Path to the camera JSON file.
-        cam_serial (str): Camera serial number to retrieve data for.
-
-    Returns:
-        pd.DataFrame: DataFrame containing the camera data.
-    """
-    videojson = Videojson(json_path)
-    return videojson.get_camera_df(cam_serial)
-
-
 def reconstruct_frame_id(df):
     """
     Reconstruct the frame IDs to continue after 65535 instead of rolling over.
@@ -221,7 +206,8 @@ def main():
         )
 
     log_msg(logger, "Loading camera JSON file")
-    camera_df = load_camera_json(json_path, cam_serial)
+    videojson = Videojson(json_path)
+    camera_df = videojson.get_camera_df(cam_serial)
     if debug_mode:
         log_msg(logger, f"camera json df:\n{camera_df.head()}")
         log_msg(logger, "Plotting difference histograms")
