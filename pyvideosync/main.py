@@ -153,7 +153,7 @@ def main():
     parser.add_argument(
         "--config",
         type=str,
-        default="main_configs/config.yaml",
+        required=True,
         help="Path to the configuration file",
     )
     args = parser.parse_args()
