@@ -1,6 +1,6 @@
 """
-TODO:
-2. Create directories if they do not exist
+Main function to orchestrate the loading, processing, and merging of NEV, NS5, and camera data,
+and aligning the audio with the video.
 """
 
 import os
@@ -58,6 +58,12 @@ def configure_logging(debug_mode, log_dir):
 def log_msg(logger, message):
     now = datetime.now(central).strftime("%Y-%m-%d %H:%M:%S %Z%z")
     logger.info(f"{now} - {message}")
+
+
+def create_directories(directories: list):
+    for directory in directories:
+        if not os.path.exists(directory):
+            os.makedirs(directory)
 
 
 def plot_histogram(data, column, save_path, color="skyblue", alpha=0.7):
@@ -136,10 +142,6 @@ def align_audio_video(video_path, audio_path, output_path):
 
 
 def main():
-    """
-    Main function to orchestrate the loading, processing, and merging of NEV, NS5, and camera data,
-    and aligning the audio with the video.
-    """
     with open("main_configs/config.yaml", "r") as f:
         config = yaml.safe_load(f)
 
@@ -158,6 +160,15 @@ def main():
     final_output_path = config["final_output_path"]
     plot_save_dir = config["plot_save_dir"]
     ns5_channel = config["channel_name"]
+
+    create_directories(
+        [
+            plot_save_dir,
+            os.path.dirname(output_video_path),
+            os.path.dirname(audio_output_path),
+            os.path.dirname(final_output_path),
+        ]
+    )
 
     log_msg(logger, "Loading NEV file")
     nev = Nev(nev_path)
