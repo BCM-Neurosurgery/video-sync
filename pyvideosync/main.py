@@ -128,22 +128,6 @@ def plot_histogram(data, column, save_path, color="skyblue", alpha=0.7):
     plt.close()
 
 
-def reconstruct_frame_id(df):
-    """
-    Reconstruct the frame IDs to continue after 65535 instead of rolling over.
-
-    Args:
-        df (pd.DataFrame): DataFrame containing the frame IDs.
-
-    Returns:
-        pd.DataFrame: DataFrame with reconstructed frame IDs.
-    """
-    frame_ids = df["frame_id"].to_numpy()
-    counters = np.cumsum(np.diff(frame_ids) < 0)
-    df["frame_ids_reconstructed"] = frame_ids + 65535 * counters
-    return df
-
-
 def align_audio_video(video_path, audio_path, output_path):
     """
     Align the audio with the video and save the result to a new file.
