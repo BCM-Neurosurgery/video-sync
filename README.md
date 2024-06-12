@@ -57,6 +57,7 @@ python main.py --config main_configs/config.yaml
 
 - [X] Log config YAML file
 - [X] Save output based on input names and timestamps
+- [ ] Make main.py cleaner
 - [ ] NS5 do not read the entire file
 - [ ] Make it work for videos other than the 1st one
 - [ ] Handle multiple videos and multiple jsons
