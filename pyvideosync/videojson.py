@@ -1,6 +1,5 @@
 import json
 import pandas as pd
-from pyvideosync import utils
 
 
 class Videojson:
@@ -8,18 +7,20 @@ class Videojson:
     Wrapper of video json file
     """
 
-    def __init__(self, json_path) -> None:
+    def __init__(self, json_path, cam_serial: int) -> None:
         self.json_path = json_path
+        self.cam_serial = cam_serial
         with open(json_path, "r", encoding="utf-8") as f:
             self.dic = json.load(f)
         self.init_vars()
 
     def init_vars(self):
-        self.num_cameras = self.get_num_cameras
-        self.length_of_recording = self.get_length_of_recording
+        self.num_cameras = self.get_num_cameras()
+        self.length_of_recording = self.get_length_of_recording()
+        self.camera_df = self.get_camera_df(self.cam_serial)
 
     def get_num_cameras(self):
-        return self.num_cameras
+        return len(self.dic["serials"])
 
     def get_length_of_recording(self):
         return len(self.dic["timestamps"])
@@ -33,7 +34,9 @@ class Videojson:
         header
         chunk_serial_data timestamp frame_id real_times
         """
-        assert cam_serial in self.get_camera_serials()
+        assert (
+            cam_serial in self.get_camera_serials()
+        ), "Camera serial not found in JSON"
         cam_idx = self.get_camera_serials().index(cam_serial)
         headers = [
             "chunk_serial_data",
@@ -53,3 +56,9 @@ class Videojson:
         df = pd.DataFrame.from_records(res)
         # df["hr_time"] = df["timestamps"].apply(lambda x: utils.jsonts2datetime(x))
         return df
+
+    def get_unique_frame_ids(self):
+        """
+        Get unique frame IDs for the initialized camera.
+        """
+        return self.camera_df["frame_id"].unique()
