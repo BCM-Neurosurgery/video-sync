@@ -62,7 +62,7 @@ class Videojson:
         """
         return self.camera_df["frame_id"].unique()
 
-    def reconstruct_frame_id(df):
+    def reconstruct_frame_id(self, df):
         """
         work on frame_id column so that it continus after 65535 instead of
         rolling over
