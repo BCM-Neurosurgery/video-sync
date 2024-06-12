@@ -201,7 +201,7 @@ def main():
     ns5 = Nsx(ns5_path)
     ns5_channel_df = ns5.get_channel_df(ns5_channel)
     if debug_mode:
-        log_msg(logger, f"nev_chunk_serial_df:\n{nev_chunk_serial_df}")
+        log_msg(logger, f"ns5_channel_df:\n{ns5_channel_df}")
         ns5.plot_channel_array(
             config["channel_name"],
             os.path.join(plot_save_dir, f"ns5_{ns5_channel}.png"),
@@ -250,7 +250,7 @@ def main():
 
     log_msg(logger, "Processing valid audio")
     valid_audio = utils.keep_valid_audio(all_merged)
-    # utils.analog2audio(valid_audio, ns5.get_sample_resolution(), audio_output_path)
+    utils.analog2audio(valid_audio, ns5.get_sample_resolution(), audio_output_path)
     log_msg(logger, f"Saved sliced audio to {audio_output_path}")
 
     log_msg(logger, "Slicing video")
@@ -259,11 +259,11 @@ def main():
     log_msg(logger, f"Input video frame count: {video.get_frame_count()}")
     log_msg(logger, f"Input video fps: {video.get_fps()}")
     log_msg(logger, f"Output video fps: {output_fps}")
-    # video.slice_video(output_video_path, frame_id, output_fps)
+    video.slice_video(output_video_path, frame_id, output_fps)
     log_msg(logger, f"Saved sliced video to {output_video_path}")
 
     log_msg(logger, "Aligning audio and video")
-    # align_audio_video(output_video_path, audio_output_path, final_output_path)
+    align_audio_video(output_video_path, audio_output_path, final_output_path)
     log_msg(logger, f"Final video saved to {final_output_path}")
 
 
