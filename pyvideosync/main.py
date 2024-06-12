@@ -192,14 +192,14 @@ def main():
     nev = Nev(nev_path)
     nev_chunk_serial_df = nev.get_chunk_serial_df()
     if debug_mode:
-        log_msg(logger, f"nev_chunk_serial_df:\n{nev_chunk_serial_df.head()}")
+        log_msg(logger, f"nev_chunk_serial_df:\n{nev_chunk_serial_df}")
         nev.plot_cam_exposure_all(os.path.join(plot_save_dir, "cam_exposure_all.png"))
 
     log_msg(logger, "Loading NS5 file")
     ns5 = Nsx(ns5_path)
     ns5_channel_df = ns5.get_channel_df(ns5_channel)
     if debug_mode:
-        log_msg(logger, f"nev_chunk_serial_df:\n{nev_chunk_serial_df.head()}")
+        log_msg(logger, f"nev_chunk_serial_df:\n{nev_chunk_serial_df}")
         ns5.plot_channel_array(
             config["channel_name"],
             os.path.join(plot_save_dir, f"ns5_{ns5_channel}.png"),
@@ -209,7 +209,7 @@ def main():
     videojson = Videojson(json_path)
     camera_df = videojson.get_camera_df(cam_serial)
     if debug_mode:
-        log_msg(logger, f"camera json df:\n{camera_df.head()}")
+        log_msg(logger, f"camera json df:\n{camera_df}")
         log_msg(
             logger,
             f"num of unique frame ids in camera json: {len(camera_df['frame_id'].unique())}",
@@ -231,7 +231,7 @@ def main():
         camera_df, left_on="chunk_serial", right_on="chunk_serial_data", how="inner"
     )
     if debug_mode:
-        log_msg(logger, f"chunk_serial_df_joined:\n{chunk_serial_joined.head()}")
+        log_msg(logger, f"chunk_serial_df_joined:\n{chunk_serial_joined}")
 
     log_msg(logger, "Merging with NS5")
     ns5_slice = ns5.get_channel_df_between_ts(
@@ -244,11 +244,11 @@ def main():
     )
     frame_id = all_merged["frame_id"].dropna().astype(int).to_numpy()
     if debug_mode:
-        log_msg(logger, f"all_merged_df:\n{all_merged.head()}")
+        log_msg(logger, f"all_merged_df:\n{all_merged}")
 
     log_msg(logger, "Processing valid audio")
     valid_audio = utils.keep_valid_audio(all_merged)
-    utils.analog2audio(valid_audio, ns5.get_sample_resolution(), audio_output_path)
+    # utils.analog2audio(valid_audio, ns5.get_sample_resolution(), audio_output_path)
     log_msg(logger, f"Saved sliced audio to {audio_output_path}")
 
     log_msg(logger, "Slicing video")
@@ -256,11 +256,11 @@ def main():
     output_fps = len(frame_id) / (len(valid_audio) / ns5.get_sample_resolution())
     log_msg(logger, f"Number of frames in original video: {video.get_frame_count()}")
     log_msg(logger, f"Output video fps: {output_fps}")
-    video.slice_video(output_video_path, frame_id, output_fps)
+    # video.slice_video(output_video_path, frame_id, output_fps)
     log_msg(logger, f"Saved sliced video to {output_video_path}")
 
     log_msg(logger, "Aligning audio and video")
-    align_audio_video(output_video_path, audio_output_path, final_output_path)
+    # align_audio_video(output_video_path, audio_output_path, final_output_path)
     log_msg(logger, f"Final video saved to {final_output_path}")
 
 
