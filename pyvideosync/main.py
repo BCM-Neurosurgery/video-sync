@@ -168,6 +168,8 @@ def main():
 
     logger = configure_logging(debug_mode, log_file_dir)
 
+    log_msg(logger, f"Configuration:\n{yaml.dump(config)}")
+
     cam_serial = config["cam_serial"]
     nev_path = config["nev_path"]
     ns5_path = config["ns5_path"]
