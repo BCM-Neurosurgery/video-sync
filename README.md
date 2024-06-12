@@ -36,22 +36,14 @@ json_path: "/path/to/your/video_sync.json"
 # Path to the input video file
 video_path: "/path/to/your/video.mp4"
 
-# Paths for the output video and audio files
-output_video_path: "/path/to/your/output/video_sliced.mp4"
-audio_output_path: "/path/to/your/output/valid_audio.wav"
-final_output_path: "/path/to/your/output/audio_video_aligned.mp4"
-
-# Directory to save plots
-plot_save_dir: "/path/to/your/output/plots"
+# Paths for the output files
+output_dir: "/path/to/output/dir"
 
 # Channel name for the audio data
 channel_name: "RoomMic2"
 
 # Whether to run in debug mode
 debug_mode: true
-
-# Path to save log files
-log_file_dir: "/path/to/your/output/logs"
 ```
 
 ### Running the Tool
@@ -64,7 +56,9 @@ python main.py --config main_configs/config.yaml
 ### TODOs
 
 - [X] Log config YAML file
-- [ ] Save output based on input names and timestamps
+- [X] Save output based on input names and timestamps
+- [ ] NS5 do not read the entire file
+- [ ] Make it work for videos other than the 1st one
 - [ ] Handle multiple videos and multiple jsons
 - [ ] Verify the input video frame vs. camera JSON
   - So far, all the saved videos seem to be complete - no missing frames.

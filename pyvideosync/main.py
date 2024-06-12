@@ -22,13 +22,16 @@ import argparse
 central = pytz.timezone("US/Central")
 
 
-def configure_logging(debug_mode, log_dir):
+def get_current_ts() -> str:
+    return datetime.now(central).strftime("%Y%m%d_%H%M%S")
+
+
+def configure_logging(debug_mode, log_dir, current_time):
     log_level = logging.DEBUG if debug_mode else logging.INFO
 
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
 
-    current_time = datetime.now(central).strftime("%Y%m%d_%H%M%S")
     log_file_path = os.path.join(log_dir, f"log_{current_time}.log")
 
     logger = logging.getLogger(__name__)
@@ -67,6 +70,20 @@ def create_directories(directories: list):
             os.makedirs(directory)
 
 
+def extract_basename(input_path: str) -> str:
+    """Extract name from input path
+
+    Args:
+        input_path (str): e.g. "/video/video_sync_test_0530_20240530_115639.23512906.mp4"
+
+    Returns:
+        str: e.g. video_sync_test_0530_20240530_115639_23512906
+    """
+    basename = os.path.basename(input_path)
+    splitted = os.path.splitext(basename)[0]
+    return splitted.replace(".", "_")
+
+
 def validate_config(config):
     required_fields = [
         "cam_serial",
@@ -74,12 +91,8 @@ def validate_config(config):
         "ns5_path",
         "json_path",
         "video_path",
-        "output_video_path",
-        "audio_output_path",
-        "final_output_path",
-        "plot_save_dir",
+        "output_dir",
         "channel_name",
-        "log_file_dir",
     ]
     missing_fields = [field for field in required_fields if field not in config]
     if missing_fields:
@@ -164,38 +177,37 @@ def main():
     validate_config(config)
 
     debug_mode = config.get("debug_mode", False)
-    log_file_dir = config["log_file_dir"]
-
-    logger = configure_logging(debug_mode, log_file_dir)
-
-    log_msg(logger, f"Configuration:\n{yaml.dump(config)}")
-
+    timestamp = get_current_ts()
     cam_serial = config["cam_serial"]
     nev_path = config["nev_path"]
     ns5_path = config["ns5_path"]
     json_path = config["json_path"]
     video_path = config["video_path"]
-    output_video_path = config["output_video_path"]
-    audio_output_path = config["audio_output_path"]
-    final_output_path = config["final_output_path"]
-    plot_save_dir = config["plot_save_dir"]
     ns5_channel = config["channel_name"]
+    folder_name = extract_basename(video_path)
+    output_dir = os.path.join(config["output_dir"], folder_name)
 
-    create_directories(
-        [
-            plot_save_dir,
-            os.path.dirname(output_video_path),
-            os.path.dirname(audio_output_path),
-            os.path.dirname(final_output_path),
-        ]
+    output_video_path = os.path.join(
+        output_dir, f"video_{cam_serial}_sliced_{timestamp}.mp4"
     )
+    audio_output_path = os.path.join(
+        output_dir, f"audio_{cam_serial}_sliced_{timestamp}.wav"
+    )
+    final_output_path = os.path.join(
+        output_dir, f"final_{cam_serial}_aligned_{timestamp}.mp4"
+    )
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    logger = configure_logging(debug_mode, output_dir, timestamp)
+    log_msg(logger, f"Configuration:\n{yaml.dump(config)}")
 
     log_msg(logger, "Loading NEV file")
     nev = Nev(nev_path)
     nev_chunk_serial_df = nev.get_chunk_serial_df()
     if debug_mode:
         log_msg(logger, f"nev_chunk_serial_df:\n{nev_chunk_serial_df}")
-        nev.plot_cam_exposure_all(os.path.join(plot_save_dir, "cam_exposure_all.png"))
+        nev.plot_cam_exposure_all(os.path.join(output_dir, "cam_exposure_all.png"))
 
     log_msg(logger, "Loading NS5 file")
     ns5 = Nsx(ns5_path)
@@ -204,7 +216,7 @@ def main():
         log_msg(logger, f"ns5_channel_df:\n{ns5_channel_df}")
         ns5.plot_channel_array(
             config["channel_name"],
-            os.path.join(plot_save_dir, f"ns5_{ns5_channel}.png"),
+            os.path.join(output_dir, f"ns5_{ns5_channel}.png"),
         )
 
     log_msg(logger, "Loading camera JSON file")
@@ -220,12 +232,12 @@ def main():
         plot_histogram(
             nev_chunk_serial_df,
             "chunk_serial",
-            os.path.join(plot_save_dir, "nev_chunk_serial_diff_hist.png"),
+            os.path.join(output_dir, "nev_chunk_serial_diff_hist.png"),
         )
         plot_histogram(
             camera_df,
             "frame_id",
-            os.path.join(plot_save_dir, "camera_json_frame_id_diff_hist.png"),
+            os.path.join(output_dir, "camera_json_frame_id_diff_hist.png"),
         )
 
     log_msg(logger, "Merging NEV and Camera JSON")
