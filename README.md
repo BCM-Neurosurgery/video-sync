@@ -59,3 +59,16 @@ log_file_dir: "/path/to/your/output/logs"
 ```
 python main.py --config main_configs/config.yaml
 ```
+
+
+### TODOs
+
+- [X] Log config YAML file
+- [ ] Save output based on input names and timestamps
+- [ ] Handle multiple videos and multiple jsons
+- [ ] Verify the input video frame vs. camera JSON
+  - So far, all the saved videos seem to be complete - no missing frames.
+  - Need more tests to see what happens if there are any missing frames.
+
+- [ ] Investigate causes of 0s in camera json
+- [ ] Populate missing values if possible
