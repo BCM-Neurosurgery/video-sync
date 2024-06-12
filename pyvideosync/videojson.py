@@ -1,5 +1,6 @@
 import json
 import pandas as pd
+import numpy as np
 
 
 class Videojson:
@@ -52,7 +53,7 @@ class Videojson:
                     temp[header] = self.dic[header][i][cam_idx]
             res.append(temp)
         df = pd.DataFrame.from_records(res)
-        # df["hr_time"] = df["timestamps"].apply(lambda x: utils.jsonts2datetime(x))
+        df = self.reconstruct_frame_id(df)
         return df
 
     def get_unique_frame_ids(self):
@@ -60,3 +61,25 @@ class Videojson:
         Get unique frame IDs for the initialized camera.
         """
         return self.camera_df["frame_id"].unique()
+
+    def reconstruct_frame_id(df):
+        """
+        work on frame_id column so that it continus after 65535 instead of
+        rolling over
+
+        Algo:
+        - the only place when frame id no longer increases is when it rolls over
+        - initialize counter = 0
+        - go through rows, whenever there is a drop, increment counter by 1
+        - add 65535 * counter
+        """
+        frame_ids = df["frame_id"].to_numpy()
+        counters = [0]
+        counter = 0
+        for i in range(1, len(frame_ids)):
+            if frame_ids[i - 1] > frame_ids[i]:
+                counter += 1
+            counters.append(counter)
+        frame_ids = frame_ids + 65535 * np.array(counters)
+        df["frame_ids_reconstructed"] = frame_ids
+        return df
