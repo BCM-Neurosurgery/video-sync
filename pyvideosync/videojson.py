@@ -7,9 +7,8 @@ class Videojson:
     Wrapper of video json file
     """
 
-    def __init__(self, json_path, cam_serial: int) -> None:
+    def __init__(self, json_path) -> None:
         self.json_path = json_path
-        self.cam_serial = cam_serial
         with open(json_path, "r", encoding="utf-8") as f:
             self.dic = json.load(f)
         self.init_vars()
@@ -17,7 +16,6 @@ class Videojson:
     def init_vars(self):
         self.num_cameras = self.get_num_cameras()
         self.length_of_recording = self.get_length_of_recording()
-        self.camera_df = self.get_camera_df(self.cam_serial)
 
     def get_num_cameras(self):
         return len(self.dic["serials"])

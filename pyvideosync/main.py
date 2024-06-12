@@ -210,6 +210,10 @@ def main():
     camera_df = videojson.get_camera_df(cam_serial)
     if debug_mode:
         log_msg(logger, f"camera json df:\n{camera_df.head()}")
+        log_msg(
+            logger,
+            f"num of unique frame ids in camera json: {len(camera_df['frame_id'].unique())}",
+        )
         log_msg(logger, "Plotting difference histograms")
         plot_histogram(
             nev_chunk_serial_df,
@@ -250,6 +254,7 @@ def main():
     log_msg(logger, "Slicing video")
     video = Video(video_path)
     output_fps = len(frame_id) / (len(valid_audio) / ns5.get_sample_resolution())
+    log_msg(logger, f"Number of frames in original video: {video.get_frame_count()}")
     log_msg(logger, f"Output video fps: {output_fps}")
     video.slice_video(output_video_path, frame_id, output_fps)
     log_msg(logger, f"Saved sliced video to {output_video_path}")
