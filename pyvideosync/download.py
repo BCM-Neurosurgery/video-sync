@@ -37,11 +37,12 @@ def main():
     parser.add_argument(
         "host_name", type=str, help="The name of the host to download from"
     )
+    parser.add_argument("config", type=str, help="Path to config.yaml")
 
     args = parser.parse_args()
     host_name = args.host_name
 
-    with open("config.yaml", "r") as config_file:
+    with open(args.config, "r") as config_file:
         config = yaml.safe_load(config_file)
 
     host_config = next(
