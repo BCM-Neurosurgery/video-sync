@@ -159,7 +159,8 @@ class Nev:
     def plot_cam_exposure_all(
         self,
         save_path: str,
-        first_n_rows: int = 200,
+        start: int,
+        end: int,
     ) -> None:
         """Plot cam exposure signals for all cameras
 
@@ -174,8 +175,8 @@ class Nev:
         digital_events_df = digital_events_df[digital_events_df["InsertionReason"] == 1]
 
         # get a subset of digital events df if first_n_rows is specified
-        if first_n_rows is not None:
-            digital_events_df_small = digital_events_df.iloc[:first_n_rows].copy()
+        if start is not None and end is not None:
+            digital_events_df_small = digital_events_df.iloc[start:end].copy()
         else:
             digital_events_df_small = digital_events_df.copy()
 
