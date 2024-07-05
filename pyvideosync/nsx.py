@@ -29,6 +29,8 @@ class Nsx:
         self.memmapData = self.data["data"][0]
         # TODO: the data header might have multiple timestamps
         self.timeStamp = self.data["data_headers"][0]["Timestamp"]
+        self.numDataPoints = self.data["data_headers"][0]["NumDataPoints"]
+        self.recording_duration_s = self.data["data_headers"][0]["data_time_s"]
 
     def get_basic_header(self):
         return self.basic_header
@@ -44,6 +46,12 @@ class Nsx:
 
     def get_sample_resolution(self):
         return self.sampleResolution
+
+    def get_num_data_points(self):
+        return self.numDataPoints
+
+    def get_recording_duration_s(self):
+        return self.recording_duration_s
 
     def get_channel_array(self, channel: str):
         """
