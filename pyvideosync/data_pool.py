@@ -62,7 +62,7 @@ class DataPool:
 
     def verify_integrity(self):
         """Verify integrity of NSP data"""
-        groups = self.get_file_groups()
+        groups = self.get_nsp1_file_groups()
         for group in groups.values():
             has_nev = any(file.endswith(".nev") for file in group)
             has_ns5 = any(file.endswith(".ns5") for file in group)
@@ -102,6 +102,15 @@ class DataPool:
         """Get groups of NSP1 files in nsp_dir with the same
         base name but different formats"""
         return self._group_files(prefix="NSP1")
+
+    def get_mp4_filelist(self, cam_serial: str) -> list:
+        """Get list of MP4 files matching the given camera serial numbers"""
+        mp4_files = []
+        for file in self.cam_files:
+            if file.endswith(".mp4"):
+                if cam_serial in file:
+                    mp4_files.append(file)
+        return mp4_files
 
 
 class NevPool:
