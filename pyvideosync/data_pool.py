@@ -12,10 +12,16 @@ print(nsp_manager.nev_pool.list_groups())
 print(nsp_manager.nsx_pool.list_groups())
 print(nsp_manager.video_pool.list_groups())
 print(nsp_manager.video_json_pool.list_groups())
+
+TODO:
+1. verify integrity
+ - each NSP1 group should have exactly 1 nev/ns5/ns3
+ - 
 """
 
 import os
 from collections import defaultdict
+from pathlib import Path
 
 
 class DataPool:
@@ -56,13 +62,7 @@ class DataPool:
 
     def verify_integrity(self):
         """Verify integrity of NSP data"""
-        # Group files by their suffix (the last part of the name)
-        groups = defaultdict(list)
-        for file in self.nsp_files:
-            suffix = file.split("-")[-1]
-            groups[suffix].append(file)
-
-        # Check if each group contains one nev, one ns5, and one ns3 file
+        groups = self.get_file_groups()
         for group in groups.values():
             has_nev = any(file.endswith(".nev") for file in group)
             has_ns5 = any(file.endswith(".ns5") for file in group)
@@ -82,6 +82,26 @@ class DataPool:
 
     def get_video_json_pool(self):
         return self.video_json_pool
+
+    def _group_files(self, prefix=None):
+        """Helper method to group files by base name with
+        an optional prefix filter"""
+        groups = defaultdict(list)
+        for file in self.nsp_files:
+            base_name = Path(file).stem
+            if prefix is None or base_name.startswith(prefix):
+                groups[base_name].append(file)
+        return groups
+
+    def get_file_groups(self):
+        """Get groups of files in nsp_dir with the same base
+        name but different formats"""
+        return self._group_files()
+
+    def get_nsp1_file_groups(self):
+        """Get groups of NSP1 files in nsp_dir with the same
+        base name but different formats"""
+        return self._group_files(prefix="NSP1")
 
 
 class NevPool:
