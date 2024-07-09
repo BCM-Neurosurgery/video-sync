@@ -31,6 +31,16 @@ class Nsx:
         self.timeStamp = self.data["data_headers"][0]["Timestamp"]
         self.numDataPoints = self.data["data_headers"][0]["NumDataPoints"]
         self.recording_duration_s = self.data["data_headers"][0]["data_time_s"]
+        self.recording_duration_readable = utils.ts2min(self.recording_duration_s, 1)
+
+    def get_start_timestamp(self):
+        return self.timeStamp
+
+    def get_timeOrigin(self):
+        return self.timeOrigin
+
+    def get_duration_readable(self):
+        return self.recording_duration_readable
 
     def get_basic_header(self):
         return self.basic_header
