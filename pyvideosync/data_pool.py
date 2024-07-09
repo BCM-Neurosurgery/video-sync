@@ -22,6 +22,9 @@ TODO:
 import os
 from collections import defaultdict
 from pathlib import Path
+from pyvideosync.videojson import Videojson
+from pyvideosync.nev import Nev
+from pyvideosync.nsx import Nsx
 
 
 class DataPool:
@@ -111,6 +114,72 @@ class DataPool:
                 if cam_serial in file:
                     mp4_files.append(file)
         return mp4_files
+
+    def find_associated_files(self, mp4_file: str):
+        """Find associated files for the given mp4_file.
+
+        Args:
+            mp4_file (str): e.g. 15min_7_3_24_synctest_20240703_160408.23512908.mp4
+
+        Returns:
+            dict: {"JSON": [abs/path/to/json]
+                    "NEV": [abs/path/to/nev/, abs/path/to/nev/],
+                    "NS5": [abs/path/to/ns5/, abs/path/to/ns5/]}
+        """
+        associated_json = self._find_associated_json(mp4_file)
+        cam_serial = self._extract_cam_serial(mp4_file)
+        json_start_serial, json_end_serial = self._get_json_serial_range(
+            associated_json, cam_serial
+        )
+        associated_nev, associated_ns5 = self._find_associated_nev_and_ns5(
+            json_start_serial, json_end_serial
+        )
+
+        return {
+            "JSON": [associated_json],
+            "NEV": associated_nev,
+            "NS5": associated_ns5,
+        }
+
+    def _find_associated_json(self, mp4_file):
+        mp4_basename = mp4_file.split(".")[0]
+        associated_json = [
+            f for f in self.cam_files if f.endswith("json") and mp4_basename in f
+        ]
+        if not associated_json:
+            raise FileNotFoundError("No associated JSON file found!")
+        if len(associated_json) > 1:
+            raise ValueError("More than one associated JSON file found!")
+        return os.path.join(self.cam_recording_dir, associated_json[0])
+
+    def _extract_cam_serial(self, mp4_file):
+        return mp4_file.rsplit(".", 2)[-2]
+
+    def _get_json_serial_range(self, json_file, cam_serial):
+        videojson = Videojson(json_file)
+        start_serial = videojson.get_start_chunk_serial(cam_serial)
+        end_serial = videojson.get_end_chunk_serial(cam_serial)
+        return start_serial, end_serial
+
+    def _find_associated_nev_and_ns5(self, start_serial, end_serial):
+        associated_nev = []
+        associated_ns5 = []
+
+        for nev_file in self.get_nev_pool().list_nsp1_nev():
+            nev = Nev(os.path.join(self.nsp_dir, nev_file))
+            nev_serial_df = nev.get_chunk_serial_df()
+            nev_start_serial = nev_serial_df.iloc[0]["chunk_serial"]
+            nev_end_serial = nev_serial_df.iloc[-1]["chunk_serial"]
+
+            if nev_start_serial < end_serial and nev_end_serial > start_serial:
+                associated_nev.append(os.path.abspath(nev_file))
+                nev_basename = Path(nev_file).stem
+                ns5_files = [
+                    f for f in self.nsp_files if f.endswith("ns5") and nev_basename in f
+                ]
+                associated_ns5.extend([os.path.abspath(f) for f in ns5_files])
+
+        return associated_nev, associated_ns5
 
 
 class NevPool:
