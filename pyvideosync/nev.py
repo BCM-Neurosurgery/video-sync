@@ -28,6 +28,25 @@ class Nev:
         self.extended_headers = self.nevDict["extended_headers"]
         self.timestampResolution = self.get_basic_header()["TimeStampResolution"]
         self.timeOrigin = self.get_basic_header()["TimeOrigin"]
+        self.start_timestamp = self.get_data()["digital_events"]["TimeStamps"][0]
+        self.end_timestamp = self.get_data()["digital_events"]["TimeStamps"][-1]
+        self.duration_s = self.end_timestamp - self.start_timestamp + 1
+        self.duration_readable = self.get_duration_readable()
+
+    def get_timestampResolution(self):
+        return self.timestampResolution
+
+    def get_start_timestamp(self):
+        return self.start_timestamp
+
+    def get_end_timestamp(self):
+        return self.end_timestamp
+
+    def get_duration_s(self):
+        return self.duration_s
+
+    def get_duration_readable(self):
+        return utils.ts2min(self.get_duration_s(), self.get_timestampResolution())
 
     def get_basic_header(self) -> dict:
         return self.basic_header
