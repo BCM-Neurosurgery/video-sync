@@ -83,3 +83,45 @@ class Videojson:
         frame_ids = frame_ids + 65535 * np.array(counters)
         df["frame_ids_reconstructed"] = frame_ids
         return df
+
+    def get_start_chunk_serial(self, cam_serial):
+        """Get the first chunk serial data for cam_serial camera that is not 0 or -1.
+
+        Args:
+            cam_serial (str): e.g. "18486644"
+
+        Returns:
+            int: The first chunk serial data that is not 0 or -1, or None if not found.
+        """
+        try:
+            # Find the index of the cam_serial in the 'serials' list
+            index = self.dic["serials"].index(cam_serial)
+            # Iterate through the chunk_serial_data for the given camera serial
+            for serial_list in self.dic["chunk_serial_data"]:
+                serial = serial_list[index]
+                if serial != 0 and serial != -1:
+                    return serial
+            return None
+        except ValueError:
+            return None
+
+    def get_end_chunk_serial(self, cam_serial):
+        """Get the last chunk serial data for cam_serial camera that is not 0 or -1.
+
+        Args:
+            cam_serial (str): e.g. "18486644"
+
+        Returns:
+            int: The last chunk serial data that is not 0 or -1, or None if not found.
+        """
+        try:
+            # Find the index of the cam_serial in the 'serials' list
+            index = self.dic["serials"].index(cam_serial)
+            # Iterate through the chunk_serial_data for the given camera serial in reverse
+            for serial_list in reversed(self.dic["chunk_serial_data"]):
+                serial = serial_list[index]
+                if serial != 0 and serial != -1:
+                    return serial
+            return None
+        except ValueError:
+            return None
