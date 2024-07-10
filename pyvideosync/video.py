@@ -1,6 +1,7 @@
 import cv2
 from pyvideosync import utils
 from tqdm import tqdm
+import pandas as pd
 
 
 class Video:
@@ -55,6 +56,20 @@ class Video:
 
     def get_frame_height(self) -> int:
         return self.frame_height
+
+    def get_video_path(self):
+        return self.video_path
+
+    def get_video_stats_df(self):
+        stats = [
+            {
+                "video_path": self.get_video_path(),
+                "saved_fps": self.get_fps(),
+                "duration_readable": self.get_length_readable(),
+                "frame_count": self.get_frame_count(),
+            }
+        ]
+        return pd.DataFrame.from_records(stats)
 
     def slice_video(self, output_file: str, frames_to_keep: list, output_fps: float):
         """
