@@ -87,6 +87,11 @@ class Video:
         output_fps : float
             The frames per second for the output video.
         """
+        # Reinitialize the capture to ensure it starts from the beginning
+        self.capture = cv2.VideoCapture(self.video_path)
+        if not self.capture.isOpened():
+            raise ValueError(f"Error reopening video file {self.video_path}")
+
         # Get video properties
         frame_width = self.get_frame_width()
         frame_height = self.get_frame_height()
