@@ -23,8 +23,11 @@ import os
 from collections import defaultdict
 from pathlib import Path
 from pyvideosync.videojson import Videojson
+from pyvideosync.video import Video
 from pyvideosync.nev import Nev
 from pyvideosync.nsx import Nsx
+import re
+from typing import List, Dict
 
 
 class DataPool:
@@ -107,12 +110,30 @@ class DataPool:
         return self._group_files(prefix="NSP1")
 
     def get_mp4_filelist(self, cam_serial: str) -> list:
-        """Get list of MP4 files matching the given camera serial numbers"""
+        """Get list of MP4 files matching the given camera serial numbers and sort them by timestamp."""
+
+        def get_timestamp(file: str) -> int:
+            """Extract timestamp from file to int
+
+            Args:
+                file (str): e.g. 15min_7_3_24_synctest_20240703_160408.23512908.mp4
+
+            Returns:
+                int: 160408
+            """
+            match = re.match(r".*_(\d{6})\.\d+\..*", file)
+
+            if match:
+                return match.group(1)
+            else:
+                raise ValueError("mp4 filenames parsed error!")
+
         mp4_files = []
         for file in self.cam_files:
-            if file.endswith(".mp4"):
-                if cam_serial in file:
-                    mp4_files.append(file)
+            if file.endswith(".mp4") and cam_serial in file:
+                mp4_files.append(file)
+
+        mp4_files.sort(key=lambda x: get_timestamp(x))
         return mp4_files
 
     def find_associated_files(self, mp4_file: str):
@@ -122,46 +143,85 @@ class DataPool:
             mp4_file (str): e.g. 15min_7_3_24_synctest_20240703_160408.23512908.mp4
 
         Returns:
-            dict: {"JSON": [abs/path/to/json]
-                    "NEV": [abs/path/to/nev/, abs/path/to/nev/],
-                    "NS5": [abs/path/to/ns5/, abs/path/to/ns5/]}
+            dict: {"JSON": [{}]
+                   "NEV": [{}, {}],
+                   "NS5": [{}, {}]}
         """
         associated_json = self._find_associated_json(mp4_file)
-        cam_serial = self._extract_cam_serial(mp4_file)
-        json_start_serial, json_end_serial = self._get_json_serial_range(
-            associated_json, cam_serial
-        )
         associated_nev, associated_ns5 = self._find_associated_nev_and_ns5(
-            json_start_serial, json_end_serial
+            associated_json
         )
 
         return {
-            "JSON": [associated_json],
+            "JSON": associated_json,
             "NEV": associated_nev,
             "NS5": associated_ns5,
         }
 
     def _find_associated_json(self, mp4_file):
         mp4_basename = mp4_file.split(".")[0]
-        associated_json = [
-            f for f in self.cam_files if f.endswith("json") and mp4_basename in f
+        cam_serial = self._extract_cam_serial(mp4_file)
+        json_path = os.path.join(self.cam_recording_dir, f"{mp4_basename}.json")
+        videojson = Videojson(json_path)
+        return [
+            {
+                "json_rel_path": f"{mp4_basename}.json",
+                "json_start_chunk_serial": videojson.get_start_chunk_serial(cam_serial),
+                "json_end_chunk_serial": videojson.get_end_chunk_serial(cam_serial),
+                "json_time_origin": videojson.get_time_origin(),
+                "json_duration_readable": videojson.get_duration_readable(),
+            }
         ]
-        if not associated_json:
-            raise FileNotFoundError("No associated JSON file found!")
-        if len(associated_json) > 1:
-            raise ValueError("More than one associated JSON file found!")
-        return os.path.join(self.cam_recording_dir, associated_json[0])
+
+    def get_abs_json_path(self, mp4_rel_path: str) -> str:
+        """Given mp4_rel_path, return abs json path
+
+        Args:
+            mp4_rel_path (str): e.g. 15min_7_3_24_synctest_20240703_160709.18486634.mp4
+        """
+        mp4_basename = mp4_rel_path.split(".")[0]
+        return os.path.join(self.cam_recording_dir, f"{mp4_basename}.json")
+
+    def get_abs_nev_path(self, nev_rel_path: str):
+        return os.path.join(self.nsp_dir, nev_rel_path)
+
+    def get_abs_ns5_path(self, ns5_rel_path: str):
+        return os.path.join(self.nsp_dir, ns5_rel_path)
+
+    def get_mp4_abs_frame_range(self, cur_mp4_rel_path: str, cam_serial: str) -> int:
+        """Get abs start frame of mp4 video
+
+        Args:
+            mp4_rel_path (str): 15min_7_3_24_synctest_20240703_155508.23512906.mp4
+            cam_serial (str): 18486644
+        Returns:
+            start, end
+        """
+        mp4_files = self.get_mp4_filelist(cam_serial)
+        running_frame_count = 0
+        for mp4_file in mp4_files:
+            if mp4_file == cur_mp4_rel_path:
+                break
+            mp4_abs_path = os.path.join(self.cam_recording_dir, mp4_file)
+            video = Video(mp4_abs_path)
+            running_frame_count += video.get_frame_count()
+
+        abs_start_frame = running_frame_count + 1
+        cur_mp4_abs_path = os.path.join(self.cam_recording_dir, cur_mp4_rel_path)
+        video = Video(cur_mp4_abs_path)
+        abs_end_frame = abs_start_frame + video.get_frame_count()
+        return abs_start_frame, abs_end_frame
 
     def _extract_cam_serial(self, mp4_file):
         return mp4_file.rsplit(".", 2)[-2]
 
-    def _get_json_serial_range(self, json_file, cam_serial):
-        videojson = Videojson(json_file)
-        start_serial = videojson.get_start_chunk_serial(cam_serial)
-        end_serial = videojson.get_end_chunk_serial(cam_serial)
-        return start_serial, end_serial
+    def _find_associated_nev_and_ns5(self, associated_json: List[Dict]):
+        if len(associated_json) != 1:
+            raise ValueError("JSON list length != 1")
 
-    def _find_associated_nev_and_ns5(self, start_serial, end_serial):
+        json_start_serial = associated_json[0]["json_start_chunk_serial"]
+        json_end_serial = associated_json[0]["json_end_chunk_serial"]
+
         associated_nev = []
         associated_ns5 = []
 
@@ -171,13 +231,31 @@ class DataPool:
             nev_start_serial = nev_serial_df.iloc[0]["chunk_serial"]
             nev_end_serial = nev_serial_df.iloc[-1]["chunk_serial"]
 
-            if nev_start_serial < end_serial and nev_end_serial > start_serial:
-                associated_nev.append(os.path.abspath(nev_file))
+            if nev_end_serial < json_start_serial or nev_start_serial > json_end_serial:
+                continue
+            else:
+                associated_nev.append(
+                    {
+                        "nev_rel_path": nev_file,
+                        "nev_start_chunk_serial": nev_start_serial,
+                        "nev_end_chunk_serial": nev_end_serial,
+                        "nev_time_origin": nev.get_time_origin(),
+                        "nev_start_timestamp": nev.get_start_timestamp(),
+                        "nev_duration_readable": nev.get_duration_readable(),
+                    }
+                )
                 nev_basename = Path(nev_file).stem
-                ns5_files = [
-                    f for f in self.nsp_files if f.endswith("ns5") and nev_basename in f
-                ]
-                associated_ns5.extend([os.path.abspath(f) for f in ns5_files])
+                ns5_path = os.path.join(self.nsp_dir, f"{nev_basename}.ns5")
+                ns5 = Nsx(ns5_path)
+
+                associated_ns5.append(
+                    {
+                        "ns5_rel_path": f"{nev_basename}.ns5",
+                        "ns5_time_origin": ns5.get_timeOrigin(),
+                        "ns5_start_timestamp": ns5.get_start_timestamp(),
+                        "ns5_duration_readable": ns5.get_duration_readable(),
+                    }
+                )
 
         return associated_nev, associated_ns5
 
@@ -189,6 +267,10 @@ class NevPool:
     def add_file(self, file: str):
         suffix = file.split("-")[-1]
         self.files[suffix].append(file)
+
+    def _extract_number(self, file: str) -> int:
+        match = re.search(r"-(\d{3})\.", file)
+        return int(match.group(1)) if match else 0
 
     def get_num(self, prefix: str) -> int:
         return sum(
@@ -205,20 +287,26 @@ class NevPool:
         return self.get_num("NSP2")
 
     def list_nsp1_nev(self):
-        return [
-            file
-            for files in self.files.values()
-            for file in files
-            if file.startswith("NSP1")
-        ]
+        return sorted(
+            [
+                file
+                for files in self.files.values()
+                for file in files
+                if file.startswith("NSP1")
+            ],
+            key=self._extract_number,
+        )
 
     def list_nsp2_nev(self):
-        return [
-            file
-            for files in self.files.values()
-            for file in files
-            if file.startswith("NSP2")
-        ]
+        return sorted(
+            [
+                file
+                for files in self.files.values()
+                for file in files
+                if file.startswith("NSP2")
+            ],
+            key=self._extract_number,
+        )
 
     def list_groups(self):
         return {suffix: files for suffix, files in self.files.items()}

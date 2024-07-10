@@ -102,6 +102,22 @@ def frame2min(frames: int, fps: int) -> str:
     return f"{minutes:02}:{seconds:02}"
 
 
+def ts2min(ts: float, resolution: int) -> str:
+    """Convert number of timestamps to 00:00 format
+
+    Args:
+        ts (int): timestamp
+        resolution (int): e.g. 30000
+
+    Returns:
+        str: length of timestamps in 00:00 format
+    """
+    total_seconds = ts / resolution
+    minutes = int(total_seconds // 60)
+    seconds = int(total_seconds % 60)
+    return f"{minutes:02}:{seconds:02}"
+
+
 def to_16bit_binary(number: int) -> str:
     """convert number to 16-bit binary
 
