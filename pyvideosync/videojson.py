@@ -1,6 +1,7 @@
 import json
 import pandas as pd
 import numpy as np
+from datetime import datetime
 
 
 class Videojson:
@@ -17,6 +18,19 @@ class Videojson:
     def init_vars(self):
         self.num_cameras = self.get_num_cameras()
         self.length_of_recording = self.get_length_of_recording()
+        self.timeOrigin = self.dic["real_times"][0]
+        self.duration_readable = self.calculate_duration(self.dic["real_times"])
+
+    def calculate_duration(self, real_times):
+        start_time = datetime.strptime(real_times[0], "%Y-%m-%d %H:%M:%S.%f")
+        end_time = datetime.strptime(real_times[-1], "%Y-%m-%d %H:%M:%S.%f")
+        return end_time - start_time
+
+    def get_duration_readable(self):
+        return self.duration_readable
+
+    def get_time_origin(self):
+        return self.timeOrigin
 
     def get_num_cameras(self):
         return len(self.dic["serials"])
