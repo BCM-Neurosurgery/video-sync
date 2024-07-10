@@ -60,13 +60,15 @@ class Video:
     def get_video_path(self):
         return self.video_path
 
-    def get_video_stats_df(self):
+    def get_video_stats_df(self, abs_start_frame=None, abs_end_frame=None):
         stats = [
             {
                 "video_path": self.get_video_path(),
                 "saved_fps": self.get_fps(),
                 "duration_readable": self.get_length_readable(),
                 "frame_count": self.get_frame_count(),
+                "abs_start_frame": abs_start_frame,
+                "abs_end_frame": abs_end_frame,
             }
         ]
         return pd.DataFrame.from_records(stats)
