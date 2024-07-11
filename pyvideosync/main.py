@@ -21,7 +21,6 @@ import argparse
 import sys
 import pandas as pd
 from pathlib import Path
-import shutil
 
 # Configure logging
 central = pytz.timezone("US/Central")
@@ -67,12 +66,6 @@ def configure_logging(debug_mode, log_dir, current_time):
 def log_msg(logger, message):
     now = datetime.now(central).strftime("%Y-%m-%d %H:%M:%S %Z%z")
     logger.info(f"{now} - {message}")
-
-
-def create_directories(directories: list):
-    for directory in directories:
-        if not os.path.exists(directory):
-            os.makedirs(directory)
 
 
 def extract_basename(input_path: str) -> str:
@@ -191,24 +184,25 @@ def main():
     cam_recording_dir = config["cam_recording_dir"]
     output_dir = config["output_dir"]
     ns5_channel = config["channel_name"]
-    os.makedirs(output_dir, exist_ok=True)
-
-    # configure logging
-    logger = configure_logging(debug_mode, output_dir, timestamp)
-    log_msg(logger, f"Configuration:\n{yaml.dump(config)}")
 
     # initialize DataPool
     datapool = DataPool(nsp_dir, cam_recording_dir)
 
-    # initial verification of integrity
+    # initial data integrity check
     init_file_integrity_check = datapool.verify_integrity()
     if not init_file_integrity_check:
-        log_msg(logger, f"Initial file integrity check failed, exiting...")
+        print("Initial file integrity check failed, exiting...")
         sys.exit()
 
     # prompt for video file(s) to be processed
     cam_mp4_files = datapool.get_mp4_filelist(cam_serial)
     video_to_process = prompt_user_for_video_file(cam_mp4_files)
+    video_output_dir = os.path.join(output_dir, extract_basename(video_to_process))
+    os.makedirs(video_output_dir, exist_ok=True)
+
+    # configure logging
+    logger = configure_logging(debug_mode, video_output_dir, timestamp)
+    log_msg(logger, f"Configuration:\n{yaml.dump(config)}")
 
     # find associated nev, ns5, json file to that video
     log_msg(logger, f"You selected {video_to_process}")
@@ -244,7 +238,7 @@ def main():
         plot_histogram(
             camera_df,
             "frame_id",
-            os.path.join(output_dir, "camera_json_frame_id_diff_hist.png"),
+            os.path.join(video_output_dir, "camera_json_frame_id_diff_hist.png"),
         )
 
     all_merged_dfs = []
@@ -256,7 +250,7 @@ def main():
             logger,
             f"Processig {nev_dict['nev_rel_path']} and {ns5_dict['ns5_rel_path']}",
         )
-        chunk_output_dir = os.path.join(output_dir, str(i))
+        chunk_output_dir = os.path.join(video_output_dir, str(i))
         os.makedirs(chunk_output_dir, exist_ok=True)
 
         log_msg(logger, "Loading NEV file")
@@ -300,7 +294,6 @@ def main():
 
     # concat all_merged_dfs
     all_merged_concat_df = pd.concat(all_merged_dfs, ignore_index=True)
-    all_merged_concat_df.to_csv(os.path.join(output_dir, "all_merged_concat.csv"))
     running_total_frame_id = (
         all_merged_concat_df["frame_id"].dropna().astype(int).to_numpy()
     )
@@ -310,13 +303,16 @@ def main():
 
     # make save paths
     output_video_path = os.path.join(
-        output_dir, f"video_{cam_serial}_sliced_{timestamp}.mp4"
+        video_output_dir,
+        f"video_{cam_serial}_sliced_{timestamp}.mp4",
     )
     audio_output_path = os.path.join(
-        output_dir, f"audio_{cam_serial}_sliced_{timestamp}.wav"
+        video_output_dir,
+        f"audio_{cam_serial}_sliced_{timestamp}.wav",
     )
     final_output_path = os.path.join(
-        output_dir, f"final_{cam_serial}_aligned_{timestamp}.mp4"
+        video_output_dir,
+        f"final_{cam_serial}_aligned_{timestamp}.mp4",
     )
 
     log_msg(logger, "Processing valid audio")
