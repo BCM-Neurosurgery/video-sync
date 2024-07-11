@@ -68,24 +68,34 @@ python main.py --config main_configs/config.yaml
 
 ### TODOs
 
+**CORE**
 - [X] Log config YAML file
 - [X] Save output based on input names and timestamps
 - [X] main.py save log to each video section
 - [X] Do not plot, instead just save plots to dir
 - [X] When config path does not exist
-- [X] Remove intermediate video files after program completes
 - [X] Make it work for videos other than the 1st one
-- [ ] Process video once?
-- [ ] Make a menu program
-- [ ] Figure out a way to get rid of all hard-coded string names
-- [ ] Confirm with user if the video has already been processed
+- [X] Handle multiple videos and multiple jsons
 - [ ] Make a docker file
+- [ ] Multiple cam serial numbers
+
+**User-interaction**
+- [X] Make a menu program
+- [ ] Confirm with user if the video has already been processed
+
+**Performance**
+- [X] Remove intermediate video files after program completes
+- [ ] Does not have to go through all NEV/NS5 files in NSP
+- [ ] Process video once?
 - [ ] NS5 do not read the entire file
-- [ ] Handle multiple videos and multiple jsons
+
+**Data-integrity**
 - [ ] Verify the input video frame vs. camera JSON
   - So far, all the saved videos seem to be complete - no missing frames.
   - Need more tests to see what happens if there are any missing frames.
 
 - [ ] Investigate causes of 0s in camera json
 - [ ] Populate missing values if possible
-- [ ] Multiple cam serial numbers
+
+**Readability**
+- [ ] Figure out a way to get rid of all hard-coded string names
