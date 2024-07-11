@@ -159,6 +159,29 @@ def prompt_user_for_video_file(cam_mp4_files):
             print("Invalid input. Please enter a number.")
 
 
+def load_config(config_path):
+    """
+    Load a YAML configuration file.
+
+    Args:
+        config_path (str): Path to the YAML configuration file.
+
+    Returns:
+        dict: Loaded configuration as a dictionary.
+    """
+    if not os.path.exists(config_path):
+        print(f"Configuration file '{config_path}' does not exist.")
+        sys.exit(1)
+
+    try:
+        with open(config_path, "r") as f:
+            config = yaml.safe_load(f)
+        return config
+    except yaml.YAMLError as e:
+        print(f"Error loading configuration file '{config_path}': {e}")
+        sys.exit(1)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Process and merge NEV, NS5, and camera data, then align audio with video."
@@ -171,9 +194,7 @@ def main():
     )
     args = parser.parse_args()
 
-    with open(args.config, "r") as f:
-        config = yaml.safe_load(f)
-
+    config = load_config(args.config)
     validate_config(config)
 
     debug_mode = config.get("debug_mode", False)
