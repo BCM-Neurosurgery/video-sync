@@ -120,7 +120,6 @@ def plot_histogram(data, column, save_path, color="skyblue", alpha=0.7):
         )
     plt.title(column)
     plt.savefig(save_path)
-    plt.show()
     plt.close()
 
 

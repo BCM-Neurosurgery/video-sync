@@ -99,7 +99,6 @@ class Nsx:
         plt.xlabel("TimeStamps")
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         plt.savefig(save_path)
-        plt.show()
         plt.close()
 
     def get_channel_df_between_ts(

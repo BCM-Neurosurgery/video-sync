@@ -220,4 +220,4 @@ class Nev:
         plt.grid(True)
         plt.legend(loc="upper right")
         plt.savefig(save_path)
-        plt.show()
+        plt.close()
