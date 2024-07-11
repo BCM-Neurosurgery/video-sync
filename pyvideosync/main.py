@@ -182,6 +182,13 @@ def load_config(config_path):
         sys.exit(1)
 
 
+def remove_file(file_path):
+    try:
+        os.remove(file_path)
+    except Exception as e:
+        print(f"Error removing file: {e}")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Process and merge NEV, NS5, and camera data, then align audio with video."
@@ -354,6 +361,10 @@ def main():
     log_msg(logger, "Aligning audio and video")
     align_audio_video(output_video_path, audio_output_path, final_output_path)
     log_msg(logger, f"Final video saved to {final_output_path}")
+
+    remove_file(output_video_path)
+    remove_file(audio_output_path)
+    log_msg(logger, f"Removed intermediate media files")
 
 
 if __name__ == "__main__":
