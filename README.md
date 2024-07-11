@@ -52,14 +52,35 @@ debug_mode: true
 python main.py --config main_configs/config.yaml
 ```
 
+## Workflow
+
+- Verify initial file integrity
+  - Minimal file paths check, save memory/time
+  - Focus on NSP1 for now
+  - Each NSP1 group should have exactly 1 nev/ns5/ns3
+  - Each mp4/json group should have exactly 1 JSON
+
+- If integrity check passed, prompt for input
+  - Ask the user exactly which video file he/she wants to sync
+  - Secondary integrity check
+
+- Continue to sync
 
 ### TODOs
 
 - [X] Log config YAML file
 - [X] Save output based on input names and timestamps
-- [ ] Make main.py cleaner
+- [X] main.py save log to each video section
+- [X] Do not plot, instead just save plots to dir
+- [X] When config path does not exist
+- [X] Remove intermediate video files after program completes
+- [X] Make it work for videos other than the 1st one
+- [ ] Process video once?
+- [ ] Make a menu program
+- [ ] Figure out a way to get rid of all hard-coded string names
+- [ ] Confirm with user if the video has already been processed
+- [ ] Make a docker file
 - [ ] NS5 do not read the entire file
-- [ ] Make it work for videos other than the 1st one
 - [ ] Handle multiple videos and multiple jsons
 - [ ] Verify the input video frame vs. camera JSON
   - So far, all the saved videos seem to be complete - no missing frames.
@@ -67,3 +88,4 @@ python main.py --config main_configs/config.yaml
 
 - [ ] Investigate causes of 0s in camera json
 - [ ] Populate missing values if possible
+- [ ] Multiple cam serial numbers
