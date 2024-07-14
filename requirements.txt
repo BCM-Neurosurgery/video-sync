@@ -8,4 +8,5 @@ scipy
 scp
 moviepy
 pyyaml
+pyinstaller
 git+https://github.com/BlackrockNeurotech/Python-Utilities.git#egg=brpylib
