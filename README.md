@@ -35,26 +35,13 @@ output_dir: "path/to/output"
 
 # Channel name for the audio data
 channel_name: "RoomMic2"
+```
 
 ### Running the Tool
 
 ```
 python main.py
 ```
-
-## Workflow
-
-- Verify initial file integrity
-  - Minimal file paths check, save memory/time
-  - Focus on NSP1 for now
-  - Each NSP1 group should have exactly 1 nev/ns5/ns3
-  - Each mp4/json group should have exactly 1 JSON
-
-- If integrity check passed, prompt for input
-  - Ask the user exactly which video file he/she wants to sync
-  - Secondary integrity check
-
-- Continue to sync
 
 ### TODOs
 
