@@ -15,6 +15,7 @@ from pyvideosync.videojson import Videojson
 from pyvideosync.video import Video
 from pyvideosync.data_pool import DataPool
 from pyvideosync import utils
+from pyvideosync.dataframelogger import DataFrameLogger
 from moviepy.editor import VideoFileClip, AudioFileClip
 import yaml
 import sys
@@ -275,6 +276,9 @@ def main():
                     logger = configure_logging(video_output_dir, timestamp)
                     logger.debug(f"Configuration:\n{yaml.dump(config)}")
 
+                    # configure dataframe logger
+                    df_logger = DataFrameLogger()
+
                     # find associated nev, ns5, json file to that video
                     logger.info(f"You selected {video_to_process}")
                     logger.info("Scanning folders to find associated files...")
@@ -308,17 +312,7 @@ def main():
                     camera_df = videojson.get_camera_df(cam_serial)
                     logger.debug(f"camera json df:\n{camera_df}")
                     logger.info(
-                        f"num of discontinuities in frame ids in camera json: {utils.count_discontinuities(camera_df, 'frame_ids_reconstructed')}"
-                    )
-                    logger.info(
-                        f"num of unique frame ids in camera json: {len(camera_df['frame_id'].unique())}"
-                    )
-                    plot_histogram(
-                        camera_df,
-                        "frame_id",
-                        os.path.join(
-                            video_output_dir, "camera_json_frame_id_diff_hist.png"
-                        ),
+                        f"camera json df stats:\n{df_logger.log_dataframe_info('camera_json_df', camera_df)}"
                     )
 
                     all_merged_dfs = []
@@ -337,6 +331,9 @@ def main():
                         nev = Nev(nev_path)
                         nev_chunk_serial_df = nev.get_chunk_serial_df()
                         logger.debug(f"nev_chunk_serial_df:\n{nev_chunk_serial_df}")
+                        logger.info(
+                            f"nev_chunk_serial_df stats:\n{df_logger.log_dataframe_info('nev_chunk_serial_df', nev_chunk_serial_df)}"
+                        )
                         nev.plot_cam_exposure_all(
                             os.path.join(chunk_output_dir, "cam_exposure_all.png"),
                             0,
@@ -361,6 +358,9 @@ def main():
                             how="inner",
                         )
                         logger.debug(f"chunk_serial_df_joined:\n{chunk_serial_joined}")
+                        logger.info(
+                            f"chunk_serial_df_joined stats:\n{df_logger.log_dataframe_info('chunk_serial_df_joined', chunk_serial_joined)}"
+                        )
 
                         logger.info("Merging JSON, NEV with NS5...")
                         ns5_slice = ns5.get_channel_df_between_ts(
@@ -375,10 +375,7 @@ def main():
                             how="left",
                         )
                         logger.info(
-                            f"There are {utils.count_discontinuities(all_merged, 'frame_ids_reconstructed')} discontinuities in frame ids in all_merged"
-                        )
-                        logger.info(
-                            f"There are {utils.count_unique_values(all_merged, 'frame_ids_reconstructed')} unique frame ids in all_merged"
+                            f"all_merged stats:\n{df_logger.log_dataframe_info('all_merged_df', all_merged)}"
                         )
                         all_merged_dfs.append(all_merged)
 
