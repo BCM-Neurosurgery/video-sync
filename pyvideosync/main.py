@@ -374,6 +374,9 @@ def main():
                         logger.info(
                             f"There are {utils.count_discontinuities(all_merged, 'frame_ids_reconstructed')} discontinuities in frame ids in all_merged"
                         )
+                        logger.info(
+                            f"There are {utils.count_unique_values(all_merged, 'frame_ids_reconstructed')} unique frame ids in all_merged"
+                        )
                         all_merged_dfs.append(all_merged)
 
                     # concat all_merged_dfs

@@ -456,3 +456,24 @@ def count_discontinuities(df, column_name):
     differences = non_nan_values.diff().fillna(1)
     discontinuities = (differences > 1).sum()
     return discontinuities
+
+
+def count_unique_values(df, column_name):
+    """
+    Count the number of unique values in a specified column of a DataFrame.
+
+    Parameters:
+    df (pandas.DataFrame): The input dataframe containing the column to be analyzed.
+    column_name (str): The name of the column to count unique values in.
+
+    Returns:
+    int: The number of unique values in the column.
+
+    Example:
+    >>> data = {'numbers': [1, 2, 2, 3, 4, 4, 4, 5]}
+    >>> df = pd.DataFrame(data)
+    >>> count_unique_values(df, 'numbers')
+    5
+    """
+    unique_values_count = df[column_name].nunique()
+    return unique_values_count
