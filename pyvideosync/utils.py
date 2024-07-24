@@ -430,3 +430,29 @@ def keep_valid_audio(df) -> list:
         chunk_end_index = df[df["frame_id"] == e].index[0]
         indices_to_keep.extend(range(chunk_start_index, chunk_end_index + 1))
     return df.iloc[indices_to_keep]["Amplitude"].to_numpy()
+
+
+def count_discontinuities(df, column_name):
+    """
+    Count the number of discontinuities in a column of integers with potential missing values.
+
+    A discontinuity is defined as a jump where the difference between consecutive numbers
+    is greater than 1, ignoring any NaN values in the column.
+
+    Parameters:
+    df (pandas.DataFrame): The input dataframe containing the column to be analyzed.
+    column_name (str): The name of the column to be analyzed for discontinuities.
+
+    Returns:
+    int: The number of discontinuities in the column.
+
+    Example:
+    >>> data = {'numbers': [1, np.nan, np.nan, np.nan, 2, np.nan, np.nan, np.nan, 3, np.nan, np.nan, np.nan, 5, np.nan, np.nan, 8, np.nan, np.nan]}
+    >>> df = pd.DataFrame(data)
+    >>> count_discontinuities(df, 'numbers')
+    2
+    """
+    non_nan_values = df[column_name].dropna().reset_index(drop=True)
+    differences = non_nan_values.diff().fillna(1)
+    discontinuities = (differences > 1).sum()
+    return discontinuities
