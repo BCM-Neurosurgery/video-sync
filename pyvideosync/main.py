@@ -307,7 +307,10 @@ def main():
                     videojson = Videojson(json_path)
                     camera_df = videojson.get_camera_df(cam_serial)
                     logger.debug(f"camera json df:\n{camera_df}")
-                    logger.debug(
+                    logger.info(
+                        f"num of discontinuities in frame ids in camera json: {utils.count_discontinuities(camera_df, 'frame_ids_reconstructed')}"
+                    )
+                    logger.info(
                         f"num of unique frame ids in camera json: {len(camera_df['frame_id'].unique())}"
                     )
                     plot_histogram(
