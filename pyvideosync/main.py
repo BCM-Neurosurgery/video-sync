@@ -211,21 +211,29 @@ def remove_file(file_path):
         print(f"Error removing file: {e}")
 
 
+def welcome_screen():
+    clear_screen()
+    print("\nWelcome to Video Sync Program v1.0")
+    print("Please select an option:")
+    print("1. Load a config file")
+    print("2. Exit")
+    choice = input("Enter your choice: ")
+    return choice
+
+
+def select_config_screen():
+    clear_screen()
+    print("Please select YAML config file")
+    config_path = select_config_file()
+    return config_path
+
+
 def main():
     while True:
-        clear_screen()
-        print("\nWelcome to Video Sync Program v1.0")
-        print("Please select an option:")
-        print("1. Load a config file")
-        print("2. Exit")
-
-        choice = input("Enter your choice: ")
-
+        choice = welcome_screen()
         if choice == "1":
             while True:
-                clear_screen()
-                print("Please select YAML config file")
-                config_path = select_config_file()
+                config_path = select_config_screen()
                 if not config_path:
                     print(
                         "You have not selected a config file, exiting to initial screen..."
@@ -290,7 +298,6 @@ def main():
                     abs_start_frame, abs_end_frame = datapool.get_mp4_abs_frame_range(
                         video_to_process, cam_serial
                     )
-                    print(f"abs_start_frame: {abs_start_frame}")
                     selected_video_df = video.get_video_stats_df(
                         abs_start_frame, abs_end_frame
                     )
@@ -432,7 +439,6 @@ def main():
                         # don't need the last frame
                         for i in range(len(frame_ids) - 1):
                             frame_index = int(frame_ids[i] - abs_start_frame)
-                            # print(f"frame_index: {frame_index}")
                             f.write(f"file '{frame_list[frame_index]}'\n")
                             f.write(f"duration {frame_duration[i]}\n")
                         # Write the last frame again to signal the end
