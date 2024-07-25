@@ -2,6 +2,7 @@ import cv2
 from pyvideosync import utils
 from tqdm import tqdm
 import pandas as pd
+import os
 
 
 class Video:
@@ -125,3 +126,30 @@ class Video:
         self.capture.release()
         out.release()
         cv2.destroyAllWindows()
+
+    def extract_frames(self, frames_dir) -> list:
+        """Extract frames from a video file and store them in memory.
+
+        Args:
+            video_path (str): Path to the input video file.
+
+        Returns:
+            list: A list of frames extracted from the video. Each frame is represented as a numpy array.
+        """
+        frame_list = []
+        frame_id = 0
+
+        total_frames = self.get_frame_count()
+
+        with tqdm(total=total_frames, desc="Extracting frames") as pbar:
+            while self.capture.isOpened():
+                ret, frame = self.capture.read()
+                if not ret:
+                    break
+                frame_path = os.path.join(frames_dir, f"frame_{frame_id}.png")
+                # cv2.imwrite(frame_path, frame)
+                frame_list.append(frame_path)
+                frame_id += 1
+                pbar.update(1)
+        self.capture.release()
+        return frame_list

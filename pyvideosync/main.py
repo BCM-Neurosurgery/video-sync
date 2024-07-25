@@ -24,6 +24,7 @@ from pathlib import Path
 import tkinter as tk
 from tkinter import filedialog
 import time
+from scipy.io.wavfile import write
 
 # Configure logging
 central = pytz.timezone("US/Central")
@@ -270,7 +271,9 @@ def main():
                     video_output_dir = os.path.join(
                         output_dir, extract_basename(video_to_process)
                     )
+                    frames_output_dir = os.path.join(video_output_dir, "frames")
                     os.makedirs(video_output_dir, exist_ok=True)
+                    os.makedirs(frames_output_dir, exist_ok=True)
 
                     # configure logging
                     logger = configure_logging(video_output_dir, timestamp)
@@ -287,6 +290,7 @@ def main():
                     abs_start_frame, abs_end_frame = datapool.get_mp4_abs_frame_range(
                         video_to_process, cam_serial
                     )
+                    print(f"abs_start_frame: {abs_start_frame}")
                     selected_video_df = video.get_video_stats_df(
                         abs_start_frame, abs_end_frame
                     )
@@ -384,11 +388,8 @@ def main():
                     running_total_frame_id = (
                         all_merged_concat_df["frame_id"].dropna().astype(int).to_numpy()
                     )
-                    logger.debug(
-                        f"Length of total frame id:{len(running_total_frame_id)}"
-                    )
-                    logger.debug(
-                        f"Length of all unique: {len(np.unique(running_total_frame_id))}"
+                    logger.info(
+                        f"all_merged_concat_df stats:\n{df_logger.log_dataframe_info('all_merged_concat_df', all_merged_concat_df)}"
                     )
                     logger.debug(f"All merged concat df:\n{all_merged_concat_df}")
 
@@ -406,36 +407,57 @@ def main():
                         f"final_{cam_serial}_aligned_{timestamp}.mp4",
                     )
 
-                    logger.info("Processing valid audio...")
-                    valid_audio = utils.keep_valid_audio(all_merged_concat_df)
-                    utils.analog2audio(
-                        valid_audio, ns5.get_sample_resolution(), audio_output_path
+                    logger.info("Saving frames from video...")
+                    frame_list = video.extract_frames(frames_output_dir)
+
+                    logger.info("Getting frame durations in fps...")
+                    all_merged_concat_dropped = all_merged_concat_df.dropna()
+                    timestamps = all_merged_concat_dropped["TimeStamp"].tolist()
+                    frame_ids = all_merged_concat_dropped[
+                        "frame_ids_reconstructed"
+                    ].tolist()
+                    # TODO: this approach will discard the last frame
+                    # calculate the time in s for each frame
+                    # we know 30000 timestamps = 1s
+                    # so each timestamp is 1 / 30000s
+                    frame_duration = [
+                        (timestamps[i] - timestamps[i - 1]) / 30000
+                        for i in range(1, len(timestamps))
+                    ]
+
+                    logger.info("Creating FFmpeg config file...")
+                    with open(
+                        os.path.join(video_output_dir, "frame_list.txt"), "w"
+                    ) as f:
+                        # don't need the last frame
+                        for i in range(len(frame_ids) - 1):
+                            frame_index = int(frame_ids[i] - abs_start_frame)
+                            # print(f"frame_index: {frame_index}")
+                            f.write(f"file '{frame_list[frame_index]}'\n")
+                            f.write(f"duration {frame_duration[i]}\n")
+                        # Write the last frame again to signal the end
+                        last_frame_index = int(frame_ids[i] - abs_start_frame)
+                        f.write(f"file '{frame_list[last_frame_index]}'\n")
+
+                    logger.info("Creating video with variable fps...")
+                    os.system(
+                        f"ffmpeg -f concat -safe 0 -i {os.path.join(video_output_dir, 'frame_list.txt')} -vsync vfr -pix_fmt yuv420p {output_video_path}"
                     )
-                    logger.info(f"Saved sliced audio to {audio_output_path}")
 
-                    logger.info("Slicing video...")
-                    output_fps = len(running_total_frame_id) / (
-                        len(valid_audio) / ns5.get_sample_resolution()
+                    # Step 5: Combine Audio and Video
+                    audio_sample_rate = 30000  # 30kHz
+                    audio_data = all_merged_concat_df["Amplitude"].to_numpy()
+
+                    logger.info("Saving audio...")
+                    write(audio_output_path, audio_sample_rate, audio_data)
+
+                    logger.info("Combining audio and video...")
+
+                    os.system(
+                        f"ffmpeg -i {output_video_path} -i {audio_output_path} -c:v copy -c:a aac -strict experimental {final_output_path}"
                     )
-                    logger.debug(f"Input video frame count: {video.get_frame_count()}")
-                    logger.debug(f"Input video fps: {video.get_fps()}")
-                    logger.debug(f"Output video fps: {output_fps}")
-                    offset_frame_id = running_total_frame_id - (abs_start_frame - 1)
-                    video.slice_video(output_video_path, offset_frame_id, output_fps)
-                    logger.info(f"Saved sliced video to {output_video_path}")
-
-                    logger.info("Aligning audio and video...")
-                    align_audio_video(
-                        output_video_path, audio_output_path, final_output_path
-                    )
-                    logger.info(f"Final video saved to {final_output_path}")
-
-                    remove_file(output_video_path)
-                    remove_file(audio_output_path)
-                    logger.info(f"Removed intermediate media files")
-
-                    logger.info("Video Sync complete!! Returning to video selection...")
-                    time.sleep(3)
+                    logger.info("Video Sync Complete!!!")
+                    time.sleep(30)
 
         elif choice == "2":
             print("Exiting program. Goodbye!")
