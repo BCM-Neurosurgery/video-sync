@@ -209,7 +209,7 @@ class DataPool:
         abs_start_frame = running_frame_count + 1
         cur_mp4_abs_path = os.path.join(self.cam_recording_dir, cur_mp4_rel_path)
         video = Video(cur_mp4_abs_path)
-        abs_end_frame = abs_start_frame + video.get_frame_count()
+        abs_end_frame = abs_start_frame + video.get_frame_count() - 1
         return abs_start_frame, abs_end_frame
 
     def _extract_cam_serial(self, mp4_file):
