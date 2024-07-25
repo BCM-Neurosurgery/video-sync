@@ -29,6 +29,14 @@ from pyvideosync.logging_config import (
     get_current_ts,
     configure_logging,
 )
+from pyvideosync.dataframes import (
+    NevChunkSerialDF,
+    CameraJSONDF,
+    NS5ChannelDF,
+    ChunkSerialJoinedDF,
+    AllMergeDF,
+    AllMergeConcatDF,
+)
 
 
 def extract_basename(input_path: str) -> str:
@@ -236,9 +244,6 @@ def main():
                     logger = configure_logging(video_output_dir)
                     logger.debug(f"Configuration:\n{yaml.dump(config)}")
 
-                    # configure dataframe logger
-                    df_logger = DataFrameLogger()
-
                     # find associated nev, ns5, json file to that video
                     logger.info(f"You selected {video_to_process}")
                     logger.info("Scanning folders to find associated files...")
@@ -270,10 +275,7 @@ def main():
                     json_path = datapool.get_abs_json_path(video_to_process)
                     videojson = Videojson(json_path)
                     camera_df = videojson.get_camera_df(cam_serial)
-                    logger.debug(f"camera json df:\n{camera_df}")
-                    logger.info(
-                        f"camera json df stats:\n{df_logger.log_dataframe_info('camera_json_df', camera_df)}"
-                    )
+                    CameraJSONDF(camera_df, logger).log_dataframe_info()
 
                     all_merged_dfs = []
                     for i, (nev_dict, ns5_dict) in enumerate(
@@ -290,10 +292,9 @@ def main():
                         nev_path = datapool.get_abs_nev_path(nev_dict["nev_rel_path"])
                         nev = Nev(nev_path)
                         nev_chunk_serial_df = nev.get_chunk_serial_df()
-                        logger.debug(f"nev_chunk_serial_df:\n{nev_chunk_serial_df}")
-                        logger.info(
-                            f"nev_chunk_serial_df stats:\n{df_logger.log_dataframe_info('nev_chunk_serial_df', nev_chunk_serial_df)}"
-                        )
+                        NevChunkSerialDF(
+                            nev_chunk_serial_df, logger
+                        ).log_dataframe_info()
                         nev.plot_cam_exposure_all(
                             os.path.join(chunk_output_dir, "cam_exposure_all.png"),
                             0,
@@ -317,10 +318,9 @@ def main():
                             right_on="chunk_serial_data",
                             how="inner",
                         )
-                        logger.debug(f"chunk_serial_df_joined:\n{chunk_serial_joined}")
-                        logger.info(
-                            f"chunk_serial_df_joined stats:\n{df_logger.log_dataframe_info('chunk_serial_df_joined', chunk_serial_joined)}"
-                        )
+                        ChunkSerialJoinedDF(
+                            chunk_serial_joined, logger
+                        ).log_dataframe_info()
 
                         logger.info("Merging JSON, NEV with NS5...")
                         ns5_slice = ns5.get_channel_df_between_ts(
@@ -334,17 +334,11 @@ def main():
                             right_on="TimeStamps",
                             how="left",
                         )
-                        logger.info(
-                            f"all_merged stats:\n{df_logger.log_dataframe_info('all_merged_df', all_merged)}"
-                        )
                         all_merged_dfs.append(all_merged)
 
                     # concat all_merged_dfs
                     all_merged_concat_df = pd.concat(all_merged_dfs, ignore_index=True)
-                    logger.info(
-                        f"all_merged_concat_df stats:\n{df_logger.log_dataframe_info('all_merged_concat_df', all_merged_concat_df)}"
-                    )
-                    logger.debug(f"All merged concat df:\n{all_merged_concat_df}")
+                    AllMergeConcatDF(all_merged_concat_df, logger).log_dataframe_info()
 
                     # make save paths
                     output_video_path = os.path.join(
