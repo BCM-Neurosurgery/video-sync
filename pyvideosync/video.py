@@ -147,7 +147,7 @@ class Video:
                 if not ret:
                     break
                 frame_path = os.path.join(frames_dir, f"frame_{frame_id}.png")
-                # cv2.imwrite(frame_path, frame)
+                cv2.imwrite(frame_path, frame)
                 frame_list.append(frame_path)
                 frame_id += 1
                 pbar.update(1)
