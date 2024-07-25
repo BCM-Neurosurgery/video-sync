@@ -25,44 +25,10 @@ import tkinter as tk
 from tkinter import filedialog
 import time
 from scipy.io.wavfile import write
-
-# Configure logging
-central = pytz.timezone("US/Central")
-
-
-def get_current_ts() -> str:
-    return datetime.now(central).strftime("%Y%m%d_%H%M%S")
-
-
-def configure_logging(log_dir, current_time):
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
-
-    log_file_path = os.path.join(log_dir, f"log_{current_time}.log")
-
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
-
-    # Create handlers
-    c_handler = logging.StreamHandler()
-    f_handler = logging.FileHandler(log_file_path)
-
-    # Set level for handlers
-    c_handler.setLevel(logging.INFO)
-    f_handler.setLevel(logging.DEBUG)
-
-    # Create formatters and add it to handlers
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
-    c_handler.setFormatter(formatter)
-    f_handler.setFormatter(formatter)
-
-    # Add handlers to the logger
-    logger.addHandler(c_handler)
-    logger.addHandler(f_handler)
-
-    return logger
+from pyvideosync.logging_config import (
+    get_current_ts,
+    configure_logging,
+)
 
 
 def extract_basename(input_path: str) -> str:
@@ -117,23 +83,6 @@ def plot_histogram(data, column, save_path, color="skyblue", alpha=0.7):
     plt.title(column)
     plt.savefig(save_path)
     plt.close()
-
-
-def align_audio_video(video_path, audio_path, output_path):
-    """
-    Align the audio with the video and save the result to a new file.
-
-    Args:
-        video_path (str): Path to the input video file.
-        audio_path (str): Path to the input audio file.
-        output_path (str): Path to save the output video file with aligned audio.
-    """
-    video_clip = VideoFileClip(video_path)
-    audio_clip = AudioFileClip(audio_path)
-    video_clip = video_clip.set_audio(audio_clip)
-    video_clip.write_videofile(
-        output_path, codec="libx264", audio_codec="aac", logger="bar"
-    )
 
 
 def prompt_user_for_video_file(cam_mp4_files):
@@ -284,7 +233,7 @@ def main():
                     os.makedirs(frames_output_dir, exist_ok=True)
 
                     # configure logging
-                    logger = configure_logging(video_output_dir, timestamp)
+                    logger = configure_logging(video_output_dir)
                     logger.debug(f"Configuration:\n{yaml.dump(config)}")
 
                     # configure dataframe logger
@@ -392,9 +341,6 @@ def main():
 
                     # concat all_merged_dfs
                     all_merged_concat_df = pd.concat(all_merged_dfs, ignore_index=True)
-                    running_total_frame_id = (
-                        all_merged_concat_df["frame_id"].dropna().astype(int).to_numpy()
-                    )
                     logger.info(
                         f"all_merged_concat_df stats:\n{df_logger.log_dataframe_info('all_merged_concat_df', all_merged_concat_df)}"
                     )
