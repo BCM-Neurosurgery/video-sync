@@ -15,7 +15,6 @@ from pyvideosync.videojson import Videojson
 from pyvideosync.video import Video
 from pyvideosync.data_pool import DataPool
 from pyvideosync import utils
-from pyvideosync.dataframelogger import DataFrameLogger
 from moviepy.editor import VideoFileClip, AudioFileClip
 import yaml
 import sys
@@ -37,32 +36,7 @@ from pyvideosync.dataframes import (
     AllMergeDF,
     AllMergeConcatDF,
 )
-
-
-def extract_basename(input_path: str) -> str:
-    """Extract name from input path
-
-    Args:
-        input_path (str): e.g. "/video/video_sync_test_0530_20240530_115639.23512906.mp4"
-
-    Returns:
-        str: e.g. video_sync_test_0530_20240530_115639_23512906
-    """
-    basename = os.path.basename(input_path)
-    splitted = os.path.splitext(basename)[0]
-    return splitted.replace(".", "_")
-
-
-def validate_config(config):
-    required_fields = [
-        "cam_serial",
-        "nsp_dir",
-        "cam_recording_dir",
-        "output_dir",
-        "channel_name",
-    ]
-    missing_fields = [field for field in required_fields if field not in config]
-    return missing_fields
+from pyvideosync.pathutils import PathUtils
 
 
 def plot_histogram(data, column, save_path, color="skyblue", alpha=0.7):
@@ -120,29 +94,6 @@ def prompt_user_for_video_file(cam_mp4_files):
             print("Invalid input. Please enter a number.")
 
 
-def load_config(config_path):
-    """
-    Load a YAML configuration file.
-
-    Args:
-        config_path (str): Path to the YAML configuration file.
-
-    Returns:
-        dict: Loaded configuration as a dictionary.
-    """
-    if not os.path.exists(config_path):
-        print(f"Configuration file '{config_path}' does not exist.")
-        sys.exit(1)
-
-    try:
-        with open(config_path, "r") as f:
-            config = yaml.safe_load(f)
-        return config
-    except yaml.YAMLError as e:
-        print(f"Error loading configuration file '{config_path}': {e}")
-        sys.exit(1)
-
-
 def select_config_file():
     root = tk.Tk()
     root.withdraw()
@@ -178,11 +129,16 @@ def welcome_screen():
     return choice
 
 
-def select_config_screen():
+def select_and_validate_config():
     clear_screen()
     print("Please select YAML config file")
     config_path = select_config_file()
     return config_path
+
+
+def print_and_sleep(msg):
+    print(msg)
+    time.sleep(2)
 
 
 def main():
@@ -190,67 +146,50 @@ def main():
         choice = welcome_screen()
         if choice == "1":
             while True:
-                config_path = select_config_screen()
+                timestamp = get_current_ts()
+
+                config_path = select_and_validate_config()
                 if not config_path:
-                    print(
+                    print_and_sleep(
                         "You have not selected a config file, exiting to initial screen..."
                     )
-                    time.sleep(2)
                     break
 
-                config = load_config(config_path)
-
-                missing_fields = validate_config(config)
-                if missing_fields:
-                    print("Config not valid, exiting to inital screen...")
-                    time.sleep(2)
+                pathutils = PathUtils(config_path, timestamp)
+                if not pathutils.is_config_valid():
+                    print_and_sleep("Config not valid, exiting to inital screen...")
                     break
 
-                timestamp = get_current_ts()
-                cam_serial = config["cam_serial"]
-                nsp_dir = config["nsp_dir"]
-                cam_recording_dir = config["cam_recording_dir"]
-                output_dir = config["output_dir"]
-                ns5_channel = config["channel_name"]
+                datapool = DataPool(pathutils.nsp_dir, pathutils.cam_recording_dir)
 
-                datapool = DataPool(nsp_dir, cam_recording_dir)
-
-                # initial data integrity check
                 init_file_integrity_check = datapool.verify_integrity()
                 if not init_file_integrity_check:
-                    print(
+                    print_and_sleep(
                         "Initial file integrity check failed, exiting to initial screen."
                     )
-                    time.sleep(2)
                     break
-                else:
-                    print("Initial file integrity check passed!")
-                    time.sleep(2)
 
                 while True:
                     clear_screen()
-                    cam_mp4_files = datapool.get_mp4_filelist(cam_serial)
+                    cam_mp4_files = datapool.get_mp4_filelist(pathutils.cam_serial)
                     video_to_process = prompt_user_for_video_file(cam_mp4_files)
                     if not video_to_process:
+                        print_and_sleep("Returning to previous screen...")
                         break
-                    video_output_dir = os.path.join(
-                        output_dir, extract_basename(video_to_process)
-                    )
-                    frames_output_dir = os.path.join(video_output_dir, "frames")
-                    os.makedirs(video_output_dir, exist_ok=True)
-                    os.makedirs(frames_output_dir, exist_ok=True)
+                    pathutils.video_to_process = video_to_process
+                    os.makedirs(pathutils.video_output_dir, exist_ok=True)
+                    pathutils.make_frames_output_dir()
 
                     # configure logging
-                    logger = configure_logging(video_output_dir)
-                    logger.debug(f"Configuration:\n{yaml.dump(config)}")
+                    logger = configure_logging(pathutils.video_output_dir)
+                    logger.debug(f"Configuration:\n{yaml.dump(pathutils.config)}")
 
                     # find associated nev, ns5, json file to that video
                     logger.info(f"You selected {video_to_process}")
                     logger.info("Scanning folders to find associated files...")
-                    video_path = os.path.join(cam_recording_dir, video_to_process)
-                    video = Video(video_path)
+                    video = Video(pathutils.video_path)
                     abs_start_frame, abs_end_frame = datapool.get_mp4_abs_frame_range(
-                        video_to_process, cam_serial
+                        video_to_process, pathutils.cam_serial
                     )
                     selected_video_df = video.get_video_stats_df(
                         abs_start_frame, abs_end_frame
@@ -272,9 +211,8 @@ def main():
                     logger.debug(f"Associated NS5:\n{associated_ns5_df}")
 
                     logger.info("Loading camera JSON file...")
-                    json_path = datapool.get_abs_json_path(video_to_process)
-                    videojson = Videojson(json_path)
-                    camera_df = videojson.get_camera_df(cam_serial)
+                    videojson = Videojson(pathutils.json_path)
+                    camera_df = videojson.get_camera_df(pathutils.cam_serial)
                     CameraJSONDF(camera_df, logger).log_dataframe_info()
 
                     all_merged_dfs = []
@@ -285,30 +223,25 @@ def main():
                         logger.info(
                             f"Processig {nev_dict['nev_rel_path']} and {ns5_dict['ns5_rel_path']}...",
                         )
-                        chunk_output_dir = os.path.join(video_output_dir, str(i))
-                        os.makedirs(chunk_output_dir, exist_ok=True)
+                        pathutils.set_chunk_output_dir(i)
+                        pathutils.set_nev_paths(nev_dict["nev_rel_path"])
+                        pathutils.set_ns5_paths(ns5_dict["ns5_rel_path"])
 
                         logger.info("Getting chunk serial data from NEV...")
-                        nev_path = datapool.get_abs_nev_path(nev_dict["nev_rel_path"])
-                        nev = Nev(nev_path)
+                        nev = Nev(pathutils.nev_abs_path)
                         nev_chunk_serial_df = nev.get_chunk_serial_df()
                         NevChunkSerialDF(
                             nev_chunk_serial_df, logger
                         ).log_dataframe_info()
-                        nev.plot_cam_exposure_all(
-                            os.path.join(chunk_output_dir, "cam_exposure_all.png"),
-                            0,
-                            200,
-                        )
+                        nev.plot_cam_exposure_all(pathutils.cam_exposure_path, 0, 200)
 
-                        logger.info(f"Getting {ns5_channel} in NS5...")
-                        ns5_path = datapool.get_abs_ns5_path(ns5_dict["ns5_rel_path"])
-                        ns5 = Nsx(ns5_path)
-                        ns5_channel_df = ns5.get_channel_df(ns5_channel)
+                        logger.info(f"Getting {pathutils.ns5_channel} in NS5...")
+                        ns5 = Nsx(pathutils.ns5_abs_path)
+                        ns5_channel_df = ns5.get_channel_df(pathutils.ns5_channel)
                         logger.debug(f"ns5_channel_df:\n{ns5_channel_df}")
                         ns5.plot_channel_array(
-                            config["channel_name"],
-                            os.path.join(chunk_output_dir, f"ns5_{ns5_channel}.png"),
+                            pathutils.ns5_channel,
+                            pathutils.channel_array_path,
                         )
 
                         logger.info("Merging NEV and Camera JSON...")
@@ -340,22 +273,8 @@ def main():
                     all_merged_concat_df = pd.concat(all_merged_dfs, ignore_index=True)
                     AllMergeConcatDF(all_merged_concat_df, logger).log_dataframe_info()
 
-                    # make save paths
-                    output_video_path = os.path.join(
-                        video_output_dir,
-                        f"video_{cam_serial}_sliced_{timestamp}.mp4",
-                    )
-                    audio_output_path = os.path.join(
-                        video_output_dir,
-                        f"audio_{cam_serial}_sliced_{timestamp}.wav",
-                    )
-                    final_output_path = os.path.join(
-                        video_output_dir,
-                        f"final_{cam_serial}_aligned_{timestamp}.mp4",
-                    )
-
                     logger.info("Saving frames from video...")
-                    frame_list = video.extract_frames(frames_output_dir)
+                    frame_list = video.extract_frames(pathutils.frames_output_dir)
 
                     logger.info("Getting frame durations in fps...")
                     all_merged_concat_dropped = all_merged_concat_df.dropna()
@@ -373,9 +292,7 @@ def main():
                     ]
 
                     logger.info("Creating FFmpeg config file...")
-                    with open(
-                        os.path.join(video_output_dir, "frame_list.txt"), "w"
-                    ) as f:
+                    with open(pathutils.frame_list_path, "w") as f:
                         # don't need the last frame
                         for i in range(len(frame_ids) - 1):
                             frame_index = int(frame_ids[i] - abs_start_frame)
@@ -387,7 +304,7 @@ def main():
 
                     logger.info("Creating video with variable fps...")
                     os.system(
-                        f"ffmpeg -f concat -safe 0 -i {os.path.join(video_output_dir, 'frame_list.txt')} -vsync vfr -pix_fmt yuv420p {output_video_path}"
+                        f"ffmpeg -f concat -safe 0 -i {pathutils.frame_list_path} -vsync vfr -pix_fmt yuv420p {pathutils.video_out_path}"
                     )
 
                     # Step 5: Combine Audio and Video
@@ -395,12 +312,12 @@ def main():
                     audio_data = all_merged_concat_df["Amplitude"].to_numpy()
 
                     logger.info("Saving audio...")
-                    write(audio_output_path, audio_sample_rate, audio_data)
+                    write(pathutils.audio_out_path, audio_sample_rate, audio_data)
 
                     logger.info("Combining audio and video...")
 
                     os.system(
-                        f"ffmpeg -i {output_video_path} -i {audio_output_path} -c:v copy -c:a aac -strict experimental {final_output_path}"
+                        f"ffmpeg -i {pathutils.video_out_path} -i {pathutils.audio_out_path} -c:v copy -c:a aac -strict experimental {pathutils.final_video_out_path}"
                     )
                     logger.info("Video Sync Complete!!!")
                     time.sleep(30)

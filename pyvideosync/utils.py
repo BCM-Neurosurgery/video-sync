@@ -477,3 +477,17 @@ def count_unique_values(df, column_name):
     """
     unique_values_count = df[column_name].nunique()
     return unique_values_count
+
+
+def extract_basename(input_path: str) -> str:
+    """Extract name from input path
+
+    Args:
+        input_path (str): e.g. "/video/video_sync_test_0530_20240530_115639.23512906.mp4"
+
+    Returns:
+        str: e.g. video_sync_test_0530_20240530_115639_23512906
+    """
+    basename = os.path.basename(input_path)
+    splitted = os.path.splitext(basename)[0]
+    return splitted.replace(".", "_")
