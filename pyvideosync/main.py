@@ -119,7 +119,7 @@ def welcome_screen():
     return choice
 
 
-def select_and_validate_config():
+def select_config():
     clear_screen()
     print("Please select YAML config file")
     config_path = select_config_file()
@@ -269,7 +269,7 @@ def main():
             while True:
                 timestamp = get_current_ts()
 
-                config_path = select_and_validate_config()
+                config_path = select_config()
                 if not config_path:
                     print_and_sleep(
                         "You have not selected a config file, exiting to initial screen..."
