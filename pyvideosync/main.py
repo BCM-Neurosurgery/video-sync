@@ -4,7 +4,6 @@ and aligning the audio with the video.
 """
 
 import os
-import matplotlib.pyplot as plt
 from pyvideosync.data_pool import DataPool
 import yaml
 import pandas as pd
@@ -32,34 +31,6 @@ from pyvideosync.process import (
     save_frame_duration_to_file,
     combine_video_audio,
 )
-
-
-def plot_histogram(data, column, save_path, color="skyblue", alpha=0.7):
-    """
-    Plot a histogram of the differences in the specified column of the DataFrame.
-
-    Args:
-        data (pd.DataFrame): DataFrame containing the data to plot.
-        column (str): Column name to calculate differences and plot histogram.
-        save_path (str): Path to save plot.
-        color (str): Color of the histogram bars.
-        alpha (float): Transparency level of the histogram bars.
-    """
-    df = data.copy()
-    df[f"{column}_diff"] = df[column].diff()
-    ax = df[f"{column}_diff"].plot.hist(color=color, alpha=alpha, edgecolor="black")
-    for rect in ax.patches:
-        height = rect.get_height()
-        plt.text(
-            rect.get_x() + rect.get_width() / 2,
-            height,
-            f"{int(height)}",
-            ha="center",
-            va="bottom",
-        )
-    plt.title(column)
-    plt.savefig(save_path)
-    plt.close()
 
 
 def prompt_user_for_video_file(cam_mp4_files):
