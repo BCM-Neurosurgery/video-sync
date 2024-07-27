@@ -63,3 +63,24 @@ def prompt_user_for_video_file(cam_mp4_files):
                 print(f"Please enter a number between 0 and {len(cam_mp4_files)}.")
         except ValueError:
             print("Invalid input. Please enter a number.")
+
+
+def mode_selection_screen():
+    clear_screen()
+    print("\nPlease select the following mode to sync:")
+    print("1. Load UTC timestmaps from a CSV file")
+    print("2. Manually select an exisiting video (Legacy)")
+    print("Enter 0 to go back to previous screen.")
+    choice = input("Enter your choice: ")
+    return choice
+
+
+def select_csv_file():
+    root = tk.Tk()
+    root.withdraw()
+    csv_file_path = filedialog.askopenfilename(
+        title="Select CSV File",
+        filetypes=(("CSV files", "*.csv"), ("All files", "*.*")),
+    )
+    root.destroy()
+    return csv_file_path

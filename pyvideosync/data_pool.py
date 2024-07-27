@@ -136,7 +136,91 @@ class DataPool:
         mp4_files.sort(key=lambda x: get_timestamp(x))
         return mp4_files
 
-    def find_associated_files(self, mp4_file: str):
+    def find_ns5_associated_files(self, ns5_file: str, cam_serial: str):
+        """Find associated files for the given ns5_file
+
+        Args:
+            ns5_file (str): e.g. NSP1-20240328-202820-001.ns5
+            cam_serial (str): e.g. 23512908
+
+        Returns:
+            dict: {
+                "NEV": [{
+                    "nev_rel_path": xxx,
+                    "nev_start_chunk_serial": xxx,
+                    "nev_end_chunk_serial": xxx,
+                    "nev_time_origin": xxx,
+                    "nev_start_timestamp": xxx,
+                    "nev_duration_readable": xxx,
+                }],
+                "VIDEO": [{
+                    "mp4_rel_path": xxx,
+                    "frame_count": xxx,
+                }],
+                "JSON": [{
+                    "json_rel_path": xxx,
+                    "json_start_chunk_serial": xxx,
+                    "json_end_chunk_serial": xxx,
+                    "json_time_origin": xxx,
+                    "json_duration_readable": xxx,
+                }],
+            }
+        """
+        res = defaultdict(list)
+        ns5_basename = ns5_file.split(".")[0]
+        nev_rel_path = f"{ns5_basename}.nev"
+        nev_abs_path = os.path.join(self.nsp_dir, nev_rel_path)
+        nev = Nev(nev_abs_path)
+        nev_serial_df = nev.get_chunk_serial_df()
+        nev_start_serial = nev_serial_df.iloc[0]["chunk_serial"]
+        nev_end_serial = nev_serial_df.iloc[-1]["chunk_serial"]
+
+        res["NEV"].append(
+            {
+                "nev_rel_path": nev_rel_path,
+                "nev_start_chunk_serial": nev_start_serial,
+                "nev_end_chunk_serial": nev_end_serial,
+                "nev_time_origin": nev.get_time_origin(),
+                "nev_start_timestamp": nev.get_start_timestamp(),
+                "nev_duration_readable": nev.get_duration_readable(),
+            }
+        )
+
+        for file in os.listdir(self.cam_recording_dir):
+            if file.endswith(".json"):
+                abs_json_path = os.path.join(self.cam_recording_dir, file)
+                videojson = Videojson(abs_json_path)
+                videojson_start_chunk = videojson.get_start_chunk_serial(cam_serial)
+                videojson_end_chunk = videojson.get_end_chunk_serial(cam_serial)
+                if (
+                    videojson_start_chunk > nev_end_serial
+                    or videojson_end_chunk < nev_start_serial
+                ):
+                    continue
+                else:
+                    videojson_basename = file.split(".")[0]
+                    video_rel_path = f"{videojson_basename}.{cam_serial}.mp4"
+                    video_abs_path = os.path.join(
+                        self.cam_recording_dir, video_rel_path
+                    )
+                    video = Video(video_abs_path)
+                    res["VIDEO"].append(
+                        {
+                            "mp4_rel_path": video_rel_path,
+                            "frame_count": video.get_frame_count(),
+                        }
+                    )
+                    res["JSON"].append(
+                        {
+                            "json_rel_path": file,
+                            "json_start_chunk_serial": videojson_start_chunk,
+                            "json_end_chunk_serial": videojson_end_chunk,
+                            "json_time_origin": videojson.get_time_origin(),
+                            "json_duration_readable": videojson.get_duration_readable(),
+                        }
+                    )
+
+    def find_mp4_associated_files(self, mp4_file: str):
         """Find associated files for the given mp4_file.
 
         Args:

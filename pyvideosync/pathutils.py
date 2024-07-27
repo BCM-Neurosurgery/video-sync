@@ -26,6 +26,7 @@ class PathUtils:
         self._cam_recording_dir = self.config["cam_recording_dir"]
         self._ns5_channel = self.config["channel_name"]
         self._video_to_process = None
+        self._video_output_dir = None
         self._video_path = None
         self._chunk_output_dir = None
         self._frames_output_dir = None
@@ -122,7 +123,15 @@ class PathUtils:
     @property
     def video_output_dir(self):
         """Define the output directory for the video"""
-        return os.path.join(self.output_dir, extract_basename(self.video_to_process))
+        if self._video_output_dir is None:
+            raise ValueError("video_output_dir is not set")
+        return self._video_output_dir
+
+    @video_output_dir.setter
+    def video_output_dir(self, video_output_dir):
+        if video_output_dir is None:
+            raise ValueError("video_output_dir cannot be empty")
+        self._video_output_dir = video_output_dir
 
     @property
     def chunk_output_dir(self):
