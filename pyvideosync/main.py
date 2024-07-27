@@ -4,22 +4,14 @@ and aligning the audio with the video.
 """
 
 import os
-import logging
-import pytz
-from datetime import datetime
-import numpy as np
 import matplotlib.pyplot as plt
 from pyvideosync.nev import Nev
 from pyvideosync.nsx import Nsx
 from pyvideosync.videojson import Videojson
 from pyvideosync.video import Video
 from pyvideosync.data_pool import DataPool
-from pyvideosync import utils
-from moviepy.editor import VideoFileClip, AudioFileClip
 import yaml
-import sys
 import pandas as pd
-from pathlib import Path
 import tkinter as tk
 from tkinter import filedialog
 import time
@@ -31,9 +23,7 @@ from pyvideosync.logging_config import (
 from pyvideosync.dataframes import (
     NevChunkSerialDF,
     CameraJSONDF,
-    NS5ChannelDF,
     ChunkSerialJoinedDF,
-    AllMergeDF,
     AllMergeConcatDF,
 )
 from pyvideosync.pathutils import PathUtils
