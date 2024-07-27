@@ -264,6 +264,14 @@ def log_associated_files(associated_files, logger):
     logger.debug(f"Associated NS5:\n{associated_ns5_df}")
 
 
+def process_video(abs_start_frame, abs_end_frame, pathutils, logger):
+    logger.info("Processing Video...")
+    video = Video(pathutils.video_path, abs_start_frame, abs_end_frame)
+    selected_video_df = video.get_video_stats_df()
+    logger.debug(f"Selected VIDEO:\n{selected_video_df}")
+    return video
+
+
 def main():
     while True:
         choice = welcome_screen()
@@ -309,18 +317,19 @@ def main():
 
                     # find associated nev, ns5, json file to that video
                     logger.info(f"You selected {video_to_process}")
-                    logger.info("Scanning folders to find associated files...")
-                    video = Video(pathutils.video_path)
+
                     abs_start_frame, abs_end_frame = datapool.get_mp4_abs_frame_range(
                         video_to_process, pathutils.cam_serial
                     )
-                    selected_video_df = video.get_video_stats_df(
-                        abs_start_frame, abs_end_frame
+
+                    video = process_video(
+                        abs_start_frame, abs_end_frame, pathutils, logger
                     )
-                    associated_files = datapool.find_associated_files(video_to_process)
-                    logger.debug(f"Selected VIDEO:\n{selected_video_df}")
 
                     camera_df = process_camera_json(pathutils, logger)
+
+                    logger.info("Scanning folders to find associated files...")
+                    associated_files = datapool.find_associated_files(video_to_process)
 
                     all_merged_dfs = []
                     for i, (nev_dict, ns5_dict) in enumerate(

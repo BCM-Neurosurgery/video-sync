@@ -27,7 +27,9 @@ class Video:
         The height of the video frames.
     """
 
-    def __init__(self, video_path: str) -> None:
+    def __init__(
+        self, video_path: str, abs_start_frame=None, abs_end_frame=None
+    ) -> None:
         self.video_path = video_path
         self.capture = cv2.VideoCapture(video_path)
 
@@ -39,6 +41,8 @@ class Video:
         self.length = self.frame_count / self.fps
         self.frame_width = int(self.capture.get(cv2.CAP_PROP_FRAME_WIDTH))
         self.frame_height = int(self.capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        self.abs_start_frame = abs_start_frame
+        self.abs_end_frame = abs_end_frame
 
     def get_frame_count(self) -> int:
         return self.frame_count
@@ -61,15 +65,15 @@ class Video:
     def get_video_path(self):
         return self.video_path
 
-    def get_video_stats_df(self, abs_start_frame=None, abs_end_frame=None):
+    def get_video_stats_df(self):
         stats = [
             {
                 "video_path": self.get_video_path(),
                 "saved_fps": self.get_fps(),
                 "duration_readable": self.get_length_readable(),
                 "frame_count": self.get_frame_count(),
-                "abs_start_frame": abs_start_frame,
-                "abs_end_frame": abs_end_frame,
+                "abs_start_frame": self.abs_start_frame,
+                "abs_end_frame": self.abs_end_frame,
             }
         ]
         return pd.DataFrame.from_records(stats)
