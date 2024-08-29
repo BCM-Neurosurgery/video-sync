@@ -9,6 +9,7 @@ from pyvideosync.dataframes import (
 )
 import os
 from scipy.io.wavfile import write
+from moviepy.editor import VideoFileClip, AudioFileClip
 
 
 def process_video(abs_start_frame, abs_end_frame, pathutils, logger):
@@ -130,3 +131,20 @@ def combine_video_audio(pathutils, logger):
         f"ffmpeg -i {pathutils.video_out_path} -i {pathutils.audio_out_path} -c:v copy -c:a aac -strict experimental {pathutils.final_video_out_path}"
     )
     logger.info("Video Sync Complete!!!")
+
+
+def align_audio_video(video_path, audio_path, output_path):
+    """
+    Align the audio with the video and save the result to a new file.
+
+    Args:
+        video_path (str): Path to the input video file.
+        audio_path (str): Path to the input audio file.
+        output_path (str): Path to save the output video file with aligned audio.
+    """
+    video_clip = VideoFileClip(video_path)
+    audio_clip = AudioFileClip(audio_path)
+    video_clip = video_clip.set_audio(audio_clip)
+    video_clip.write_videofile(
+        output_path, codec="libx264", audio_codec="aac", logger="bar"
+    )

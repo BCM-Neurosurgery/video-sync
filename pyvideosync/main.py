@@ -28,6 +28,7 @@ from pyvideosync.process import (
     export_video_variable_fps,
     save_frame_duration_to_file,
     combine_video_audio,
+    align_audio_video,
 )
 from pyvideosync.ui import (
     welcome_screen,
@@ -39,6 +40,8 @@ from pyvideosync.ui import (
 )
 from pyvideosync.utils import (
     extract_basename,
+    keep_valid_audio,
+    analog2audio,
 )
 
 
@@ -269,19 +272,44 @@ def main():
                             all_merged_concat_df, logger
                         ).log_dataframe_info()
 
-                        frame_list = extract_and_save_frames(video, pathutils, logger)
-
-                        save_frame_duration_to_file(
-                            all_merged_concat_df,
-                            frame_list,
-                            abs_start_frame,
-                            pathutils,
-                            logger,
+                        running_total_frame_id = (
+                            all_merged_concat_df["frame_id"]
+                            .dropna()
+                            .astype(int)
+                            .to_numpy()
                         )
 
-                        export_video_variable_fps(pathutils, logger)
-                        export_audio(all_merged_concat_df, pathutils, logger)
-                        combine_video_audio(pathutils, logger)
+                        logger.info("Processing valid audio...")
+                        valid_audio = keep_valid_audio(all_merged_concat_df)
+                        analog2audio(
+                            valid_audio,
+                            ns5.get_sample_resolution(),
+                            pathutils.audio_out_path,
+                        )
+
+                        logger.info(f"Saved sliced audio to {pathutils.audio_out_path}")
+
+                        logger.info("Slicing video...")
+                        output_fps = len(running_total_frame_id) / (
+                            len(valid_audio) / ns5.get_sample_resolution()
+                        )
+                        logger.debug(
+                            f"Input video frame count: {video.get_frame_count()}"
+                        )
+                        logger.debug(f"Input video fps: {video.get_fps()}")
+                        logger.debug(f"Output video fps: {output_fps}")
+                        offset_frame_id = running_total_frame_id - (abs_start_frame - 1)
+                        video.slice_video(
+                            pathutils.video_out_path, offset_frame_id, output_fps
+                        )
+                        logger.info(f"Saved sliced video to {pathutils.video_out_path}")
+
+                        logger.info("Aligning audio and video...")
+                        align_audio_video(
+                            pathutils.video_out_path,
+                            pathutils.audio_out_path,
+                            pathutils.final_video_out_path,
+                        )
 
                         time.sleep(30)
 
