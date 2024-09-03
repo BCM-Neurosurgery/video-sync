@@ -491,3 +491,58 @@ def extract_basename(input_path: str) -> str:
     basename = os.path.basename(input_path)
     splitted = os.path.splitext(basename)[0]
     return splitted.replace(".", "_")
+
+
+def replace_zeros(df, column_name):
+    """
+    Replaces 0s in the specified column with the correct missing integer value
+    if the following conditions are met:
+
+    1. The previous number in the column is exactly 1 less than the expected number.
+    2. The next number in the column is exactly 1 greater than the expected number.
+
+    The function assumes that the column contains a series of continuously
+    increasing integers, with some missing values represented as 0.
+
+    Parameters:
+    -----------
+    df : pandas.DataFrame
+        The DataFrame containing the column to be processed.
+
+    column_name : str
+        The name of the column in the DataFrame that contains the series of integers
+        with possible missing values as 0.
+
+    Returns:
+    --------
+    pandas.DataFrame
+        The DataFrame with the specified column updated, where 0s have been replaced
+        with the correct missing integer values if they meet the specified conditions.
+
+    Example:
+    --------
+    >>> data = {'numbers': [1, 2, 3, 0, 5, 6, 7, 10, 11, 0, 13, 14]}
+    >>> df = pd.DataFrame(data)
+    >>> df = replace_zeros(df, 'numbers')
+    >>> print(df)
+       numbers
+    0        1
+    1        2
+    2        3
+    3        4
+    4        5
+    5        6
+    6        7
+    7       10
+    8       11
+    9       12
+    10      13
+    11      14
+    """
+    col = df[column_name].copy()
+    for i in range(1, len(col) - 1):
+        if col[i] == 0:
+            if col[i - 1] + 1 == col[i + 1] - 1:
+                col[i] = col[i - 1] + 1
+    df[column_name] = col
+    return df

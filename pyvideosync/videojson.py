@@ -2,6 +2,9 @@ import json
 import pandas as pd
 import numpy as np
 from datetime import datetime
+from .utils import (
+    replace_zeros,
+)
 
 
 class Videojson:
@@ -68,6 +71,7 @@ class Videojson:
             res.append(temp)
         df = pd.DataFrame.from_records(res)
         df = self.reconstruct_frame_id(df)
+        df = replace_zeros(df, "chunk_serial_data")
         return df
 
     def get_unique_frame_ids(self):
