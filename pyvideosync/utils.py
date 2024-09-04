@@ -417,7 +417,7 @@ def keep_valid_audio(df) -> list:
     # reset index
     df = df.reset_index(drop=True)
     # get frame id array
-    frame_id = df["frame_id"].to_numpy()
+    frame_id = df["frame_ids_reconstructed"].to_numpy()
     # split it into consecutive chunks
     frame_id_sections = split2sections(frame_id)
     # get the start and end frame id of each section
@@ -426,8 +426,8 @@ def keep_valid_audio(df) -> list:
     # and the index of all_merged is all incrementing by 1
     indices_to_keep = []
     for s, e in frame_id_start_end:
-        chunk_start_index = df[df["frame_id"] == s].index[0]
-        chunk_end_index = df[df["frame_id"] == e].index[0]
+        chunk_start_index = df[df["frame_ids_reconstructed"] == s].index[0]
+        chunk_end_index = df[df["frame_ids_reconstructed"] == e].index[0]
         indices_to_keep.extend(range(chunk_start_index, chunk_end_index + 1))
     return df.iloc[indices_to_keep]["Amplitude"].to_numpy()
 
