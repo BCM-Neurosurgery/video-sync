@@ -56,9 +56,7 @@ class Videojson:
         cam_idx = self.get_camera_serials().index(cam_serial)
         headers = [
             "chunk_serial_data",
-            "timestamps",
             "frame_id",
-            "real_times",
         ]
         res = []
         for i in range(self.get_length_of_recording()):
