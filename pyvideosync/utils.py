@@ -546,3 +546,126 @@ def replace_zeros(df, column_name):
                 col[i] = col[i - 1] + 1
     df[column_name] = col
     return df
+
+
+def fill_missing_serials_with_gap(data):
+    """
+    Fills in missing chunk serial numbers where the gap is greater than 1.
+    The missing chunks are added with interpolated timestamps between the two existing ones.
+
+    Parameters:
+    -----------
+    data : list of tuples
+        Each tuple contains (timestamp, chunk_serial, UTCTimeStamp).
+
+    Returns:
+    --------
+    list of tuples
+        The list with the missing chunk serials filled in where appropriate.
+
+    Example:
+    --------
+    >>> data = [(5412181557, 21428921, datetime(2024, 7, 26, 20, 30, 25, 509900)),
+                (5412182558, 21428922, datetime(2024, 7, 26, 20, 30, 25, 543267)),
+                (5412184559, 21428925, datetime(2024, 7, 26, 20, 30, 25, 609967))]
+    >>> result = fill_missing_serials_with_gap(data)
+    >>> for row in result:
+    >>>     print(row)
+    (5412181557, 21428921, datetime.datetime(2024, 7, 26, 20, 30, 25, 509900))
+    (5412182558, 21428922, datetime.datetime(2024, 7, 26, 20, 30, 25, 543267))
+    (5412183225, 21428923, datetime.datetime(2024, 7, 26, 20, 30, 25, 565500))
+    (5412183891, 21428924, datetime.datetime(2024, 7, 26, 20, 30, 25, 587733))
+    (5412184559, 21428925, datetime.datetime(2024, 7, 26, 20, 30, 25, 609967))
+    """
+    filled_data = []
+
+    for i in range(len(data) - 1):
+        # Append the current tuple to the result list
+        filled_data.append(data[i])
+
+        # Calculate the gap between consecutive chunk serial numbers
+        current_serial = data[i][1]
+        next_serial = data[i + 1][1]
+        gap = next_serial - current_serial
+
+        if gap > 1:
+            # Calculate the time delta between the two timestamps
+            time_delta = data[i + 1][2] - data[i][2]
+            time_tsp_delta = data[i + 1][0] - data[i][0]
+
+            # Populate missing serials
+            for j in range(1, gap):
+                new_serial = current_serial + j
+                new_timestamp = data[i][2] + (time_delta / gap) * j
+                new_timestp = data[i][0] + (time_tsp_delta // gap) * j
+                filled_data.append((new_timestp, new_serial, new_timestamp))
+
+    # Append the last tuple
+    filled_data.append(data[-1])
+
+    return filled_data
+
+
+def fill_missing_serials_df(df, timestamp_col, serial_col, utc_timestamp_col):
+    """
+    Fills in missing chunk serial numbers in a DataFrame where the gap is greater than 1.
+    The missing chunks are added with interpolated timestamps between the two existing ones.
+
+    Parameters:
+    -----------
+    df : pandas.DataFrame
+        The DataFrame containing the columns to be analyzed.
+
+    timestamp_col : str
+        The name of the column containing the numeric timestamps.
+
+    serial_col : str
+        The name of the column containing the chunk serial numbers.
+
+    utc_timestamp_col : str
+        The name of the column containing the UTC timestamps.
+
+    Returns:
+    --------
+    pandas.DataFrame
+        A new DataFrame with the missing chunk serials filled in where appropriate.
+    """
+    filled_rows = []
+
+    for i in range(len(df) - 1):
+        # Append the current row to the result list
+        filled_rows.append(df.iloc[i])
+
+        # Calculate the gap between consecutive chunk serial numbers
+        current_serial = df.iloc[i][serial_col]
+        next_serial = df.iloc[i + 1][serial_col]
+        gap = next_serial - current_serial
+
+        if gap > 1:
+            # Calculate the time delta between the two timestamps
+            time_delta = (
+                df.iloc[i + 1][utc_timestamp_col] - df.iloc[i][utc_timestamp_col]
+            )
+            time_tsp_delta = df.iloc[i + 1][timestamp_col] - df.iloc[i][timestamp_col]
+
+            # Populate missing serials
+            for j in range(1, gap):
+                new_serial = current_serial + j
+                new_timestamp = df.iloc[i][utc_timestamp_col] + (time_delta / gap) * j
+                new_timestp = df.iloc[i][timestamp_col] + (time_tsp_delta // gap) * j
+
+                # Create a new row with interpolated values
+                new_row = df.iloc[i].copy()
+                new_row[serial_col] = new_serial
+                new_row[utc_timestamp_col] = new_timestamp
+                new_row[timestamp_col] = new_timestp
+
+                filled_rows.append(new_row)
+
+    # Append the last row
+    filled_rows.append(df.iloc[-1])
+
+    # Create a new DataFrame from the filled rows
+    filled_df = pd.DataFrame(filled_rows).reset_index(drop=True)
+
+    return filled_df

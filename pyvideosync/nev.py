@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 from pyvideosync import utils
 import matplotlib.pyplot as plt
+from .utils import fill_missing_serials_with_gap
 
 
 class Nev:
@@ -159,61 +160,10 @@ class Nev:
                     self.timeOrigin, self.timestampResolution, timestamp
                 )
                 results.append((timestamp, decimal_number, unixTime))
-        results = self.fill_missing_serials(results)
+        results = fill_missing_serials_with_gap(results)
         return pd.DataFrame.from_records(
             results, columns=["TimeStamps", "chunk_serial", "UTCTimeStamp"]
         )
-
-    def fill_missing_serials(self, data):
-        """
-        Fills in missing chunk serial numbers where the gap is exactly 2. The missing chunk is
-        added with the average timestamp between the two existing ones.
-
-        Parameters:
-        -----------
-        data : list of tuples
-            Each tuple contains (timestamp, chunk_serial, UTCTimeStamp).
-
-        Returns:
-        --------
-        list of tuples
-            The list with the missing chunk serials filled in where appropriate.
-
-        Example:
-        --------
-        >>> data = [(5412181557, 21428921, datetime(2024, 7, 26, 20, 30, 25, 509900)),
-                    (5412182558, 21428922, datetime(2024, 7, 26, 20, 30, 25, 543267)),
-                    (5412184559, 21428924, datetime(2024, 7, 26, 20, 30, 25, 609967))]
-        >>> result = fill_missing_serials(data)
-        >>> for row in result:
-        >>>     print(row)
-        (5412181557, 21428921, datetime.datetime(2024, 7, 26, 20, 30, 25, 509900))
-        (5412182558, 21428922, datetime.datetime(2024, 7, 26, 20, 30, 25, 543267))
-        (5412183558, 21428923, datetime.datetime(2024, 7, 26, 20, 30, 25, 576617))
-        (5412184559, 21428924, datetime.datetime(2024, 7, 26, 20, 30, 25, 609967))
-        """
-        filled_data = []
-
-        for i in range(len(data) - 1):
-            # Append the current tuple to the result list
-            filled_data.append(data[i])
-
-            # Calculate the gap between consecutive chunk serial numbers
-            current_serial = data[i][1]
-            next_serial = data[i + 1][1]
-
-            if next_serial - current_serial == 2:
-                # Calculate the average timestamp between the two records
-                avg_timestamp = data[i][2] + (data[i + 1][2] - data[i][2]) / 2
-                avg_timestp = data[i][0] + (data[i + 1][0] - data[i][0]) // 2
-
-                # Insert the missing chunk serial with the average timestamp
-                filled_data.append((avg_timestp, current_serial + 1, avg_timestamp))
-
-        # Append the last tuple
-        filled_data.append(data[-1])
-
-        return filled_data
 
     def has_unparsed_data(self):
         """
