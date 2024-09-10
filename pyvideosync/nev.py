@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 from pyvideosync import utils
 import matplotlib.pyplot as plt
+from .utils import fill_missing_serials_with_gap
 
 
 class Nev:
@@ -159,6 +160,7 @@ class Nev:
                     self.timeOrigin, self.timestampResolution, timestamp
                 )
                 results.append((timestamp, decimal_number, unixTime))
+        results = fill_missing_serials_with_gap(results)
         return pd.DataFrame.from_records(
             results, columns=["TimeStamps", "chunk_serial", "UTCTimeStamp"]
         )
