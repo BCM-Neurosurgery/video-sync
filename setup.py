@@ -8,4 +8,9 @@ setup(
         # List your project's dependencies here.
         # E.g., 'requests >= 2.19.1'
     ],
+    entry_points={
+        "console_scripts": [
+            "plot-nev-cam-exposure=profiler.plot_nev_cam_exposure:main",
+        ],
+    },
 )
