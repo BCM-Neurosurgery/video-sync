@@ -137,6 +137,24 @@ class Nev:
         digital_events_df = digital_events_df.drop(["group", "keeprows"], axis=1)
         return digital_events_df
 
+    def get_chunk_serial_df_original(self):
+        assert self.has_unparsed_data()
+        df = self.get_cleaned_digital_events_df()
+        results = []
+        for i in range(0, len(df), 5):
+            group = df.iloc[i : i + 5]
+            if len(group) == 5:
+                nums = [x for x in group["UnparsedData"]]
+                decimal_number = self.bits_to_decimal(nums)
+                timestamp = group["TimeStamps"].iloc[0]
+                unixTime = utils.ts2unix(
+                    self.timeOrigin, self.timestampResolution, timestamp
+                )
+                results.append((timestamp, decimal_number, unixTime))
+        return pd.DataFrame.from_records(
+            results, columns=["TimeStamps", "chunk_serial", "UTCTimeStamp"]
+        )
+
     def get_chunk_serial_df(self):
         """
         From the cleaned digital_events_df, group by every 5 rows
