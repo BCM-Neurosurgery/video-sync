@@ -182,12 +182,15 @@ class Nev:
         save_path: str,
         start: int,
         end: int,
+        ax=None,
     ) -> None:
         """Plot cam exposure signals for all cameras
 
         Args:
-            first_n_rows (int): first n rows of the camera
-            save_dir (str): dir to save the plots
+            save_path (str): Path to save the plot (optional, defaults to None).
+            start (int): Starting index for slicing the data (optional, defaults to None).
+            end (int): Ending index for slicing the data (optional, defaults to None).
+            ax (matplotlib.axes.Axes): Existing matplotlib axis to draw on (optional).
         """
         # get digital events df
         digital_events_df = self.get_digital_events_df()
@@ -207,19 +210,25 @@ class Nev:
         ].apply(lambda x: utils.to_16bit_binary(x))
 
         # plot
-        plt.figure(figsize=(15, 10))
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(15, 10))
 
         for i in range(16):
             filled_df = utils.fill_missing_data(digital_events_df_small, bit_number=i)
-            plt.plot(
+            ax.plot(
                 filled_df["TimeStamps"], filled_df[f"Bit{i}"] + i, label=f"Bit{i}"
             )  # Offset each bit for stacking
 
-        plt.title("All 16 Bits Distribution Over Time")
-        plt.xlabel("Timestamp")
-        plt.ylabel("Bit Value")
-        plt.yticks(range(16), [f"Bit{i}" for i in range(16)])
-        plt.grid(True)
-        plt.legend(loc="upper right")
-        plt.savefig(save_path)
-        plt.close()
+        ax.set_title("All 16 Bits Distribution Over Time")
+        ax.set_xlabel("Timestamp")
+        ax.set_ylabel("Bit Value")
+        ax.set_yticks(range(16))
+        ax.set_yticklabels([f"Bit{i}" for i in range(16)])
+        ax.grid(True)
+        ax.legend(loc="upper right")
+
+        if save_path is not None:
+            plt.savefig(save_path)
+
+        if ax is None:
+            plt.close()
