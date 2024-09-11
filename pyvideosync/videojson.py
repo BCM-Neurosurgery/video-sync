@@ -72,6 +72,27 @@ class Videojson:
         df = replace_zeros(df, "chunk_serial_data")
         return df
 
+    def get_chunk_serial_list(self, cam_serial):
+        """Return the list of chunk serial"""
+        assert (
+            cam_serial in self.get_camera_serials()
+        ), "Camera serial not found in JSON"
+        cam_idx = self.get_camera_serials().index(cam_serial)
+        res = []
+        for chunk_serial in self.dic["chunk_serial_data"]:
+            res.append(chunk_serial[cam_idx])
+        return res
+
+    def get_frame_ids_list(self, cam_serial):
+        assert (
+            cam_serial in self.get_camera_serials()
+        ), "Camera serial not found in JSON"
+        cam_idx = self.get_camera_serials().index(cam_serial)
+        res = []
+        for frame_ids in self.dic["frame_id"]:
+            res.append(frame_ids[cam_idx])
+        return res
+
     def get_unique_frame_ids(self):
         """
         Get unique frame IDs for the initialized camera.
