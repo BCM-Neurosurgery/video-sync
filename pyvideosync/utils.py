@@ -29,7 +29,9 @@ def ts2unix(time_origin, resolution, ts) -> datetime:
         time_origin.second,
         time_origin.microsecond,
     )
-    return base_time + timedelta(microseconds=(ts * 1000000 / resolution))
+    # division first prevents overflow
+    microseconds = ts / resolution * 1000000
+    return base_time + timedelta(microseconds=microseconds)
 
 
 def analog2audio(analog, sample_rate: int, out_path: str):
