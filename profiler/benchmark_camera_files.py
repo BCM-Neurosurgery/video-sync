@@ -145,6 +145,7 @@ def benchmark(cam_dir: str, output_json: str, cam_serial: str):
         if json_file in results:
             continue
 
+        print(f"Processing {json_file}")
         json_path = os.path.join(cam_dir, json_file)
         mp4_path = find_corresponding_mp4(cam_dir, json_file, cam_serial)
 

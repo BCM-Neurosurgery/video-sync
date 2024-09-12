@@ -24,10 +24,10 @@ class Videojson:
         self.timeOrigin = self.dic["real_times"][0]
         self.duration_readable = self.calculate_duration(self.dic["real_times"])
 
-    def calculate_duration(self, real_times):
+    def calculate_duration(self, real_times) -> str:
         start_time = datetime.strptime(real_times[0], "%Y-%m-%d %H:%M:%S.%f")
         end_time = datetime.strptime(real_times[-1], "%Y-%m-%d %H:%M:%S.%f")
-        return end_time - start_time
+        return str(end_time - start_time)
 
     def get_duration_readable(self):
         return self.duration_readable
