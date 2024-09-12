@@ -81,6 +81,7 @@ def benchmark(nev_dir: str, output_json: str):
                 "chunk_type_i": chunk_type_i,
                 "chunk_type_ii": chunk_type_ii,
                 "chunk_durations": chunk_durations,
+                "recording_duration": nev.get_duration_readable(),
             }
 
         except Exception as e:
