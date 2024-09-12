@@ -185,7 +185,7 @@ def main():
 
     os.makedirs(args.out_dir, exist_ok=True)
 
-    output_json = os.path.join(args.out_dir, "cam_benchmark_results.json")
+    output_json = os.path.join(args.out_dir, f"cam_benchmark_results_{args.cam_serial}.json")
 
     benchmark(args.cam_dir, output_json, args.cam_serial)
 
