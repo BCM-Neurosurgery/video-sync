@@ -7,9 +7,11 @@ from pyvideosync.video import Video
 import argparse
 import os
 from profiler.discontinuity import detect_discontinuities
+from profiler.profile_camera_jsons import create_profile_plot
 import re
 import json
 from datetime import datetime
+from matplotlib.backends.backend_pdf import PdfPages
 
 
 def parse_arguments():
@@ -21,6 +23,11 @@ def parse_arguments():
     )
     parser.add_argument("out_dir", type=str, help="Output directory to save the JSON")
     parser.add_argument("cam_serial", type=str, help="Camera Serial Number")
+    parser.add_argument(
+        "--profile_cam_json",
+        action="store_true",
+        help="Flag to indicate whether to profile the JSON",
+    )
     return parser.parse_args()
 
 
@@ -124,17 +131,20 @@ def find_corresponding_mp4(directory, json_filename, cam_serial):
     return None
 
 
-def benchmark(cam_dir: str, output_json: str, cam_serial: str):
+def benchmark(cam_dir: str, output_dir: str, cam_serial: str, profile_cam_json: bool):
     """
     Benchmarks Camera files by detecting discontinuities in the chunk serial data
-    and frame ids. into a JSON file.
+    and frame ids, and saves the results to a JSON file.
 
     Args:
         cam_dir (str): Directory containing the Camera files.
-        output_json (str): Path to the output JSON file.
+        output_dir (str): Directory to save the results JSON and optional reports.
+        cam_serial (str): Camera Serial Number to process.
+        profile_cam_json (bool): Flag to indicate whether to generate a profiling report.
     """
     jsons = get_sorted_json_files(cam_dir)
 
+    output_json = os.path.join(output_dir, f"cam_benchmark_results_{cam_serial}.json")
     if os.path.exists(output_json):
         with open(output_json, "r") as f:
             results = json.load(f)
@@ -148,6 +158,8 @@ def benchmark(cam_dir: str, output_json: str, cam_serial: str):
         print(f"Processing {json_file}")
         json_path = os.path.join(cam_dir, json_file)
         mp4_path = find_corresponding_mp4(cam_dir, json_file, cam_serial)
+        if mp4_path is None:
+            results[json_file] = {"error": "Corresponding MP4 file not found."}
 
         try:
             jsonfile = Videojson(json_path)
@@ -173,6 +185,19 @@ def benchmark(cam_dir: str, output_json: str, cam_serial: str):
                 "mp4_frame_count": mp4_file.get_frame_count(),
             }
 
+            if profile_cam_json:
+                pdf_out_dir = os.path.join(output_dir, f"cam_{cam_serial}_json_report")
+                os.makedirs(pdf_out_dir, exist_ok=True)
+                out_path = os.path.join(
+                    pdf_out_dir, f"{os.path.basename(json_file)}.pdf"
+                )
+                with PdfPages(out_path) as pdf:
+                    create_profile_plot(
+                        chunk_serial,
+                        frame_ids,
+                        pdf,
+                    )
+
         except Exception as e:
             results[json_file] = {"error": str(e)}
 
@@ -185,9 +210,7 @@ def main():
 
     os.makedirs(args.out_dir, exist_ok=True)
 
-    output_json = os.path.join(args.out_dir, f"cam_benchmark_results_{args.cam_serial}.json")
-
-    benchmark(args.cam_dir, output_json, args.cam_serial)
+    benchmark(args.cam_dir, args.out_dir, args.cam_serial, args.profile_cam_json)
 
 
 if __name__ == "__main__":
