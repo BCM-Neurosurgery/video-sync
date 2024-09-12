@@ -176,8 +176,8 @@ def benchmark(cam_dir: str, output_json: str, cam_serial: str):
         except Exception as e:
             results[json_file] = {"error": str(e)}
 
-        with open(output_json, "w") as json_file:
-            json.dump(results, json_file, indent=4)
+        with open(output_json, "w") as json_to_save:
+            json.dump(results, json_to_save, indent=4)
 
 
 def main():
