@@ -22,7 +22,7 @@ def get_sorted_nev_files(folder_path):
     Returns a sorted list of .nev files based on their sequence numbers.
 
     The function scans a specified folder for .nev files with filenames in the
-    format 'NSP1-YYYYMMDD-HHMMSS-XXX.nev' and sorts them by the numeric sequence
+    format 'NSP2-YYYYMMDD-HHMMSS-XXX.nev' and sorts them by the numeric sequence
     (XXX) part of the filename.
 
     Args:
@@ -36,7 +36,7 @@ def get_sorted_nev_files(folder_path):
         sorted_nev_files = get_sorted_nev_files(folder_path)
         print(sorted_nev_files)
     """
-    nev_pattern = re.compile(r"NSP\d+-\d{8}-\d{6}-(\d+)\.nev")
+    nev_pattern = re.compile(r"NSP2-\d{8}-\d{6}-(\d+)\.nev")
     all_files = os.listdir(folder_path)
     nev_files = [f for f in all_files if nev_pattern.match(f)]
     sorted_nev_files = sorted(
