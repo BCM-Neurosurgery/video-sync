@@ -152,6 +152,18 @@ def benchmark(cam_dir: str, output_dir: str, cam_serial: str, profile_cam_json: 
         results = {}
 
     for json_file in jsons:
+
+        if profile_cam_json:
+            pdf_out_dir = os.path.join(output_dir, f"cam_{cam_serial}_json_report")
+            os.makedirs(pdf_out_dir, exist_ok=True)
+            out_path = os.path.join(pdf_out_dir, f"{os.path.basename(json_file)}.pdf")
+            with PdfPages(out_path) as pdf:
+                create_profile_plot(
+                    chunk_serial,
+                    frame_ids,
+                    pdf,
+                )
+
         if json_file in results:
             continue
 
@@ -184,19 +196,6 @@ def benchmark(cam_dir: str, output_dir: str, cam_serial: str, profile_cam_json: 
                 "json_recording_duration": jsonfile.get_duration_readable(),
                 "mp4_frame_count": mp4_file.get_frame_count(),
             }
-
-            if profile_cam_json:
-                pdf_out_dir = os.path.join(output_dir, f"cam_{cam_serial}_json_report")
-                os.makedirs(pdf_out_dir, exist_ok=True)
-                out_path = os.path.join(
-                    pdf_out_dir, f"{os.path.basename(json_file)}.pdf"
-                )
-                with PdfPages(out_path) as pdf:
-                    create_profile_plot(
-                        chunk_serial,
-                        frame_ids,
-                        pdf,
-                    )
 
         except Exception as e:
             results[json_file] = {"error": str(e)}
