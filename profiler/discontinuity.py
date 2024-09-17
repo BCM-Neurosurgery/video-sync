@@ -46,6 +46,7 @@ def detect_discontinuities(data):
             diff = data[i + 1] - data[i]
             if diff > 1:
                 type_iii_count += 1
+                diff = int(diff)
                 if diff in type_iii_differences:
                     type_iii_differences[diff] += 1
                 else:
