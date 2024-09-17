@@ -30,33 +30,16 @@ def detect_discontinuities(data):
     type_i_count = 0
     type_ii_count = 0
     type_iii_count = 0
-    continuous_sections = []
-
-    start_idx = 0
     i = 0
     while i < len(data) - 1:
         if data[i] == 0:
-            # Check if this is a Type I or Type II discontinuity
             if data[i + 1] > 0:
                 if data[i + 1] == 1:
-                    type_ii_count += 1  # Reset from 0 to 1
+                    type_ii_count += 1
                 else:
-                    type_i_count += 1  # Dropped to 0, but not reset to 1
+                    type_i_count += 1
 
-            # Record the length of the continuous section
-            continuous_sections.append(i - start_idx)
-            start_idx = i + 1  # Move to the next section
         elif data[i + 1] - data[i] > 1:
-            # Type III discontinuity detected
             type_iii_count += 1
-            # Record the length of the continuous section
-            continuous_sections.append(i - start_idx + 1)
-            start_idx = i + 1  # Move to the next section
         i += 1
-
-    # Handle the last data point
-    if data[-1] != 0 and start_idx <= len(data) - 1:
-        # The last continuous section
-        continuous_sections.append(len(data) - start_idx)
-
-    return type_i_count, type_ii_count, type_iii_count, continuous_sections
+    return type_i_count, type_ii_count, type_iii_count
