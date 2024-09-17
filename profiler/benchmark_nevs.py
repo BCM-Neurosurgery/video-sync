@@ -73,14 +73,15 @@ def benchmark(nev_dir: str, output_json: str):
 
             chunk_serial_df = nev.get_chunk_serial_df_original()
 
-            chunk_type_i, chunk_type_ii, chunk_type_iii = detect_discontinuities(
-                chunk_serial_df["chunk_serial"]
+            chunk_type_i, chunk_type_ii, chunk_type_iii, type_iii_differences = (
+                detect_discontinuities(chunk_serial_df["chunk_serial"])
             )
 
             results[nev_file] = {
                 "chunk_type_i": chunk_type_i,
                 "chunk_type_ii": chunk_type_ii,
                 "chunk_type_iii": chunk_type_iii,
+                "type_iii_differences": type_iii_differences,
                 "recording_duration": nev.get_duration_readable(),
             }
 

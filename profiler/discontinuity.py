@@ -24,12 +24,15 @@ def detect_discontinuities(data):
         The number of Type II discontinuities detected.
     type_iii_count : int
         The number of Type III discontinuities detected.
+    type_iii_differences : dict
+        A dictionary mapping the jump sizes to their counts for Type III discontinuities.
     continuous_sections : list of int
         A list containing the lengths of continuous non-zero sections between the discontinuities.
     """
     type_i_count = 0
     type_ii_count = 0
     type_iii_count = 0
+    type_iii_differences = {}
     i = 0
     while i < len(data) - 1:
         if data[i] == 0:
@@ -39,7 +42,13 @@ def detect_discontinuities(data):
                 else:
                     type_i_count += 1
 
-        elif data[i + 1] - data[i] > 1:
-            type_iii_count += 1
+        else:
+            diff = data[i + 1] - data[i]
+            if diff > 1:
+                type_iii_count += 1
+                if diff in type_iii_differences:
+                    type_iii_differences[diff] += 1
+                else:
+                    type_iii_differences[diff] = 1
         i += 1
-    return type_i_count, type_ii_count, type_iii_count
+    return type_i_count, type_ii_count, type_iii_count, type_iii_differences
