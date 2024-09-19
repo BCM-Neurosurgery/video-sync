@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="pyvideosync",
-    version="1.1.0",
+    version="1.2.0",
     packages=find_packages(),
     install_requires=[
         # List your project's dependencies here.
@@ -14,7 +14,8 @@ setup(
             "profile-cam-json=profiler.profile_camera_jsons:main",
             "benchmark-nevs=profiler.benchmark_nevs:main",
             "benchmark-camera=profiler.benchmark_camera_files:main",
-            "plot-discontinuity=profiler.plot_discontinuity:main",
+            "plot-nev-agg-discontinuity=profiler.plot_nev_agg_discontinuity:main",
+            "plot-json-agg-discontinuity=profiler.plot_json_agg_discontinuity:main",
         ],
     },
 )
