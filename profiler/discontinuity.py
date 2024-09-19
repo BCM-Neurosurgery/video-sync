@@ -2,14 +2,14 @@ def detect_discontinuities(data):
     """
     Detect discontinuities in a sequence of numerical data.
 
-    This function processes a list of numerical data, identifies zeros as discontinuities,
-    and classifies them into Type I, Type II, and Type III discontinuities based on the values
-    immediately following the zero or the difference between consecutive numbers. It also records
-    the lengths of continuous non-zero sections between the discontinuities.
+    This function processes a list of numerical data, identifies zeros, -1s, and large differences as discontinuities,
+    and classifies them into Type I, Type II, Type III, and Type IV discontinuities based on specific conditions.
+    It also records the lengths of continuous non-zero sections between the discontinuities.
 
     - **Type I discontinuity**: Occurs when the data drops to zero and then increases to a value greater than 1.
     - **Type II discontinuity**: Occurs when the data resets from zero to 1.
-    - **Type III discontinuity**: Occurs when the difference between the next number and the current number is greater than 1.
+    - **Type III discontinuity**: Occurs when the difference between consecutive numbers is greater than 1.
+    - **Type IV discontinuity**: Occurs when the data hits -1.
 
     Parameters
     ----------
@@ -18,38 +18,58 @@ def detect_discontinuities(data):
 
     Returns
     -------
-    type_i_count : int
-        The number of Type I discontinuities detected.
-    type_ii_count : int
-        The number of Type II discontinuities detected.
-    type_iii_count : int
-        The number of Type III discontinuities detected.
-    type_iii_differences : dict
-        A dictionary mapping the jump sizes to their counts for Type III discontinuities.
-    continuous_sections : list of int
-        A list containing the lengths of continuous non-zero sections between the discontinuities.
+    results : dict
+        A dictionary containing counts, gap lengths, and differences for each type of discontinuity.
+        Example:
+        {
+            'type_i': {'count': 2, 'gaps': [3, 5]},
+            'type_ii': {'count': 1, 'gaps': [2]},
+            'type_iii': {'count': 3, 'gaps': [4, 2, 7], 'differences': {2: 1, 3: 1}},
+            'type_iv': {'count': 1, 'gaps': [1]}
+        }
     """
-    type_i_count = 0
-    type_ii_count = 0
-    type_iii_count = 0
-    type_iii_differences = {}
+    results = {
+        "type_i": {"count": 0, "gaps": []},
+        "type_ii": {"count": 0, "gaps": []},
+        "type_iii": {"count": 0, "gaps": [], "differences": {}},
+        "type_iv": {"count": 0, "gaps": []},
+    }
+
+    continuous_length = 0
     i = 0
     while i < len(data) - 1:
+        continuous_length += 1
         if data[i] == 0:
             if data[i + 1] > 0:
                 if data[i + 1] == 1:
-                    type_ii_count += 1
+                    results["type_ii"]["count"] += 1
+                    results["type_ii"]["gaps"].append(continuous_length)
                 else:
-                    type_i_count += 1
-
+                    results["type_i"]["count"] += 1
+                    results["type_i"]["gaps"].append(continuous_length)
+            continuous_length = 0
+        elif data[i] == -1:
+            results["type_iv"]["count"] += 1
+            results["type_iv"]["gaps"].append(continuous_length)
+            continuous_length = 0
         else:
             diff = data[i + 1] - data[i]
             if diff > 1:
-                type_iii_count += 1
+                results["type_iii"]["count"] += 1
                 diff = int(diff)
-                if diff in type_iii_differences:
-                    type_iii_differences[diff] += 1
+                if diff in results["type_iii"]["differences"]:
+                    results["type_iii"]["differences"][diff] += 1
                 else:
-                    type_iii_differences[diff] = 1
+                    results["type_iii"]["differences"][diff] = 1
+                results["type_iii"]["gaps"].append(continuous_length)
+                continuous_length = 0
         i += 1
-    return type_i_count, type_ii_count, type_iii_count, type_iii_differences
+
+    # Add the last section if it's non-zero
+    if continuous_length > 0:
+        results["type_i"]["gaps"].append(continuous_length)
+        results["type_ii"]["gaps"].append(continuous_length)
+        results["type_iii"]["gaps"].append(continuous_length)
+        results["type_iv"]["gaps"].append(continuous_length)
+
+    return results

@@ -48,7 +48,7 @@ def get_sorted_nev_files(folder_path):
 def benchmark(nev_dir: str, output_json: str):
     """
     Benchmarks NEV files by detecting discontinuities in the chunk serial data
-    and saving the results (chunk_type_i, chunk_type_ii) into a JSON file.
+    and saving the results into a JSON file.
 
     Args:
         nev_dir (str): Directory containing the NEV files.
@@ -56,6 +56,7 @@ def benchmark(nev_dir: str, output_json: str):
     """
     nev_files = get_sorted_nev_files(nev_dir)
 
+    # Load existing results if the output JSON file exists
     if os.path.exists(output_json):
         with open(output_json, "r") as f:
             results = json.load(f)
@@ -69,19 +70,20 @@ def benchmark(nev_dir: str, output_json: str):
         nev_path = os.path.join(nev_dir, nev_file)
 
         try:
+            # Load the NEV file
             nev = Nev(nev_path)
 
+            # Get the chunk serial data
             chunk_serial_df = nev.get_chunk_serial_df_original()
 
-            chunk_type_i, chunk_type_ii, chunk_type_iii, type_iii_differences = (
-                detect_discontinuities(chunk_serial_df["chunk_serial"])
+            # Detect discontinuities in the chunk serial data
+            discontinuity_results = detect_discontinuities(
+                chunk_serial_df["chunk_serial"]
             )
 
+            # Add results to the dictionary, including recording duration
             results[nev_file] = {
-                "chunk_type_i": chunk_type_i,
-                "chunk_type_ii": chunk_type_ii,
-                "chunk_type_iii": chunk_type_iii,
-                "type_iii_differences": type_iii_differences,
+                **discontinuity_results,
                 "recording_duration": nev.get_duration_readable(),
             }
 
