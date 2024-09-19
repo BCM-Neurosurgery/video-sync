@@ -14,6 +14,7 @@ setup(
             "profile-cam-json=profiler.profile_camera_jsons:main",
             "benchmark-nevs=profiler.benchmark_nevs:main",
             "benchmark-camera=profiler.benchmark_camera_files:main",
+            "plot-discontinuity=profiler.plot_discontinuity:main",
         ],
     },
 )
