@@ -172,31 +172,21 @@ def benchmark(cam_dir: str, output_dir: str, cam_serial: str, profile_cam_json: 
         mp4_path = find_corresponding_mp4(cam_dir, json_file, cam_serial)
         if mp4_path is None:
             results[json_file] = {"error": "Corresponding MP4 file not found."}
+            continue
 
         try:
             jsonfile = Videojson(json_path)
             chunk_serial = jsonfile.get_chunk_serial_list(cam_serial)
             frame_ids = jsonfile.get_frame_ids_list(cam_serial)
 
-            chunk_type_i, chunk_type_ii, chunk_type_iii, chunk_type_iii_differences = (
-                detect_discontinuities(chunk_serial)
-            )
-
-            frame_type_i, frame_type_ii, frame_type_iii, frame_type_iii_differences = (
-                detect_discontinuities(frame_ids)
-            )
+            chunk_discontinuities = detect_discontinuities(chunk_serial)
+            frame_discontinuities = detect_discontinuities(frame_ids)
 
             mp4_file = Video(mp4_path)
 
             results[json_file] = {
-                "chunk_type_i": chunk_type_i,
-                "chunk_type_ii": chunk_type_ii,
-                "chunk_type_iii": chunk_type_iii,
-                "chunk_type_iii_differences": chunk_type_iii_differences,
-                "frame_type_i": frame_type_i,
-                "frame_type_ii": frame_type_ii,
-                "frame_type_iii": frame_type_iii,
-                "frame_type_iii_differences": frame_type_iii_differences,
+                "chunk_discontinuities": chunk_discontinuities,
+                "frame_discontinuities": frame_discontinuities,
                 "json_recording_duration": jsonfile.get_duration_readable(),
                 "mp4_frame_count": mp4_file.get_frame_count(),
             }
