@@ -20,13 +20,6 @@ def detect_discontinuities(data):
     -------
     results : dict
         A dictionary containing counts, gap lengths, and differences for each type of discontinuity.
-        Example:
-        {
-            'type_i': {'count': 2, 'gaps': [3, 5]},
-            'type_ii': {'count': 1, 'gaps': [2]},
-            'type_iii': {'count': 3, 'gaps': [4, 2, 7], 'differences': {2: 1, 3: 1}},
-            'type_iv': {'count': 1, 'gaps': [1]}
-        }
     """
     results = {
         "type_i": {"count": 0, "gaps": []},
@@ -36,6 +29,8 @@ def detect_discontinuities(data):
     }
 
     continuous_length = 0
+    last_discontinuity_type = None  # Track the type of the last detected discontinuity
+
     i = 0
     while i < len(data) - 1:
         continuous_length += 1
@@ -44,13 +39,16 @@ def detect_discontinuities(data):
                 if data[i + 1] == 1:
                     results["type_ii"]["count"] += 1
                     results["type_ii"]["gaps"].append(continuous_length)
+                    last_discontinuity_type = "type_ii"
                 else:
                     results["type_i"]["count"] += 1
                     results["type_i"]["gaps"].append(continuous_length)
+                    last_discontinuity_type = "type_i"
             continuous_length = 0
         elif data[i] == -1:
             results["type_iv"]["count"] += 1
             results["type_iv"]["gaps"].append(continuous_length)
+            last_discontinuity_type = "type_iv"
             continuous_length = 0
         else:
             diff = data[i + 1] - data[i]
@@ -62,14 +60,13 @@ def detect_discontinuities(data):
                 else:
                     results["type_iii"]["differences"][diff] = 1
                 results["type_iii"]["gaps"].append(continuous_length)
+                last_discontinuity_type = "type_iii"
                 continuous_length = 0
         i += 1
 
-    # Add the last section if it's non-zero
-    if continuous_length > 0:
-        results["type_i"]["gaps"].append(continuous_length)
-        results["type_ii"]["gaps"].append(continuous_length)
-        results["type_iii"]["gaps"].append(continuous_length)
-        results["type_iv"]["gaps"].append(continuous_length)
+    # Handle the last continuous segment
+    if continuous_length > 0 and last_discontinuity_type:
+        # Append to the last detected discontinuity type
+        results[last_discontinuity_type]["gaps"].append(continuous_length)
 
     return results
