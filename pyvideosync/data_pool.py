@@ -28,6 +28,7 @@ from pyvideosync.nev import Nev
 from pyvideosync.nsx import Nsx
 import re
 from typing import List, Dict
+from pyvideosync.utils import extract_timestamp
 
 
 class DataPool:
@@ -45,6 +46,7 @@ class DataPool:
         self.nsx_pool = NsxPool()
         self.video_pool = VideoPool()
         self.video_json_pool = VideoJsonPool()
+        self.video_file_pool = VideoFilesPool()
         self.init_pools()
 
     def init_pools(self):
@@ -61,6 +63,7 @@ class DataPool:
                 self.nsx_pool.add_file(file)
 
         for file in self.cam_files:
+            self.video_file_pool.add_file(file)
             if file.endswith(".mp4"):
                 self.video_pool.add_file(file)
             elif file.endswith(".json"):
@@ -88,6 +91,9 @@ class DataPool:
 
     def get_video_json_pool(self):
         return self.video_json_pool
+
+    def get_video_file_pool(self):
+        return self.video_file_pool
 
     def _group_files(self, prefix=None):
         """Helper method to group files by base name with
@@ -483,6 +489,18 @@ class VideoJsonPool:
 
     def add_file(self, file: str):
         timestamp = file.split("_")[-1].split(".")[0]
+        self.files[timestamp].append(file)
+
+    def list_groups(self):
+        return {timestamp: files for timestamp, files in self.files.items()}
+
+
+class VideoFilesPool:
+    def __init__(self) -> None:
+        self.files = defaultdict(list)
+
+    def add_file(self, file: str):
+        timestamp = extract_timestamp(file)
         self.files[timestamp].append(file)
 
     def list_groups(self):

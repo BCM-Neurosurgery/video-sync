@@ -329,7 +329,8 @@ def main():
                         )
 
                         # 2. Find the associated JSON files and MP4 files
-
+                        camera_files = datapool.get_video_file_pool().list_groups()
+                        logger.info(f"Camera files found: {camera_files}")
                         time.sleep(10)
 
         elif choice == "2":

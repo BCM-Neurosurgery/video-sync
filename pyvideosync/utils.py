@@ -5,6 +5,7 @@ import os
 import json
 import pandas as pd
 import numpy as np
+import re
 
 
 def ts2unix(time_origin, resolution, ts) -> datetime:
@@ -671,3 +672,33 @@ def fill_missing_serials_df(df, timestamp_col, serial_col, utc_timestamp_col):
     filled_df = pd.DataFrame(filled_rows).reset_index(drop=True)
 
     return filled_df
+
+
+def extract_timestamp(filename):
+    """
+    Extracts the timestamp from a filename of the format:
+    'YFIDatafile_YYYYMMDD_HHMMSS.ext' where '.ext' can be '.mp4' or '.json',
+    and returns a datetime object.
+
+    Parameters:
+    filename (str): The filename containing the timestamp.
+
+    Returns:
+    datetime: A datetime object representing the extracted timestamp.
+
+    Raises:
+    ValueError: If the filename does not match the expected pattern.
+
+    Example:
+    >>> extract_timestamp('YFIDatafile_20241015_094946.23512906.mp4')
+    datetime.datetime(2024, 10, 15, 9, 49, 46)
+
+    >>> extract_timestamp('YFIDatafile_20241015_094946.json')
+    datetime.datetime(2024, 10, 15, 9, 49, 46)
+    """
+    match = re.search(r"_(\d{8})_(\d{6})(?:\.\d+)?\.(mp4|json)$", filename)
+    if match:
+        date_part, time_part, _ = match.groups()
+        return datetime.strptime(date_part + time_part, "%Y%m%d%H%M%S")
+    else:
+        raise ValueError("Filename format does not match expected pattern")
