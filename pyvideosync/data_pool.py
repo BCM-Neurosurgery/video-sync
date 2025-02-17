@@ -220,6 +220,23 @@ class DataPool:
                         }
                     )
 
+    def get_nev_serial_range(self):
+        """Return min and max of nev serial range for all nev files
+
+        Returns:
+            tuple: (min, max) of nev serial range
+        """
+        min_serial = float("inf")
+        max_serial = float("-inf")
+        for nev_file in self.nev_pool.list_nsp1_nev():
+            nev = Nev(os.path.join(self.nsp_dir, nev_file))
+            nev_serial_df = nev.get_chunk_serial_df()
+            nev_start_serial = nev_serial_df.iloc[0]["chunk_serial"]
+            nev_end_serial = nev_serial_df.iloc[-1]["chunk_serial"]
+            min_serial = min(min_serial, nev_start_serial)
+            max_serial = max(max_serial, nev_end_serial)
+        return min_serial, max_serial
+
     def find_mp4_associated_files(self, mp4_file: str):
         """Find associated files for the given mp4_file.
 
@@ -376,7 +393,7 @@ class NevPool:
                 file
                 for files in self.files.values()
                 for file in files
-                if file.startswith("NSP1")
+                if "NSP-1" in file
             ],
             key=self._extract_number,
         )

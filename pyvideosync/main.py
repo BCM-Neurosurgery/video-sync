@@ -313,6 +313,25 @@ def main():
 
                         time.sleep(30)
 
+                elif mode == "3":
+                    while True:
+                        clear_screen()
+
+                        # configure logging
+                        logger = configure_logging(pathutils.output_dir)
+
+                        # 1. Get NEV serial start and end
+                        nev_files = datapool.get_nev_pool().list_nsp1_nev()
+                        logger.info(f"NEV files found: {nev_files}")
+                        start_serial, end_serial = datapool.get_nev_serial_range()
+                        logger.info(
+                            "Start serial: %s, End serial: %s", start_serial, end_serial
+                        )
+
+                        # 2. Find the associated JSON files and MP4 files
+
+                        time.sleep(10)
+
         elif choice == "2":
             print("Exiting program. Goodbye!")
             break

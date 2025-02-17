@@ -70,6 +70,7 @@ def mode_selection_screen():
     print("\nPlease select the following mode to sync:")
     print("1. Load UTC timestmaps from a CSV file")
     print("2. Manually select an exisiting video (Legacy)")
+    print("3. Stitch video files (Kat)")
     print("Enter 0 to go back to previous screen.")
     choice = input("Enter your choice: ")
     return choice
