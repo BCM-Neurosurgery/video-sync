@@ -43,6 +43,7 @@ from pyvideosync.utils import (
     keep_valid_audio,
     analog2audio,
 )
+from pyvideosync.videojson import Videojson
 
 
 def print_and_sleep(msg):
@@ -331,6 +332,22 @@ def main():
                         # 2. Find the associated JSON files and MP4 files
                         camera_files = datapool.get_video_file_pool().list_groups()
                         logger.info(f"Camera files found: {camera_files}")
+
+                        # 3. Find all possible camera serials
+                        random_json_file = (
+                            datapool.get_video_file_pool().find_one_random_json()
+                        )
+                        videojson = Videojson(
+                            os.path.join(pathutils.cam_recording_dir, random_json_file)
+                        )
+                        camera_serials = videojson.get_camera_serials()
+                        logger.info(f"Camera serials found: {camera_serials}")
+
+                        # 4. Go through all JSON files and find the ones that
+                        # are within the NEV serial range
+                        for timestamp, camera_file_group in enumerate(camera_files):
+                            pass
+
                         time.sleep(10)
 
         elif choice == "2":

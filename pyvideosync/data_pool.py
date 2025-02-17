@@ -505,3 +505,10 @@ class VideoFilesPool:
 
     def list_groups(self):
         return {timestamp: files for timestamp, files in self.files.items()}
+
+    def find_one_random_json(self):
+        for files in self.files.values():
+            for file in files:
+                if file.endswith(".json"):
+                    return file
+        return None
