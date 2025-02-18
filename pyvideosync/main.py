@@ -42,8 +42,11 @@ from pyvideosync.utils import (
     extract_basename,
     keep_valid_audio,
     analog2audio,
+    load_timestamps,
+    save_timestamps,
 )
 from pyvideosync.videojson import Videojson
+from pyvideosync.video import Video
 
 
 def print_and_sleep(msg):
@@ -324,14 +327,17 @@ def main():
                         # 1. Get NEV serial start and end
                         nev_files = datapool.get_nev_pool().list_nsp1_nev()
                         logger.info(f"NEV files found: {nev_files}")
-                        start_serial, end_serial = datapool.get_nev_serial_range()
+                        nev_start_serial, nev_end_serial = (
+                            datapool.get_nev_serial_range()
+                        )
                         logger.info(
-                            "Start serial: %s, End serial: %s", start_serial, end_serial
+                            "Start serial: %s, End serial: %s",
+                            nev_start_serial,
+                            nev_end_serial,
                         )
 
-                        # 2. Find the associated JSON files and MP4 files
+                        # 2. Find all JSON files and MP4 files
                         camera_files = datapool.get_video_file_pool().list_groups()
-                        logger.info(f"Camera files found: {camera_files}")
 
                         # 3. Find all possible camera serials
                         random_json_file = (
@@ -345,10 +351,147 @@ def main():
 
                         # 4. Go through all JSON files and find the ones that
                         # are within the NEV serial range
-                        for timestamp, camera_file_group in enumerate(camera_files):
-                            pass
+                        # read timestamps if available
+                        timestamps_path = os.path.join(
+                            pathutils.output_dir, "timestamps.json"
+                        )
+                        timestamps = load_timestamps(timestamps_path, logger)
+                        if timestamps:
+                            logger.info(f"Loaded timestamps: {timestamps}")
+                        else:
+                            logger.info("No timestamps found")
+                            timestamps = []
+                            for timestamp, camera_file_group in camera_files.items():
+                                # get the json file in the camera_file_group
+                                try:
+                                    json_file = [
+                                        file
+                                        for file in camera_file_group
+                                        if file.endswith(".json")
+                                    ][0]
+                                except IndexError:
+                                    logger.error(
+                                        f"No JSON file found in group {timestamp}"
+                                    )
+                                    continue
 
-                        time.sleep(10)
+                                # read in the json file and see if the serial in json
+                                # is within the range of NEV serial
+                                json_path = os.path.join(
+                                    pathutils.cam_recording_dir, json_file
+                                )
+                                videojson = Videojson(json_path)
+                                start_serial, end_serial = (
+                                    videojson.get_min_max_chunk_serial()
+                                )
+
+                                if end_serial < nev_start_serial:
+                                    logger.info(f"No overlap found: {timestamp}")
+                                    continue
+
+                                elif start_serial <= nev_end_serial:
+                                    logger.info(
+                                        f"Overlap found, timestamp: {timestamp}"
+                                    )
+                                    timestamps.append(timestamp)
+
+                                else:
+                                    logger.info(f"Break: {timestamp}")
+                                    break
+                            logger.info(f"timestamps: {timestamps}")
+                            save_timestamps(timestamps_path, timestamps)
+
+                        # 5. Go through the timestamps and process the videos
+                        for camera_serial in camera_serials:
+                            camera_serial_concats = []
+
+                            for timestamp in timestamps:
+                                camera_file_group = camera_files[timestamp]
+
+                                try:
+                                    json_file = [
+                                        file
+                                        for file in camera_file_group
+                                        if file.endswith(".json")
+                                    ][0]
+                                except IndexError:
+                                    logger.error(
+                                        f"No JSON file found in group {timestamp}"
+                                    )
+                                    continue
+                                json_path = os.path.join(
+                                    pathutils.cam_recording_dir, json_file
+                                )
+                                videojson = Videojson(json_path)
+                                camera_df = videojson.get_camera_df(camera_serial)
+                                camera_df["frame_ids_relative"] = (
+                                    camera_df["frame_ids_reconstructed"]
+                                    - camera_df["frame_ids_reconstructed"].iloc[0]
+                                    + 1
+                                )
+
+                                camera_df = camera_df.loc[
+                                    (camera_df["chunk_serial_data"] >= nev_start_serial)
+                                    & (camera_df["chunk_serial_data"] <= nev_end_serial)
+                                ]
+
+                                start_frame, end_frame = (
+                                    camera_df["frame_ids_relative"].iloc[0],
+                                    camera_df["frame_ids_relative"].iloc[-1],
+                                )
+
+                                # find the associated mp4 files
+                                try:
+                                    mp4_file = [
+                                        file
+                                        for file in camera_file_group
+                                        if camera_serial in file
+                                        and file.endswith(".mp4")
+                                    ][0]
+                                except IndexError:
+                                    logger.error(
+                                        f"No MP4 with serial {camera_serial} found in group {timestamp}"
+                                    )
+                                mp4_path = os.path.join(
+                                    pathutils.cam_recording_dir, mp4_file
+                                )
+
+                                camera_serial_concats.append(
+                                    {
+                                        "timestamp": timestamp,
+                                        "camera_serial": camera_serial,
+                                        "json_file": json_path,
+                                        "mp4_file": mp4_path,
+                                        "start_frame_id": start_frame,
+                                        "end_frame_id": end_frame,
+                                        "start_serial": camera_df[
+                                            "chunk_serial_data"
+                                        ].iloc[0],
+                                        "end_serial": camera_df[
+                                            "chunk_serial_data"
+                                        ].iloc[-1],
+                                    }
+                                )
+
+                            # converts the list of dicts to a dataframe
+                            camera_serial_concats_df = pd.DataFrame.from_records(
+                                camera_serial_concats
+                            )
+                            logger.info(
+                                f"Camera serial concats found\n: {camera_serial_concats_df}"
+                            )
+
+                            # go through the list and process the video
+                            for camera_serial_concat in camera_serial_concats:
+                                mp4_path, start_frame, end_frame = (
+                                    camera_serial_concat["mp4_file"],
+                                    camera_serial_concat["start_frame_id"],
+                                    camera_serial_concat["end_frame_id"],
+                                )
+                                videofile = Video(mp4_path)
+                                pass
+
+                        time.sleep(20)
 
         elif choice == "2":
             print("Exiting program. Goodbye!")
