@@ -504,7 +504,10 @@ class VideoFilesPool:
         self.files[timestamp].append(file)
 
     def list_groups(self):
-        return {timestamp: files for timestamp, files in self.files.items()}
+        """
+        Returns a dictionary of sorted timestamps and corresponding files.
+        """
+        return {timestamp: self.files[timestamp] for timestamp in sorted(self.files)}
 
     def find_one_random_json(self):
         for files in self.files.values():
