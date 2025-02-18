@@ -162,3 +162,32 @@ class Videojson:
             return None
         except ValueError:
             return None
+
+    def get_min_max_chunk_serial(self):
+        """
+        Get the minimum and maximum chunk serial data across all cameras,
+        assuming the chunk serial data is already ordered.
+        Ignores values that are 0 or -1.
+
+        Returns:
+            tuple: (min_serial, max_serial), or (None, None) if no valid data is found.
+        """
+        min_serial, max_serial = None, None
+
+        for serial_list in self.dic["chunk_serial_data"]:
+            for serial in serial_list:
+                if serial != 0 and serial != -1:
+                    min_serial = serial
+                    break
+            if min_serial is not None:
+                break
+
+        for serial_list in reversed(self.dic["chunk_serial_data"]):
+            for serial in reversed(serial_list):
+                if serial != 0 and serial != -1:
+                    max_serial = serial
+                    break
+            if max_serial is not None:
+                break
+
+        return min_serial, max_serial
