@@ -702,3 +702,21 @@ def extract_timestamp(filename):
         return datetime.strptime(date_part + time_part, "%Y%m%d%H%M%S")
     else:
         raise ValueError("Filename format does not match expected pattern")
+
+
+def load_timestamps(file_path, logger):
+    """Load timestamps from a JSON file if available, converting strings to datetime."""
+    if os.path.exists(file_path):
+        try:
+            with open(file_path, "r") as f:
+                timestamps = json.load(f)
+            return [datetime.fromisoformat(ts) for ts in timestamps]
+        except (json.JSONDecodeError, ValueError):
+            logger.error("Error decoding JSON file, starting fresh.")
+    return None
+
+
+def save_timestamps(file_path, timestamps):
+    """Save timestamps to a JSON file, converting datetime to string format."""
+    with open(file_path, "w") as f:
+        json.dump([ts.isoformat() for ts in timestamps], f, indent=4)

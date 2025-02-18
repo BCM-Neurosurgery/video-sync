@@ -157,3 +157,110 @@ class Video:
                 pbar.update(1)
         self.capture.release()
         return frame_list
+
+    @staticmethod
+    def extract_and_combine_videos_from_df(df, output_video, fps=30):
+        """
+        Extracts specific frames from multiple MP4 files (provided in a DataFrame)
+        and combines them into a single output video efficiently without storing frames in memory.
+
+        Parameters:
+        - df (pandas.DataFrame): A DataFrame with columns:
+            - "mp4_file": Path to the MP4 file.
+            - "start_frame_id": Frame to start extracting.
+            - "end_frame_id": Frame to stop extracting.
+        - output_video (str): Path for the output combined video file.
+        - fps (int): Frames per second for the output video.
+
+        Example:
+        df = pd.DataFrame({
+            "mp4_file": ["video1.mp4", "video2.mp4", "video3.mp4"],
+            "start_frame_id": [16000, None, 0],
+            "end_frame_id": [18000, None, 2000]
+        })
+        extract_and_combine_videos_from_df(df, "combined_output.mp4", fps=30)
+        """
+
+        # Initialize VideoWriter settings
+        frame_size = None
+        video_writer = None
+        total_frames_to_extract = 0
+
+        # First pass: Determine total frames and frame size
+        for _, row in df.iterrows():
+            video_path = row["mp4_file"]
+            cap = cv2.VideoCapture(video_path)
+            if not cap.isOpened():
+                print(f"Error: Could not open {video_path}")
+                continue
+
+            width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            if frame_size is None:
+                frame_size = (
+                    width,
+                    height,
+                )  # Set frame size from the first valid video
+
+            start_frame = (
+                row["start_frame_id"] if row["start_frame_id"] is not None else 0
+            )
+            end_frame = (
+                row["end_frame_id"]
+                if row["end_frame_id"] is not None
+                else int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) - 1
+            )
+            total_frames_to_extract += max(0, end_frame - start_frame + 1)
+
+            cap.release()
+
+        if frame_size is None:
+            print("No valid video files found. Exiting.")
+            return
+
+        # Initialize VideoWriter
+        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+        video_writer = cv2.VideoWriter(output_video, fourcc, fps, frame_size)
+
+        # Progress bar
+        progress_bar = tqdm(
+            total=total_frames_to_extract, desc="Processing Frames", unit="frame"
+        )
+
+        # Second pass: Extract and write frames directly to the video
+        for _, row in df.iterrows():
+            video_path = row["mp4_file"]
+            cap = cv2.VideoCapture(video_path)
+            if not cap.isOpened():
+                print(f"Error: Could not open {video_path}")
+                continue
+
+            start_frame = (
+                row["start_frame_id"] if row["start_frame_id"] is not None else 0
+            )
+            end_frame = (
+                row["end_frame_id"]
+                if row["end_frame_id"] is not None
+                else int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) - 1
+            )
+
+            cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)  # Seek to the start frame
+
+            frame_count = start_frame
+            while frame_count <= end_frame:
+                ret, frame = cap.read()
+                if not ret:
+                    print("Error reading frame")
+                    break  # End of video or read error
+
+                video_writer.write(frame)  # Write frame directly
+                progress_bar.update(1)
+                frame_count += 1
+
+            cap.release()
+            print(f"Processed {video_path}, frames {start_frame} to {end_frame}")
+
+        # Cleanup
+        video_writer.release()
+        progress_bar.close()
+        print(f"Combined video saved as {output_video}")

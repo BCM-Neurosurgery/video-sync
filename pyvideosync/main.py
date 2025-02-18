@@ -481,15 +481,18 @@ def main():
                                 f"Camera serial concats found\n: {camera_serial_concats_df}"
                             )
 
-                            # go through the list and process the video
-                            for camera_serial_concat in camera_serial_concats:
-                                mp4_path, start_frame, end_frame = (
-                                    camera_serial_concat["mp4_file"],
-                                    camera_serial_concat["start_frame_id"],
-                                    camera_serial_concat["end_frame_id"],
-                                )
-                                videofile = Video(mp4_path)
-                                pass
+                            # process the videos
+                            video_output_dir = os.path.join(
+                                pathutils.output_dir, camera_serial
+                            )
+                            os.makedirs(video_output_dir, exist_ok=True)
+                            video_output_path = os.path.join(
+                                video_output_dir, "output.mp4"
+                            )
+                            Video.extract_and_combine_videos_from_df(
+                                camera_serial_concats_df, video_output_path, fps=30
+                            )
+                            logger.info(f"Saved {camera_serial} to {video_output_path}")
 
                         time.sleep(20)
 

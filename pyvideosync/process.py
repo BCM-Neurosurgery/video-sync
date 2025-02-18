@@ -10,6 +10,10 @@ from pyvideosync.dataframes import (
 import os
 from scipy.io.wavfile import write
 from moviepy.editor import VideoFileClip, AudioFileClip
+from pyvideosync.utils import (
+    load_timestamps,
+    save_timestamps,
+)
 
 
 def process_video(abs_start_frame, abs_end_frame, pathutils, logger):
