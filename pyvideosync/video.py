@@ -8,6 +8,7 @@ import soundfile as sf
 import subprocess
 from moviepy.editor import VideoFileClip
 from moviepy.audio.AudioClip import AudioArrayClip
+import scipy.io.wavfile as wav
 
 
 class Video:
@@ -184,14 +185,20 @@ class Video:
 
         # 3) Build the raw audio array for that sub-range
         #    (Already filtered by df_sub, so just take the amplitude column.)
-        audio_samples = df_sub["Amplitude"].values.astype(np.float32)
+        audio_samples = df_sub["Amplitude"].values
+        # wav.write("/home/yewen/BCM/videosync/YFITesting/202502173/18486634/audio_1_scipy.wav", fps_audio, audio_samples)
+
         audio_samples = audio_samples.reshape(-1, 1)  # Make it mono shape (N, 1)
 
         #    Create an AudioArrayClip at 30kHz
         audio_clip = AudioArrayClip(audio_samples, fps=fps_audio)
+        audio_clip.write_audiofile(
+            "/home/yewen/BCM/videosync/YFITesting/202502173/18486634/audio_1.wav"
+        )  # You can use .mp3 as well
 
         # 4) Match audio duration to the subclip's duration, if needed
         subclip_duration = video_clip.duration  # (should be end_sec - start_sec)
+        print(f"Subclip duration: {subclip_duration}")
 
         # If your audio is precisely aligned in time, you can also just let it run.
         # But often it's good to clamp or set explicitly:
