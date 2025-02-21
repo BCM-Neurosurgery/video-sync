@@ -123,3 +123,52 @@ class Nsx:
         ]
 
         return sliced_df
+
+    def get_filtered_channel_df(
+        self, channel: str, start_ts: int, end_ts: int
+    ) -> pd.DataFrame:
+        """
+        Retrieve a filtered DataFrame of a specific channel within a timestamp range
+        without creating the entire DataFrame.
+
+        Args:
+            channel (str): Name of the channel to extract.
+            start_ts (int): Start timestamp.
+            end_ts (int): End timestamp.
+
+        Returns:
+            pd.DataFrame: Sliced DataFrame containing only the necessary data.
+        """
+        if start_ts > end_ts:
+            raise ValueError("start_ts must be less than or equal to end_ts")
+
+        # Retrieve channel data
+        channel_data = self.get_channel_array(channel)
+        num_samples = len(channel_data)
+        ts_start = self.timeStamp  # Starting timestamp for the data
+
+        # Determine valid index range
+        idx_start = int(max(0, start_ts - ts_start))
+        idx_end = int(min(num_samples, end_ts - ts_start + 1))
+
+        if idx_start >= num_samples or idx_end <= 0:
+            # No valid data in the given timestamp range
+            return pd.DataFrame(columns=["TimeStamp", "Amplitude", "UTCTimeStamp"])
+
+        # Slice only the required data
+        sliced_data = channel_data[idx_start:idx_end]
+        timestamps = np.arange(ts_start + idx_start, ts_start + idx_end)
+
+        # Construct minimal DataFrame
+        sliced_df = pd.DataFrame(
+            {
+                "TimeStamp": timestamps,
+                "Amplitude": sliced_data,
+                "UTCTimeStamp": [
+                    utils.ts2unix(self.timeOrigin, self.timestampResolution, ts)
+                    for ts in timestamps
+                ],
+            }
+        )
+
+        return sliced_df

@@ -47,6 +47,9 @@ from pyvideosync.utils import (
 )
 from pyvideosync.videojson import Videojson
 from pyvideosync.video import Video
+from pyvideosync.nev import Nev
+from pyvideosync.nsx import Nsx
+from moviepy.editor import concatenate_videoclips
 
 
 def print_and_sleep(msg):
@@ -401,13 +404,26 @@ def main():
                             logger.info(f"timestamps: {timestamps}")
                             save_timestamps(timestamps_path, timestamps)
 
+                        # process NEV chunk serial df
+                        nev_path = datapool.get_nev_pool().list_nsp1_nev()[0]
+                        nev_path = os.path.join(pathutils.nsp_dir, nev_path)
+                        nev = Nev(nev_path)
+                        nev_chunk_serial_df = nev.get_chunk_serial_df()
+                        logger.info(f"NEV chunk serials found\n: {nev_chunk_serial_df}")
+
+                        # process NS5 channel data
+                        ns5_path = datapool.get_nsx_pool().get_stitched_ns5_file()
+                        ns5_path = os.path.join(pathutils.nsp_dir, ns5_path)
+                        ns5 = Nsx(ns5_path)
+
                         # 5. Go through the timestamps and process the videos
                         for camera_serial in camera_serials:
-                            camera_serial_concats = []
+                            all_merged_list = []
 
-                            for timestamp in timestamps:
+                            for i, timestamp in enumerate(timestamps):
                                 camera_file_group = camera_files[timestamp]
 
+                                # get a json file
                                 try:
                                     json_file = [
                                         file
@@ -435,10 +451,50 @@ def main():
                                     & (camera_df["chunk_serial_data"] <= nev_end_serial)
                                 ]
 
-                                start_frame, end_frame = (
-                                    camera_df["frame_ids_relative"].iloc[0],
-                                    camera_df["frame_ids_relative"].iloc[-1],
+                                chunk_serial_joined = nev_chunk_serial_df.merge(
+                                    camera_df,
+                                    left_on="chunk_serial",
+                                    right_on="chunk_serial_data",
+                                    how="inner",
                                 )
+
+                                logger.info("Processing ns5 filtered channel df...")
+                                ns5_slice = ns5.get_filtered_channel_df(
+                                    pathutils.ns5_channel,
+                                    chunk_serial_joined.iloc[0]["TimeStamps"],
+                                    chunk_serial_joined.iloc[-1]["TimeStamps"],
+                                )
+
+                                logger.info("Merging ns5 and chunk serial df...")
+                                all_merged = ns5_slice.merge(
+                                    chunk_serial_joined,
+                                    left_on="TimeStamp",
+                                    right_on="TimeStamps",
+                                    how="left",
+                                )
+
+                                all_merged = all_merged[
+                                    [
+                                        "TimeStamp",
+                                        "Amplitude",
+                                        "chunk_serial",
+                                        "frame_id",
+                                        "frame_ids_reconstructed",
+                                        "frame_ids_relative",
+                                    ]
+                                ]
+                                # save audio file
+                                valid_audio = keep_valid_audio(all_merged)
+                                # audio_out_path = os.path.join(
+                                #     pathutils.output_dir,
+                                #     camera_serial,
+                                #     f"audio_{i}.wav",
+                                # )
+                                # analog2audio(
+                                #     valid_audio,
+                                #     ns5.get_sample_resolution(),
+                                #     audio_out_path,
+                                # )
 
                                 # find the associated mp4 files
                                 try:
@@ -452,33 +508,42 @@ def main():
                                     logger.error(
                                         f"No MP4 with serial {camera_serial} found in group {timestamp}"
                                     )
-                                mp4_path = os.path.join(
+
+                                all_merged["mp4_file"] = os.path.join(
                                     pathutils.cam_recording_dir, mp4_file
                                 )
+                                all_merged_list.append(all_merged)
 
-                                camera_serial_concats.append(
-                                    {
-                                        "timestamp": timestamp,
-                                        "camera_serial": camera_serial,
-                                        "json_file": json_path,
-                                        "mp4_file": mp4_path,
-                                        "start_frame_id": start_frame,
-                                        "end_frame_id": end_frame,
-                                        "start_serial": camera_df[
-                                            "chunk_serial_data"
-                                        ].iloc[0],
-                                        "end_serial": camera_df[
-                                            "chunk_serial_data"
-                                        ].iloc[-1],
-                                    }
+                                # camera_serial_concats.append(
+                                #     {
+                                #         "timestamp": timestamp,
+                                #         "camera_serial": camera_serial,
+                                #         "json_file": json_path,
+                                #         "mp4_file": mp4_path,
+                                #         "audio_data": valid_audio,
+                                #         "audio_out_path": audio_out_path,
+                                #         "start_frame_id": start_frame,
+                                #         "end_frame_id": end_frame,
+                                #         "start_serial": camera_df[
+                                #             "chunk_serial_data"
+                                #         ].iloc[0],
+                                #         "end_serial": camera_df[
+                                #             "chunk_serial_data"
+                                #         ].iloc[-1],
+                                #     }
+                                # )
+
+                            if not all_merged_list:
+                                logger.warning(
+                                    f"No valid merged data for {camera_serial}"
                                 )
+                                continue
 
-                            # converts the list of dicts to a dataframe
-                            camera_serial_concats_df = pd.DataFrame.from_records(
-                                camera_serial_concats
+                            all_merged_df = pd.concat(
+                                all_merged_list, ignore_index=True
                             )
                             logger.info(
-                                f"Camera serial concats found\n: {camera_serial_concats_df}"
+                                f"Final merged DataFrame for {camera_serial}:\n{all_merged_df.head()}"
                             )
 
                             # process the videos
@@ -489,9 +554,40 @@ def main():
                             video_output_path = os.path.join(
                                 video_output_dir, "output.mp4"
                             )
-                            Video.extract_and_combine_videos_from_df(
-                                camera_serial_concats_df, video_output_path, fps=30
+
+                            # If you want the final order strictly to follow how mp4_file appears in df:
+                            mp4_files_order = all_merged_df["mp4_file"].unique()
+
+                            final_clips = []
+
+                            for mp4_path in mp4_files_order:
+                                df_sub = all_merged_df[
+                                    all_merged_df["mp4_file"] == mp4_path
+                                ]
+
+                                # Build a subclip from the relevant frames, attach audio
+                                subclip = Video.make_synced_subclip(
+                                    df_sub,
+                                    mp4_path,
+                                    fps_video=30,
+                                    fps_audio=30000,  # 30kHz
+                                )
+                                final_clips.append(subclip)
+
+                            # Concatenate all subclips
+                            if len(final_clips) == 1:
+                                merged = final_clips[0]
+                            else:
+                                merged = concatenate_videoclips(final_clips)
+
+                            # Write result
+                            merged.write_videofile(
+                                video_output_path,
+                                fps=30,
+                                codec="libx264",
+                                audio_codec="aac",
                             )
+
                             logger.info(f"Saved {camera_serial} to {video_output_path}")
 
                         time.sleep(20)

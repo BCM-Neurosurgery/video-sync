@@ -470,6 +470,9 @@ class NsxPool:
     def list_groups(self):
         return {suffix: files for suffix, files in self.files.items()}
 
+    def get_stitched_ns5_file(self):
+        return self.files["1.ns5"][0]
+
 
 class VideoPool:
     def __init__(self) -> None:
