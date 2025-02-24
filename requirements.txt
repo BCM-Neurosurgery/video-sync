@@ -8,5 +8,5 @@ scipy==1.13.0
 scp==0.15.0
 moviepy==1.0.3
 pyyaml
-pyinstaller
-soundfile
+pyinstaller==6.10.0
+soundfile==0.13.0
