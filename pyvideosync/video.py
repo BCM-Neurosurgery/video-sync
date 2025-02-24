@@ -185,12 +185,11 @@ class Video:
 
         # 3) Build the raw audio array for that sub-range
         #    (Already filtered by df_sub, so just take the amplitude column.)
-        audio_samples = df_sub["Amplitude"].values
-        # wav.write("/home/yewen/BCM/videosync/YFITesting/202502173/18486634/audio_1_scipy.wav", fps_audio, audio_samples)
-
+        audio_samples = df_sub["Amplitude"].values.astype(np.float32)
+        wav.write("scipy_audio.wav", fps_audio, audio_samples)
+        audio_samples /= 32768.0
         audio_samples = audio_samples.reshape(-1, 1)  # Make it mono shape (N, 1)
-
-        #    Create an AudioArrayClip at 30kHz
+        fps_audio *= 2  # Double the audio FPS since we did the reshape
         audio_clip = AudioArrayClip(audio_samples, fps=fps_audio)
         audio_clip.write_audiofile(
             "/home/yewen/BCM/videosync/YFITesting/202502173/18486634/audio_1.wav"
