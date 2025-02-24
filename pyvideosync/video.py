@@ -6,9 +6,11 @@ import os
 import numpy as np
 import soundfile as sf
 import subprocess
-from moviepy.editor import VideoFileClip
+from moviepy import VideoFileClip, AudioFileClip
 from moviepy.audio.AudioClip import AudioArrayClip
 import scipy.io.wavfile as wav
+import uuid
+from scipy.io.wavfile import write as wav_write
 
 
 class Video:
@@ -164,45 +166,55 @@ class Video:
         self.capture.release()
         return frame_list
 
-    @staticmethod
-    def make_synced_subclip(df_sub, mp4_path, fps_video=30, fps_audio=30000):
-        """
-        Given a sub-DataFrame for a single mp4_file, where
-        frame_ids_relative runs from e.g. 11797..18000,
-        produce a MoviePy clip for exactly that frame range
-        (subclip of the MP4) plus the corresponding audio.
-        """
-        # 1) Identify which frames we need
-        min_frame = df_sub["frame_ids_relative"].min()
-        max_frame = df_sub["frame_ids_relative"].max()
+    # @staticmethod
+    # def make_synced_subclip(df_sub, mp4_path, fps_video=30, fps_audio=30000):
+    #     """
+    #     Given a sub-DataFrame for a single mp4_file, where
+    #     frame_ids_relative runs from e.g. 11797..18000,
+    #     produce a MoviePy clip for exactly that frame range
+    #     (subclip of the MP4) plus the corresponding audio.
+    #     """
+    #     # 1) Identify which frames we need
+    #     min_frame = df_sub["frame_ids_relative"].min()
+    #     max_frame = df_sub["frame_ids_relative"].max()
 
-        # 2) Convert frames to seconds, subclip only that portion
-        start_sec = min_frame / fps_video
-        # +1 so we include the last frame—MoviePy’s subclip end is exclusive by default
-        end_sec = (max_frame + 1) / fps_video
+    #     # 2) Convert frames to seconds, subclip only that portion
+    #     start_sec = min_frame / fps_video
+    #     # +1 so we include the last frame—MoviePy’s subclip end is exclusive by default
+    #     end_sec = (max_frame + 1) / fps_video
 
-        video_clip = VideoFileClip(mp4_path).subclip(start_sec, end_sec)
+    #     video_clip = VideoFileClip(mp4_path).subclipped(start_sec, end_sec)
 
-        # 3) Build the raw audio array for that sub-range
-        #    (Already filtered by df_sub, so just take the amplitude column.)
-        audio_samples = df_sub["Amplitude"].values.astype(np.float32)
-        wav.write("scipy_audio.wav", fps_audio, audio_samples)
-        audio_samples /= 32768.0
-        audio_samples = audio_samples.reshape(-1, 1)  # Make it mono shape (N, 1)
-        fps_audio *= 2  # Double the audio FPS since we did the reshape
-        audio_clip = AudioArrayClip(audio_samples, fps=fps_audio)
-        audio_clip.write_audiofile(
-            "/home/yewen/BCM/videosync/YFITesting/202502173/18486634/audio_1.wav"
-        )  # You can use .mp3 as well
+    #     # 4) Write amplitude array to a temporary WAV file
+    #     audio_samples = df_sub["Amplitude"].values
+    #     audio_name = os.path.basename(mp4_path).replace(".mp4", ".wav")
+    #     audio_path = f"/home/auto/CODE/utils/video-sync/Testing/YFITesting/02242025/18486634/{audio_name}"
+    #     wav.write(audio_path, fps_audio, audio_samples)
 
-        # 4) Match audio duration to the subclip's duration, if needed
-        subclip_duration = video_clip.duration  # (should be end_sec - start_sec)
-        print(f"Subclip duration: {subclip_duration}")
+    #     # 3) Build the raw audio array for that sub-range
+    #     #    (Already filtered by df_sub, so just take the amplitude column.)
+    #     # audio_samples = df_sub["Amplitude"].values.astype(np.float32)
+    #     # # wav.write("scipy_audio.wav", fps_audio, audio_samples)
+    #     # audio_samples /= 32768.0
+    #     # audio_samples = audio_samples.reshape(-1, 1)  # Make it mono shape (N, 1)
+    #     # fps_audio *= 2  # Double the audio FPS since we did the reshape
+    #     audio_clip = AudioFileClip(audio_path)
 
-        # If your audio is precisely aligned in time, you can also just let it run.
-        # But often it's good to clamp or set explicitly:
-        audio_clip = audio_clip.set_duration(subclip_duration)
+    #     # 4) Match audio duration to the subclip's duration, if needed
+    #     subclip_duration = video_clip.duration  # (should be end_sec - start_sec)
+    #     print(f"Subclip duration: {subclip_duration}")
 
-        # 5) Attach the audio to the subclip
-        final_subclip = video_clip.set_audio(audio_clip)
-        return final_subclip
+    #     # If your audio is precisely aligned in time, you can also just let it run.
+    #     # But often it's good to clamp or set explicitly:
+    #     audio_clip = audio_clip.set_duration(subclip_duration)
+
+    #     # 5) Attach the audio to the subclip
+    #     final_subclip = video_clip.set_audio(audio_clip)
+
+    #     final_subclip.write_videofile(
+    #         f"/home/auto/CODE/utils/video-sync/Testing/YFITesting/02242025/18486634/{os.path.basename(mp4_path).replace('.mp4', '.mp4')}",
+    #         codec="libx264",
+    #         audio_codec="aac",
+    #     )
+
+    #     return final_subclip

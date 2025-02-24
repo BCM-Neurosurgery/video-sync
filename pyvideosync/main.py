@@ -29,6 +29,8 @@ from pyvideosync.process import (
     save_frame_duration_to_file,
     combine_video_audio,
     align_audio_video,
+    ffmpeg_concat_mp4s,
+    make_synced_subclip_ffmpeg,
 )
 from pyvideosync.ui import (
     welcome_screen,
@@ -49,7 +51,8 @@ from pyvideosync.videojson import Videojson
 from pyvideosync.video import Video
 from pyvideosync.nev import Nev
 from pyvideosync.nsx import Nsx
-from moviepy.editor import concatenate_videoclips
+from moviepy import concatenate_videoclips
+import argparse
 
 
 def print_and_sleep(msg):
@@ -67,16 +70,12 @@ def log_associated_files(associated_files, logger):
     logger.debug(f"Associated NS5:\n{associated_ns5_df}")
 
 
-def main():
+def main(config_path):
     while True:
         choice = welcome_screen()
         if choice == "1":
             while True:
                 timestamp = get_current_ts()
-
-                config_path = select_config()
-                if not config_path:
-                    break
 
                 pathutils = PathUtils(config_path, timestamp)
                 if not pathutils.is_config_valid():
@@ -483,18 +482,6 @@ def main():
                                         "frame_ids_relative",
                                     ]
                                 ]
-                                # save audio file
-                                valid_audio = keep_valid_audio(all_merged)
-                                # audio_out_path = os.path.join(
-                                #     pathutils.output_dir,
-                                #     camera_serial,
-                                #     f"audio_{i}.wav",
-                                # )
-                                # analog2audio(
-                                #     valid_audio,
-                                #     ns5.get_sample_resolution(),
-                                #     audio_out_path,
-                                # )
 
                                 # find the associated mp4 files
                                 try:
@@ -514,25 +501,6 @@ def main():
                                 )
                                 all_merged_list.append(all_merged)
 
-                                # camera_serial_concats.append(
-                                #     {
-                                #         "timestamp": timestamp,
-                                #         "camera_serial": camera_serial,
-                                #         "json_file": json_path,
-                                #         "mp4_file": mp4_path,
-                                #         "audio_data": valid_audio,
-                                #         "audio_out_path": audio_out_path,
-                                #         "start_frame_id": start_frame,
-                                #         "end_frame_id": end_frame,
-                                #         "start_serial": camera_df[
-                                #             "chunk_serial_data"
-                                #         ].iloc[0],
-                                #         "end_serial": camera_df[
-                                #             "chunk_serial_data"
-                                #         ].iloc[-1],
-                                #     }
-                                # )
-
                             if not all_merged_list:
                                 logger.warning(
                                     f"No valid merged data for {camera_serial}"
@@ -543,7 +511,10 @@ def main():
                                 all_merged_list, ignore_index=True
                             )
                             logger.info(
-                                f"Final merged DataFrame for {camera_serial}:\n{all_merged_df.head()}"
+                                f"Final merged DataFrame for {camera_serial} head:\n{all_merged_df.head()}"
+                            )
+                            logger.info(
+                                f"Final merged DataFrame for {camera_serial} tail:\n{all_merged_df.tail()}"
                             )
 
                             # process the videos
@@ -558,38 +529,34 @@ def main():
                             # If you want the final order strictly to follow how mp4_file appears in df:
                             mp4_files_order = all_merged_df["mp4_file"].unique()
 
-                            final_clips = []
-
+                            subclip_paths = []
                             for mp4_path in mp4_files_order:
                                 df_sub = all_merged_df[
                                     all_merged_df["mp4_file"] == mp4_path
                                 ]
 
                                 # Build a subclip from the relevant frames, attach audio
-                                subclip = Video.make_synced_subclip(
+                                subclip = make_synced_subclip_ffmpeg(
                                     df_sub,
                                     mp4_path,
-                                    fps_video=30,
                                     fps_audio=30000,  # 30kHz
+                                    out_dir=os.path.join(
+                                        pathutils.output_dir, camera_serial
+                                    ),
                                 )
-                                final_clips.append(subclip)
+                                subclip_paths.append(subclip)
 
-                            # Concatenate all subclips
-                            if len(final_clips) == 1:
-                                merged = final_clips[0]
+                            # Now 'subclip_paths' has each final MP4 subclip
+                            # If we have only one, just rename or copy it
+                            if len(subclip_paths) == 1:
+                                final_path = subclip_paths[0]
                             else:
-                                merged = concatenate_videoclips(final_clips)
-
-                            # Write result
-                            merged.write_videofile(
-                                video_output_path,
-                                fps=30,
-                                codec="libx264",
-                                audio_codec="aac",
-                            )
+                                final_path = os.path.join(
+                                    pathutils.output_dir, "ALL_subclips_merged.mp4"
+                                )
+                                ffmpeg_concat_mp4s(subclip_paths, final_path)
 
                             logger.info(f"Saved {camera_serial} to {video_output_path}")
-
                         time.sleep(20)
 
         elif choice == "2":
@@ -600,4 +567,16 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(
+        description="Video synchronization tool for neural data and camera recordings."
+    )
+    parser.add_argument(
+        "-c",
+        "--config",
+        required=True,
+        help="Path to YAML configuration file",
+        type=str,
+    )
+
+    args = parser.parse_args()
+    main(args.config)
