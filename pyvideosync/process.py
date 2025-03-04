@@ -10,10 +10,6 @@ from pyvideosync.dataframes import (
 import os
 from scipy.io.wavfile import write
 from moviepy.editor import VideoFileClip, AudioFileClip
-from pyvideosync.utils import (
-    load_timestamps,
-    save_timestamps,
-)
 import subprocess
 import uuid
 from scipy.io.wavfile import write as wav_write

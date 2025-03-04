@@ -722,6 +722,19 @@ def save_timestamps(file_path, timestamps):
         json.dump([ts.isoformat() for ts in timestamps], f, indent=4)
 
 
+def sort_timestamps(timestamps: list) -> list:
+    """
+    Sorts a list of timestamp strings in ISO 8601 format.
+
+    Args:
+        timestamps (list): A list of timestamp strings (e.g., "YYYY-MM-DDTHH:MM:SS").
+
+    Returns:
+        list: A sorted list of timestamp strings in ascending order.
+    """
+    return sorted(timestamps, key=lambda ts: datetime.fromisoformat(ts))
+
+
 def get_column_min_max(
     df: pd.DataFrame, column: str, ignore_values: list = [-1]
 ) -> tuple:

@@ -1,33 +1,5 @@
-"""
-Example usage:
-nsp_manager = NspPool('/path/to/nsp_directory', '/path/to/cam_recording_directory')
-print(nsp_manager.nev_pool.get_num_nsp1_nev())
-print(nsp_manager.nev_pool.get_num_nsp2_nev())
-print(nsp_manager.nsx_pool.get_num_nsp1_ns5())
-print(nsp_manager.nsx_pool.get_num_nsp2_ns5())
-print(nsp_manager.nsx_pool.get_num_nsp1_ns3())
-print(nsp_manager.nsx_pool.get_num_nsp2_ns3())
-print(nsp_manager.verify_integrity())
-print(nsp_manager.nev_pool.list_groups())
-print(nsp_manager.nsx_pool.list_groups())
-print(nsp_manager.video_pool.list_groups())
-print(nsp_manager.video_json_pool.list_groups())
-
-TODO:
-1. verify integrity
- - each NSP1 group should have exactly 1 nev/ns5/ns3
- -
-"""
-
 import os
 from collections import defaultdict
-from pathlib import Path
-from pyvideosync.videojson import Videojson
-from pyvideosync.video import Video
-from pyvideosync.nev import Nev
-from pyvideosync.nsx import Nsx
-import re
-from typing import List, Dict
 from pyvideosync.utils import extract_timestamp
 import fnmatch
 
@@ -146,49 +118,6 @@ class NevPool:
         suffix = file.split("-")[-1]
         self.files[suffix].append(file)
 
-    def _extract_number(self, file: str) -> int:
-        match = re.search(r"-(\d{3})\.", file)
-        return int(match.group(1)) if match else 0
-
-    def get_num(self, prefix: str) -> int:
-        return sum(
-            1
-            for files in self.files.values()
-            for file in files
-            if file.startswith(prefix)
-        )
-
-    def get_num_nsp1_nev(self) -> int:
-        return self.get_num("NSP1")
-
-    def get_num_nsp2_nev(self) -> int:
-        return self.get_num("NSP2")
-
-    def list_nsp1_nev(self):
-        return sorted(
-            [
-                file
-                for files in self.files.values()
-                for file in files
-                if "NSP-1" in file
-            ],
-            key=self._extract_number,
-        )
-
-    def list_nsp2_nev(self):
-        return sorted(
-            [
-                file
-                for files in self.files.values()
-                for file in files
-                if file.startswith("NSP2")
-            ],
-            key=self._extract_number,
-        )
-
-    def list_groups(self):
-        return {suffix: files for suffix, files in self.files.items()}
-
 
 class NsxPool:
     def __init__(self) -> None:
@@ -198,49 +127,6 @@ class NsxPool:
         suffix = file.split("-")[-1]
         self.files[suffix].append(file)
 
-    def get_num(self, prefix: str, suffix: str) -> int:
-        return sum(
-            1
-            for files in self.files.values()
-            for file in files
-            if file.startswith(prefix) and file.endswith(suffix)
-        )
-
-    def get_num_nsp1_ns5(self) -> int:
-        return self.get_num("NSP1", ".ns5")
-
-    def get_num_nsp2_ns5(self) -> int:
-        return self.get_num("NSP2", ".ns5")
-
-    def get_num_nsp1_ns3(self) -> int:
-        return self.get_num("NSP1", ".ns3")
-
-    def get_num_nsp2_ns3(self) -> int:
-        return self.get_num("NSP2", ".ns3")
-
-    def list_files(self, prefix: str, suffix: str):
-        return [
-            file
-            for files in self.files.values()
-            for file in files
-            if file.startswith(prefix) and file.endswith(suffix)
-        ]
-
-    def list_nsp1_ns5(self):
-        return self.list_files("NSP1", ".ns5")
-
-    def list_nsp2_ns5(self):
-        return self.list_files("NSP2", ".ns5")
-
-    def list_nsp1_ns3(self):
-        return self.list_files("NSP1", ".ns3")
-
-    def list_nsp2_ns3(self):
-        return self.list_files("NSP2", ".ns3")
-
-    def list_groups(self):
-        return {suffix: files for suffix, files in self.files.items()}
-
 
 class VideoPool:
     def __init__(self) -> None:
@@ -249,9 +135,6 @@ class VideoPool:
     def add_file(self, file: str):
         timestamp = file.split("_")[-1].split(".")[0]
         self.files[timestamp].append(file)
-
-    def list_groups(self):
-        return {timestamp: files for timestamp, files in self.files.items()}
 
 
 class VideoJsonPool:

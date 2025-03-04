@@ -33,6 +33,7 @@ from pyvideosync.process import (
 from pyvideosync.utils import (
     load_timestamps,
     save_timestamps,
+    sort_timestamps,
     get_column_min_max,
 )
 from pyvideosync.videojson import Videojson
@@ -128,6 +129,8 @@ def main(config_path):
         logger.info(f"timestamps: {timestamps}")
         save_timestamps(timestamps_path, timestamps)
 
+    sorted_timestamps = sort_timestamps(timestamps)
+
     # process NS5 channel data
     ns5_path = datapool.get_nsp1_ns5_path()
     ns5 = Nsx(ns5_path)
@@ -136,7 +139,7 @@ def main(config_path):
     for camera_serial in camera_serials:
         all_merged_list = []
 
-        for i, timestamp in enumerate(timestamps):
+        for i, timestamp in enumerate(sorted_timestamps):
             camera_file_group = camera_files[timestamp]
 
             # get a json file
@@ -226,11 +229,8 @@ def main(config_path):
         os.makedirs(video_output_dir, exist_ok=True)
         video_output_path = os.path.join(video_output_dir, "output.mp4")
 
-        # If you want the final order strictly to follow how mp4_file appears in df:
-        mp4_files_order = all_merged_df["mp4_file"].unique()
-
         subclip_paths = []
-        for mp4_path in mp4_files_order:
+        for mp4_path in all_merged_df["mp4_file"].unique():
             df_sub = all_merged_df[all_merged_df["mp4_file"] == mp4_path]
 
             # Build a subclip from the relevant frames, attach audio
