@@ -1,8 +1,5 @@
-import json
-import os
 from brpylib import NevFile
 import pandas as pd
-import numpy as np
 from pyvideosync import utils
 import matplotlib.pyplot as plt
 from .utils import fill_missing_serials_with_gap
