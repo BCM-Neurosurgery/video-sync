@@ -20,6 +20,8 @@ from pyvideosync.utils import (
     save_timestamps,
     sort_timestamps,
     get_column_min_max,
+    get_json_file,
+    get_mp4_file,
 )
 from pyvideosync.videojson import Videojson
 from pyvideosync.nev import Nev
@@ -84,18 +86,11 @@ def main(config_path):
         logger.info("No timestamps found")
         timestamps = []
         for timestamp, camera_file_group in camera_files.items():
-            # get the json file in the camera_file_group
-            try:
-                json_file = [
-                    file for file in camera_file_group if file.endswith(".json")
-                ][0]
-            except IndexError:
+
+            json_path = get_json_file(camera_file_group, pathutils)
+            if json_path is None:
                 logger.error(f"No JSON file found in group {timestamp}")
                 continue
-
-            # read in the json file and see if the serial in json
-            # is within the range of NEV serial
-            json_path = os.path.join(pathutils.cam_recording_dir, json_file)
             videojson = Videojson(json_path)
             start_serial, end_serial = videojson.get_min_max_chunk_serial()
 
@@ -126,15 +121,11 @@ def main(config_path):
         for i, timestamp in enumerate(sorted_timestamps):
             camera_file_group = camera_files[timestamp]
 
-            # get a json file
-            try:
-                json_file = [
-                    file for file in camera_file_group if file.endswith(".json")
-                ][0]
-            except IndexError:
+            json_path = get_json_file(camera_file_group, pathutils)
+            if json_file is None:
                 logger.error(f"No JSON file found in group {timestamp}")
                 continue
-            json_path = os.path.join(pathutils.cam_recording_dir, json_file)
+
             videojson = Videojson(json_path)
             camera_df = videojson.get_camera_df(camera_serial)
             camera_df["frame_ids_relative"] = (
@@ -181,19 +172,12 @@ def main(config_path):
                 ]
             ]
 
-            # find the associated mp4 files
-            try:
-                mp4_file = [
-                    file
-                    for file in camera_file_group
-                    if camera_serial in file and file.endswith(".mp4")
-                ][0]
-            except IndexError:
-                logger.error(
-                    f"No MP4 with serial {camera_serial} found in group {timestamp}"
-                )
+            mp4_path = get_mp4_file(camera_file_group, pathutils)
+            if mp4_path is None:
+                logger.error(f"No MP4 file found in group {timestamp}")
+                continue
 
-            all_merged["mp4_file"] = os.path.join(pathutils.cam_recording_dir, mp4_file)
+            all_merged["mp4_file"] = mp4_path
             all_merged_list.append(all_merged)
 
         if not all_merged_list:

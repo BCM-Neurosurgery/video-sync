@@ -46,49 +46,6 @@ def analog2audio(analog, sample_rate: int, out_path: str):
     write(out_path, sample_rate, analog)
 
 
-def plot_diff_histogram(df, col):
-    """
-    Given a df and a col, plot diff vs. col
-    col is supposed to be a continuously incrementing col
-    """
-    df["difference"] = df[col].diff()
-    plt.plot(df[col][1:], df["difference"][1:])
-    plt.title(f"Difference between consecutive {col}")
-    plt.xlabel(col)
-    plt.ylabel("Difference")
-    plt.grid(True)
-    plt.show()
-
-
-def plot_diff_distribution(df, col):
-    """
-    Plot the distribution of diff in col
-    """
-    df = df.copy()
-    df["difference"] = df[col].diff()
-    value_counts = df["difference"].value_counts().sort_index()
-
-    # Create a bar plot
-    plt.figure(figsize=(8, 4))
-    ax = value_counts.plot(kind="bar", color="skyblue")
-    plt.title("Frequency Distribution of Diff Column")
-    plt.xlabel("Unique Values")
-    plt.ylabel("Frequency")
-    plt.xticks(rotation=45)  # Keeps the x labels vertical for readability
-    plt.grid(axis="y", linestyle="--", alpha=0.7)
-
-    # Add text labels above the bars
-    for p in ax.patches:
-        ax.annotate(
-            str(p.get_height()),
-            (p.get_x() + p.get_width() / 2, p.get_height()),
-            ha="center",
-            va="bottom",
-        )  # ha is horizontal alignment
-
-    plt.show()
-
-
 def frame2min(frames: int, fps: int) -> str:
     """Convert number of frames to length in 00:00 format
 
@@ -767,3 +724,43 @@ def get_column_min_max(
         return None, None
 
     return filtered_values.min(), filtered_values.max()
+
+
+def get_json_file(files: list, pathutils) -> str:
+    """
+    Returns the JSON file from a given list of files, ensuring there is exactly one.
+
+    Args:
+        files (list): A list of file names or paths.
+        pathutils: a PathUtils object
+
+    Returns:
+        str: The JSON file name if exactly one is found, otherwise None.
+    """
+    json_files = [file for file in files if file.lower().endswith(".json")]
+
+    return (
+        os.path.join(pathutils.cam_recording_dir, json_files[0])
+        if len(json_files) == 1
+        else None
+    )
+
+
+def get_mp4_file(files: list, pathutils) -> str:
+    """
+    Returns the MP4 file from a given list of files, ensuring there is exactly one.
+
+    Args:
+        files (list): A list of file names or paths.
+        pathutils: a PathUtils object
+
+    Returns:
+        str: The JSON file name if exactly one is found, otherwise None.
+    """
+    mp4_files = [file for file in files if file.lower().endswith(".mp4")]
+
+    return (
+        os.path.join(pathutils.cam_recording_dir, mp4_files[0])
+        if len(mp4_files) == 1
+        else None
+    )
