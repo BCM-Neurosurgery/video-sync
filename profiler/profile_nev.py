@@ -4,7 +4,7 @@ Profile NEVs
 Plots
 - Cam exposure
 - Basic Statistics
-- 
+-
 """
 
 from pyvideosync.nev import Nev

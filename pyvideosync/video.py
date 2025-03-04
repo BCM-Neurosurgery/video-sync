@@ -4,7 +4,6 @@ from tqdm import tqdm
 import pandas as pd
 import os
 import numpy as np
-import soundfile as sf
 import subprocess
 from moviepy import VideoFileClip, AudioFileClip
 from moviepy.audio.AudioClip import AudioArrayClip

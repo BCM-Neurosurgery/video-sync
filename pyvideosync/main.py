@@ -341,13 +341,7 @@ def main(config_path):
                         # 2. Find all JSON files and MP4 files
                         camera_files = datapool.get_video_file_pool().list_groups()
 
-                        # 3. Find all possible camera serials
-                        random_json_file = (
-                            datapool.get_video_file_pool().find_one_random_json()
-                        )
-                        videojson = Videojson(
-                            os.path.join(pathutils.cam_recording_dir, random_json_file)
-                        )
+                        # 3. load camera serials from the config file
                         camera_serials = videojson.get_camera_serials()
                         logger.info(f"Camera serials found: {camera_serials}")
 

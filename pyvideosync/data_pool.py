@@ -16,7 +16,7 @@ print(nsp_manager.video_json_pool.list_groups())
 TODO:
 1. verify integrity
  - each NSP1 group should have exactly 1 nev/ns5/ns3
- - 
+ -
 """
 
 import os
