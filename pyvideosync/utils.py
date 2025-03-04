@@ -720,3 +720,37 @@ def save_timestamps(file_path, timestamps):
     """Save timestamps to a JSON file, converting datetime to string format."""
     with open(file_path, "w") as f:
         json.dump([ts.isoformat() for ts in timestamps], f, indent=4)
+
+
+def get_column_min_max(
+    df: pd.DataFrame, column: str, ignore_values: list = [-1]
+) -> tuple:
+    """
+    Returns the minimum and maximum values in a specified numeric column of a DataFrame,
+    while ignoring specified values.
+
+    Args:
+        df (pd.DataFrame): The DataFrame containing the column.
+        column (str): The column name for which to compute the min and max.
+        ignore_values (list, optional): A list of values to ignore. Defaults to [-1].
+
+    Returns:
+        tuple: (min_value, max_value) after ignoring specified values. Returns (None, None) if no valid values remain.
+
+    Raises:
+        ValueError: If the column is not found in the DataFrame.
+        TypeError: If the column is not numeric.
+    """
+    if column not in df.columns:
+        raise ValueError(f"Column '{column}' not found in the DataFrame.")
+
+    if df[column].dtype.kind not in "biufc":  # Checks if the column is numeric
+        raise TypeError(f"Column '{column}' must be numeric.")
+
+    # Filter out ignore values and NaNs
+    filtered_values = df[column][~df[column].isin(ignore_values)].dropna()
+
+    if filtered_values.empty:
+        return None, None
+
+    return filtered_values.min(), filtered_values.max()

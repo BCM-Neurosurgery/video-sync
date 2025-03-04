@@ -11,6 +11,32 @@ def get_current_ts() -> str:
 
 
 def configure_logging(log_dir: str) -> logging.Logger:
+    """
+    Configures and returns a logger with both console and file handlers.
+
+    This function creates a logger that logs messages to both the console (stdout) and
+    a log file stored in the specified directory. The log file is named using the
+    current timestamp. The function ensures the log directory exists before creating
+    the log file.
+
+    Args:
+        log_dir (str): The directory where log files will be stored.
+
+    Returns:
+        logging.Logger: A configured logger instance.
+
+    Logging Levels:
+        - Console handler (`StreamHandler`): Logs messages at INFO level and above.
+        - File handler (`FileHandler`): Logs messages at DEBUG level and above.
+
+    Log Format:
+        - "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+          Example: "2025-03-04 12:00:00,000 - module_name - INFO - Log message"
+
+    Notes:
+        - Uses the `get_current_ts()` function to generate a timestamp for the log filename.
+        - Ensures the log directory exists before writing logs.
+    """
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
 

@@ -6,7 +6,6 @@ and aligning the audio with the video.
 import os
 from pyvideosync.data_pool import DataPool
 import pandas as pd
-import time
 from pyvideosync.logging_config import (
     get_current_ts,
     configure_logging,
@@ -32,11 +31,9 @@ from pyvideosync.process import (
     make_synced_subclip_ffmpeg,
 )
 from pyvideosync.utils import (
-    extract_basename,
-    keep_valid_audio,
-    analog2audio,
     load_timestamps,
     save_timestamps,
+    get_column_min_max,
 )
 from pyvideosync.videojson import Videojson
 from pyvideosync.video import Video
@@ -59,36 +56,37 @@ def main(config_path):
     timestamp = get_current_ts()
 
     pathutils = PathUtils(config_path, timestamp)
+    logger = configure_logging(pathutils.output_dir)
+
     if not pathutils.is_config_valid():
-        print("Config not valid, exiting to inital screen...")
+        logger.error("Config not valid, exiting to inital screen...")
         return
 
     datapool = DataPool(pathutils.nsp_dir, pathutils.cam_recording_dir)
 
-    init_file_integrity_check = datapool.verify_integrity()
-    if not init_file_integrity_check:
-        print("Initial file integrity check failed, exiting to initial screen.")
+    if not datapool.verify_integrity():
+        logger.error(
+            "File integrity check failed: Missing or duplicate NSP files detected. "
+            "Please verify the directory structure and try again. Returning to the initial screen."
+        )
         return
 
-    # configure logging
-    logger = configure_logging(pathutils.output_dir)
-
     # 1. Get NEV serial start and end
-    nev_files = datapool.get_nev_pool().list_nsp1_nev()
-    logger.info(f"NEV files found: {nev_files}")
-    nev_start_serial, nev_end_serial = datapool.get_nev_serial_range()
-    logger.info(
-        "Start serial: %s, End serial: %s",
-        nev_start_serial,
-        nev_end_serial,
+    nsp1_nev_path = datapool.get_nsp1_nev_path()
+    nev = Nev(nsp1_nev_path)
+    nev_chunk_serial_df = nev.get_chunk_serial_df()
+    logger.info(f"NEV dataframe\n: {nev_chunk_serial_df}")
+    nev_start_serial, nev_end_serial = get_column_min_max(
+        nev_chunk_serial_df, "chunk_serial"
     )
+    logger.info(f"Start serial: {nev_start_serial}, End serial: {nev_end_serial}")
 
     # 2. Find all JSON files and MP4 files
     camera_files = datapool.get_video_file_pool().list_groups()
 
     # 3. load camera serials from the config file
     camera_serials = pathutils.cam_serial
-    logger.info(f"Camera serials found: {camera_serials}")
+    logger.info(f"Camera serials loaded from config: {camera_serials}")
 
     # 4. Go through all JSON files and find the ones that
     # are within the NEV serial range
@@ -130,16 +128,8 @@ def main(config_path):
         logger.info(f"timestamps: {timestamps}")
         save_timestamps(timestamps_path, timestamps)
 
-    # process NEV chunk serial df
-    nev_path = datapool.get_nev_pool().list_nsp1_nev()[0]
-    nev_path = os.path.join(pathutils.nsp_dir, nev_path)
-    nev = Nev(nev_path)
-    nev_chunk_serial_df = nev.get_chunk_serial_df()
-    logger.info(f"NEV chunk serials found\n: {nev_chunk_serial_df}")
-
     # process NS5 channel data
-    ns5_path = datapool.get_nsx_pool().get_stitched_ns5_file()
-    ns5_path = os.path.join(pathutils.nsp_dir, ns5_path)
+    ns5_path = datapool.get_nsp1_ns5_path()
     ns5 = Nsx(ns5_path)
 
     # 5. Go through the timestamps and process the videos
@@ -257,7 +247,9 @@ def main(config_path):
         if len(subclip_paths) == 1:
             final_path = subclip_paths[0]
         else:
-            final_path = os.path.join(pathutils.output_dir, "ALL_subclips_merged.mp4")
+            final_path = os.path.join(
+                pathutils.output_dir, camera_serial, "ALL_subclips_merged.mp4"
+            )
             ffmpeg_concat_mp4s(subclip_paths, final_path)
 
         logger.info(f"Saved {camera_serial} to {video_output_path}")

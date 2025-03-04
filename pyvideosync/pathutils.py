@@ -5,9 +5,6 @@ Configure Paths
 import yaml
 import os
 import sys
-from pyvideosync.utils import (
-    extract_basename,
-)
 
 
 class PathUtils:
@@ -89,19 +86,6 @@ class PathUtils:
     @property
     def ns5_channel(self):
         return self._ns5_channel
-
-    @property
-    def video_to_process(self):
-        """e.g. 15min_7_3_24_synctest_20240703_155508.23512908.mp4"""
-        if self._video_to_process is None:
-            raise ValueError("video_to_process is not set")
-        return self._video_to_process
-
-    @video_to_process.setter
-    def video_to_process(self, video_to_process: str):
-        if not video_to_process:
-            raise ValueError("video_to_process cannot be empty")
-        self._video_to_process = video_to_process
 
     @property
     def timestamp(self):
