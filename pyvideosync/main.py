@@ -51,7 +51,6 @@ from pyvideosync.videojson import Videojson
 from pyvideosync.video import Video
 from pyvideosync.nev import Nev
 from pyvideosync.nsx import Nsx
-from moviepy import concatenate_videoclips
 import argparse
 
 
@@ -342,7 +341,7 @@ def main(config_path):
                         camera_files = datapool.get_video_file_pool().list_groups()
 
                         # 3. load camera serials from the config file
-                        camera_serials = videojson.get_camera_serials()
+                        camera_serials = pathutils.cam_serial
                         logger.info(f"Camera serials found: {camera_serials}")
 
                         # 4. Go through all JSON files and find the ones that

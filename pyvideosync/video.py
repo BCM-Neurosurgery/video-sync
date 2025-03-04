@@ -5,7 +5,7 @@ import pandas as pd
 import os
 import numpy as np
 import subprocess
-from moviepy import VideoFileClip, AudioFileClip
+from moviepy.editor import VideoFileClip, AudioFileClip
 from moviepy.audio.AudioClip import AudioArrayClip
 import scipy.io.wavfile as wav
 import uuid

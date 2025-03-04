@@ -9,7 +9,7 @@ from pyvideosync.dataframes import (
 )
 import os
 from scipy.io.wavfile import write
-from moviepy import VideoFileClip, AudioFileClip
+from moviepy.editor import VideoFileClip, AudioFileClip
 from pyvideosync.utils import (
     load_timestamps,
     save_timestamps,
