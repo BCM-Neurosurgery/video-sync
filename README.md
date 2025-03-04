@@ -13,9 +13,8 @@ A Python tool to synchronize NSP data with camera recordings.
 At the root directory, create and activate a conda environment, then install the necessary packages:
 
 ```sh
-conda create -n videosync python=3.12
+conda env create -f environment.yml
 conda activate videosync
-pip install -r requirements.txt
 pip install -e .
 ```
 
