@@ -1,12 +1,19 @@
 # Camera serial number
+# Refer to README for available camera serial numbers
+# Has to be a list of one or multiple camera serial numbers
 cam_serial: ["23512014"]
 
-# Directory of NSP and Cam Recordings
+# Absolute paths to the NSP and Cam recordings
+# On Linux, use single forward slashes as shown below
+# On Windows, use double backslashes e.g. "C:\\Users\\user\\Desktop\\data"
 nsp_dir: "/mnt/lake-database/stitched/YFK/EMU-0036_urge"
 cam_recording_dir: "/mnt/datalake/data/emu/YFKDatafile/VIDEO/20250213"
 
 # Paths for the output files
+# Subdirectories will be created in the output directory named after the camera serial number
+# The output files will be saved in the respective subdirectories
 output_dir: "/home/auto/CODE/utils/video-sync/Testing/YFKTesting"
 
 # Channel name for the audio data
+# Do not change this
 channel_name: "RoomMic2"
