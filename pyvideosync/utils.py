@@ -750,18 +750,23 @@ def get_json_file(files: list, pathutils) -> str:
     )
 
 
-def get_mp4_file(files: list, pathutils) -> str:
+def get_mp4_file(files: list, camera_serial: str, pathutils) -> str:
     """
     Returns the MP4 file from a given list of files, ensuring there is exactly one.
 
     Args:
         files (list): A list of file names or paths.
+        camera_serial (str): Serial number of cameras, e.g. 23512014
         pathutils: a PathUtils object
 
     Returns:
         str: The JSON file name if exactly one is found, otherwise None.
     """
-    mp4_files = [file for file in files if file.lower().endswith(".mp4")]
+    mp4_files = [
+        file
+        for file in files
+        if file.lower().endswith(".mp4") and camera_serial in file
+    ]
 
     return (
         os.path.join(pathutils.cam_recording_dir, mp4_files[0])

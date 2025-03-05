@@ -175,7 +175,7 @@ def main(config_path):
                 ]
             ]
 
-            mp4_path = get_mp4_file(camera_file_group, pathutils)
+            mp4_path = get_mp4_file(camera_file_group, camera_serial, pathutils)
             if mp4_path is None:
                 logger.error(f"No MP4 file found in group {timestamp}")
                 continue
