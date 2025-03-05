@@ -1,0 +1,12 @@
+# Camera serial number
+cam_serial: ["23512014"]
+
+# Directory of NSP and Cam Recordings
+nsp_dir: "/mnt/lake-database/stitched/YFK/EMU-0036_urge"
+cam_recording_dir: "/mnt/datalake/data/emu/YFKDatafile/VIDEO/20250213"
+
+# Paths for the output files
+output_dir: "/home/auto/CODE/utils/video-sync/Testing/YFKTesting"
+
+# Channel name for the audio data
+channel_name: "RoomMic2"

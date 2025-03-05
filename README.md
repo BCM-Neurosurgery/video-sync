@@ -1,78 +1,65 @@
-# video-sync
-A Python tool to synchronize NSP data with camera recordings.
+# 🎥 **video-sync**  
+*A Python tool to synchronize NSP data with camera recordings.*
 
-## Introduction
-`video-sync` is a Python-based tool designed to synchronize Neural Signal Processing (NSP) data with camera recordings. This tool processes NEV, NS5 files, and camera JSON files, slices the video based on valid frames, and aligns audio with video.
+## 📌 Introduction  
+`video-sync` is a Python-based tool designed to synchronize **Neural Signal Processing (NSP) data** with camera recordings. It processes **NEV, NS5 files, and camera JSON files**, slices videos based on valid frames, and aligns audio with video. This ensures precise synchronization of neural and video data for analysis.
 
-## Prerequisites
-- Python 3.12
-- `conda` for environment management
+## 🛠️ Prerequisites  
+Ensure you have the following installed before proceeding:  
 
-## Installation
+- **Conda** (for environment management)  
+- **FFmpeg** (for video and audio processing)
 
-At the root directory, create and activate a conda environment, then install the necessary packages:
+### Installing FFmpeg on Linux  
 
+For **Ubuntu/Debian**:  
+```sh
+sudo apt update
+sudo apt install ffmpeg
+```
+
+For **RHEL (with EPEL enabled)**:
+```sh
+sudo yum install epel-release
+sudo yum install ffmpeg
+```
+
+## 📥 Installation
+Clone the repository and set up the environment:
+```sh
+git clone git@github.com:BCM-Neurosurgery/video-sync.git
+cd video-sync
+```
+
+Create and activate the Conda environment, then install dependencies:
 ```sh
 conda env create -f environment.yml
 conda activate videosync
-pip install -e .
+pip install .
 ```
 
-## Configuration Template
-Create a `config.yaml` file inside pyvideosync/main_configs/config.yaml with the following structure:
+## ⚙️ Configuration
+Before running the tool, configure it properly using a YAML configuration file.
 
-```
-# Camera serial number
-cam_serial: "23512906"
-
-# Directory of NSP and Cam Recordings
-nsp_dir: "path/to/nsp/dir"
-cam_recording_dir: "path/to/camera/recording"
-
-# Paths for the output files
-output_dir: "path/to/output"
-
-# Channel name for the audio data
-channel_name: "RoomMic2"
+A sample configuration is provided:
+```sh
+cp config.example.yaml config.yaml
 ```
 
-### Running the Tool
+## 🚀 Usage
+Run `video-sync` with the desired configuration:
 
+```sh
+python main.py --config path/to/config.yaml
 ```
-python main.py
-```
 
-### TODOs
+## 🏗️ Features
 
-**CORE**
-- [X] Log config YAML file
-- [X] Save output based on input names and timestamps
-- [X] main.py save log to each video section
-- [X] Do not plot, instead just save plots to dir
-- [X] When config path does not exist
-- [X] Make it work for videos other than the 1st one
-- [X] Handle multiple videos and multiple jsons
-- [ ] Make a docker file
-- [ ] Add small tests in docker
-- [ ] Multiple cam serial numbers
+- ✔️ Synchronizes NEV and NS5 files with camera recordings
+- ✔️ Slices video based on valid frames
+- ✔️ Aligns audio with video for precise synchronization
+- ✔️ Supports configurable processing options
 
-**User-interaction**
-- [X] Make a menu program
-- [ ] Confirm with user if the video has already been processed
+## 📜 License
 
-**Performance**
-- [X] Remove intermediate video files after program completes
-- [ ] Does not have to go through all NEV/NS5 files in NSP
-- [ ] Process video once?
-- [ ] NS5 do not read the entire file
-
-**Data-integrity**
-- [ ] Verify the input video frame vs. camera JSON
-  - So far, all the saved videos seem to be complete - no missing frames.
-  - Need more tests to see what happens if there are any missing frames.
-
-- [ ] Investigate causes of 0s in camera json
-- [ ] Populate missing values if possible
-
-**Readability**
-- [ ] Figure out a way to get rid of all hard-coded string names
+This project is licensed under the BSD-3-Clause License. See the LICENSE file for details.
