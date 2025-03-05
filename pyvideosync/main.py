@@ -209,7 +209,7 @@ def main(config_path):
             final_path = subclip_paths[0]
         else:
             final_path = os.path.join(
-                pathutils.output_dir, camera_serial, "ALL_subclips_merged.mp4"
+                pathutils.output_dir, camera_serial, f"stitched_{camera_serial}.mp4"
             )
             ffmpeg_concat_mp4s(subclip_paths, final_path)
 
