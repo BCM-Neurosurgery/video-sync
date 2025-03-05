@@ -10,6 +10,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
+            "stitch-videos=pyvideosync.main:main",
             "plot-nev-cam-exposure=profiler.plot_nev_cam_exposure:main",
             "profile-cam-json=profiler.profile_camera_jsons:main",
             "benchmark-nevs=profiler.benchmark_nevs:main",

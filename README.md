@@ -47,10 +47,11 @@ cp config.example.yaml config.yaml
 ```
 
 ## 🚀 Usage
-Run `video-sync` with the desired configuration:
+Activate conda environment and run `stitch-videos` with the path to configuration in terminal:
 
 ```sh
-python main.py --config path/to/config.yaml
+conda activate videosync
+stitch-videos --config path/to/config.yaml
 ```
 
 ## 📷 EMU Camera Serials
