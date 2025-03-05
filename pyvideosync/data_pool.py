@@ -2,6 +2,7 @@ import os
 from collections import defaultdict
 from pyvideosync.utils import extract_timestamp
 import fnmatch
+from pathlib import Path
 
 
 class DataPool:
@@ -13,8 +14,6 @@ class DataPool:
     def __init__(self, nsp_dir: str, cam_recording_dir: str) -> None:
         self.nsp_dir = nsp_dir
         self.cam_recording_dir = cam_recording_dir
-        self.nsp_files = os.listdir(nsp_dir)
-        self.cam_files = os.listdir(cam_recording_dir)
         self.nev_pool = NevPool()
         self.nsx_pool = NsxPool()
         self.video_pool = VideoPool()
@@ -29,18 +28,20 @@ class DataPool:
             - nev-ns5-ns3
             - previous and next file of nev/ns5/ns3
         """
-        for file in self.nsp_files:
-            if file.endswith(".nev"):
-                self.nev_pool.add_file(file)
-            elif file.endswith(".ns5") or file.endswith(".ns3"):
-                self.nsx_pool.add_file(file)
+        for file_path in Path(self.nsp_dir).iterdir():
+            if file_path.suffix == ".nev":
+                self.nev_pool.add_file(file_path.name)
+            elif file_path.suffix in {".ns5", ".ns3"}:
+                self.nsx_pool.add_file(file_path.name)
 
-        for file in self.cam_files:
-            self.video_file_pool.add_file(file)
-            if file.endswith(".mp4"):
-                self.video_pool.add_file(file)
-            elif file.endswith(".json"):
-                self.video_json_pool.add_file(file)
+        for datefolder_path in Path(self.cam_recording_dir).iterdir():
+            if datefolder_path.is_dir():
+                for file_path in datefolder_path.iterdir():
+                    self.video_file_pool.add_file(file_path.name)
+                    if file_path.suffix == ".mp4":
+                        self.video_pool.add_file(file_path.name)
+                    elif file_path.suffix == ".json":
+                        self.video_json_pool.add_file(file_path.name)
 
     def verify_integrity(self) -> bool:
         """
