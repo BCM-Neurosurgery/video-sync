@@ -21,8 +21,12 @@ class Videojson:
     def init_vars(self):
         self.num_cameras = self.get_num_cameras()
         self.length_of_recording = self.get_length_of_recording()
-        self.timeOrigin = self.dic["real_times"][0]
-        self.duration_readable = self.calculate_duration(self.dic["real_times"])
+        self.timeOrigin = self.dic["real_times"][0] if self.dic["real_times"] else None
+        self.duration_readable = (
+            self.calculate_duration(self.dic["real_times"])
+            if self.dic["real_times"]
+            else None
+        )
 
     def calculate_duration(self, real_times) -> str:
         start_time = datetime.strptime(real_times[0], "%Y-%m-%d %H:%M:%S.%f")

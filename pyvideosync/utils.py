@@ -681,15 +681,19 @@ def save_timestamps(file_path, timestamps):
 
 def sort_timestamps(timestamps: list) -> list:
     """
-    Sorts a list of timestamp strings in ISO 8601 format.
+    Sorts a list of timestamps, handling both ISO 8601 formatted strings and datetime objects.
 
     Args:
-        timestamps (list): A list of timestamp strings (e.g., "YYYY-MM-DDTHH:MM:SS").
+        timestamps (list): A list of timestamps, which can be either datetime objects or strings
+                           in ISO 8601 format (e.g., "YYYY-MM-DDTHH:MM:SS").
 
     Returns:
-        list: A sorted list of timestamp strings in ascending order.
+        list: A sorted list of timestamps in ascending order, preserving their original type.
     """
-    return sorted(timestamps, key=lambda ts: datetime.fromisoformat(ts))
+    return sorted(
+        timestamps,
+        key=lambda ts: ts if isinstance(ts, datetime) else datetime.fromisoformat(ts),
+    )
 
 
 def get_column_min_max(

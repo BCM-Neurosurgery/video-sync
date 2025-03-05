@@ -93,6 +93,9 @@ def main(config_path):
                 continue
             videojson = Videojson(json_path)
             start_serial, end_serial = videojson.get_min_max_chunk_serial()
+            if start_serial is None or end_serial is None:
+                logger.error(f"No chunk serials found in JSON file: {json_path}")
+                continue
 
             if end_serial < nev_start_serial:
                 logger.info(f"No overlap found: {timestamp}")
@@ -122,7 +125,7 @@ def main(config_path):
             camera_file_group = camera_files[timestamp]
 
             json_path = get_json_file(camera_file_group, pathutils)
-            if json_file is None:
+            if json_path is None:
                 logger.error(f"No JSON file found in group {timestamp}")
                 continue
 
