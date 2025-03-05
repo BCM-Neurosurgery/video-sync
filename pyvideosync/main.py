@@ -29,16 +29,6 @@ from pyvideosync.nsx import Nsx
 import argparse
 
 
-def log_associated_files(associated_files, logger):
-    associated_json_df = pd.DataFrame.from_records(associated_files["JSON"])
-    associated_nev_df = pd.DataFrame.from_records(associated_files["NEV"])
-    associated_ns5_df = pd.DataFrame.from_records(associated_files["NS5"])
-
-    logger.debug(f"Associated JSON:\n{associated_json_df}")
-    logger.debug(f"Associated NEV:\n{associated_nev_df}")
-    logger.debug(f"Associated NS5:\n{associated_ns5_df}")
-
-
 def main(config_path):
     timestamp = get_current_ts()
 
