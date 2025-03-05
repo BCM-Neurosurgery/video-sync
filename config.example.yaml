@@ -3,7 +3,9 @@
 # Has to be a list of one or multiple camera serial numbers
 cam_serial: ["23512014"]
 
-# Absolute paths to the NSP and Cam recordings
+# Absolute paths to stitched directory and camera recording directory
+# The stitched directory contains the stitched NSP files
+# The camera recording directory contains the video files and json files
 # On Linux, use single forward slashes as shown below
 # On Windows, use double backslashes e.g. "C:\\Users\\user\\Desktop\\data"
 nsp_dir: "/mnt/lake-database/stitched/YFK/EMU-0036_urge"
