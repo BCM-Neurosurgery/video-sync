@@ -4,7 +4,42 @@ from pathlib import Path
 from pyvideosync.video import Video
 from pyvideosync.videojson import Videojson
 from pyvideosync.data_pool import VideoFilesPool
-from pyvideosync.utils import count_discontinuities
+
+
+def detect_jumps(df, column):
+    """
+    Detect jumps in a specified column of a DataFrame and return results as a list of dictionaries.
+
+    Args:
+        df (pd.DataFrame): The DataFrame containing the data.
+        column (str): The column to analyze for jumps.
+
+    Returns:
+        list[dict]: A list of dictionaries with details on detected jumps.
+    """
+    if column not in df.columns:
+        raise ValueError(f"Column '{column}' not found in DataFrame.")
+
+    df = df.sort_index()  # Ensure DataFrame is sorted by index
+    prev_values = df[column].shift(
+        1
+    )  # Shift values down by 1 to compare with previous row
+    jumps = df[column] - prev_values  # Calculate jump size
+
+    jump_indices = jumps[jumps > 1].index  # Find where jumps occur
+
+    # Create a list of dictionaries to store jump details
+    jumps_list = [
+        {
+            "index": idx,
+            "prev_value": prev_values.loc[idx],
+            "new_value": df.loc[idx, column],
+            "jump_size": jumps.loc[idx],
+        }
+        for idx in jump_indices
+    ]
+
+    return jumps_list
 
 
 def process_directory(video_dir):
@@ -40,7 +75,7 @@ def process_directory(video_dir):
 
             camera_df = videojson.get_camera_df(camera_serial)
             json_frames = len(camera_df)
-            num_discontinuities = count_discontinuities(camera_df, "frame_id")
+            jump_list = detect_jumps(camera_df, "frame_ids_reconstructed")
 
             mp4_files = [
                 file
@@ -54,18 +89,17 @@ def process_directory(video_dir):
 
             video = Video(video_path)
             frame_count = video.get_frame_count()
-
             results[mp4_files[0]] = {
                 "file": mp4_files[0],
                 "json_frames": json_frames,
                 "actual_frames": frame_count,
-                "json_discontinuities": num_discontinuities,
+                "json_discontinuities": jump_list,
             }
 
             print(f"    Timestamp: {timestamp}")
             print(f"    JSON frames: {json_frames}")
             print(f"    Actual frames: {frame_count}")
-            print(f"    JSON discontinuities: {num_discontinuities}")
+            print(f"    JSON discontinuities: {jump_list}")
 
     return results
 
