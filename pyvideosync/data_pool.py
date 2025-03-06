@@ -1,6 +1,6 @@
 import os
 from collections import defaultdict
-from pyvideosync.utils import extract_timestamp
+from pyvideosync.utils import extract_timestamp, extract_cam_serial
 import fnmatch
 from pathlib import Path
 
@@ -170,3 +170,19 @@ class VideoFilesPool:
                 if file.endswith(".json"):
                     return file
         return None
+
+    def get_unique_cam_serials(self):
+        """
+        Returns a set of all unique camera serial numbers found in the filenames.
+
+        Returns:
+        set: A set of unique camera serial numbers.
+        """
+        serials = set()
+        for files in self.files.values():
+            for file in files:
+                if file.endswith(".mp4"):
+                    serial = extract_cam_serial(file)
+                if serial:
+                    serials.add(serial)
+        return serials

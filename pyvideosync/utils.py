@@ -661,6 +661,34 @@ def extract_timestamp(filename):
         raise ValueError("Filename format does not match expected pattern")
 
 
+def extract_cam_serial(filename):
+    """
+    Extracts the camera serial number from a filename of the format:
+    'YFIDatafile_YYYYMMDD_HHMMSS.serial.ext' where '.ext' can be '.mp4' or '.json',
+    and returns it as a string.
+
+    Parameters:
+    filename (str): The filename containing the camera serial number.
+
+    Returns:
+    str: The extracted camera serial number.
+
+    Raises:
+    ValueError: If the filename does not match the expected pattern.
+
+    Example:
+    >>> extract_cam_serial('YFIDatafile_20241015_094946.23512906.mp4')
+    '23512906'
+
+    >>> extract_cam_serial('YFIDatafile_20241015_094946.json')
+    None
+    """
+    match = re.search(r"_(\d{8})_(\d{6})\.(\d+)\.(mp4|json)$", filename)
+    if match:
+        return match.group(3)
+    raise ValueError("Filename format does not match expected pattern")
+
+
 def load_timestamps(file_path, logger):
     """Load timestamps from a JSON file if available, converting strings to datetime."""
     if os.path.exists(file_path):
