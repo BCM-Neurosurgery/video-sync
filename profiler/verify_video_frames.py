@@ -1,9 +1,35 @@
 import argparse
-import json
+import logging
 from pathlib import Path
 from pyvideosync.video import Video
 from pyvideosync.videojson import Videojson
 from pyvideosync.data_pool import VideoFilesPool
+import pandas as pd
+
+
+# Configure logging to log to both a file and console
+def setup_logging(log_file):
+    logger = logging.getLogger("VideoProcessor")
+    logger.setLevel(logging.INFO)
+
+    # Console handler
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+
+    # File handler
+    file_handler = logging.FileHandler(log_file)
+    file_handler.setLevel(logging.INFO)
+
+    # Formatter
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+    console_handler.setFormatter(formatter)
+    file_handler.setFormatter(formatter)
+
+    # Add handlers to logger
+    logger.addHandler(console_handler)
+    logger.addHandler(file_handler)
+
+    return logger
 
 
 def detect_jumps(df, column):
@@ -28,23 +54,20 @@ def detect_jumps(df, column):
 
     jump_indices = jumps[jumps > 1].index  # Find where jumps occur
 
-    # Create a list of dictionaries to store jump details
-    jumps_list = [
+    return [
         {
-            "index": idx,
-            "prev_value": prev_values.loc[idx],
-            "new_value": df.loc[idx, column],
-            "jump_size": jumps.loc[idx],
+            "index": int(idx),
+            "prev_value": (
+                int(prev_values.loc[idx]) if pd.notna(prev_values.loc[idx]) else None
+            ),
+            "new_value": int(df.loc[idx, column]),
+            "jump_size": int(jumps.loc[idx]),
         }
         for idx in jump_indices
     ]
 
-    return jumps_list
 
-
-def process_directory(video_dir):
-    results = {}
-
+def process_directory(video_dir, logger):
     video_file_pool = VideoFilesPool()
 
     for datefolder_path in Path(video_dir).iterdir():
@@ -56,8 +79,9 @@ def process_directory(video_dir):
     camera_serials = video_file_pool.get_unique_cam_serials()
 
     for camera_serial in camera_serials:
-        print(f"Camera serial: {camera_serial}")
-        print("-")
+        logger.info(f"Processing Camera Serial: {camera_serial}")
+        logger.info("-" * 50)
+
         for timestamp, camera_file_group in camera_files.items():
             json_files = [
                 file for file in camera_file_group if file.lower().endswith(".json")
@@ -65,12 +89,13 @@ def process_directory(video_dir):
 
             json_path = json_files[0] if len(json_files) == 1 else None
             if json_path is None:
+                logger.warning(f"  No JSON file found for timestamp: {timestamp}")
                 continue
 
             videojson = Videojson(json_path)
             duration = videojson.get_duration_readable()
             if duration is None:
-                print(f"  No duration found for timestamp: {timestamp}")
+                logger.warning(f"  No duration found for timestamp: {timestamp}")
                 continue
 
             camera_df = videojson.get_camera_df(camera_serial)
@@ -84,44 +109,39 @@ def process_directory(video_dir):
             ]
             video_path = mp4_files[0] if len(mp4_files) == 1 else None
             if video_path is None:
-                print(f"  No video file found for timestamp: {timestamp}")
+                logger.warning(f"  No video file found for timestamp: {timestamp}")
                 continue
 
             video = Video(video_path)
             frame_count = video.get_frame_count()
-            results[mp4_files[0]] = {
-                "file": mp4_files[0],
-                "json_frames": json_frames,
-                "actual_frames": frame_count,
-                "json_discontinuities": jump_list,
-            }
 
-            print(f"    Timestamp: {timestamp}")
-            print(f"    JSON frames: {json_frames}")
-            print(f"    Actual frames: {frame_count}")
-            print(f"    JSON discontinuities: {jump_list}")
-
-    return results
+            logger.info(f"    Timestamp: {timestamp}")
+            logger.info(f"    JSON frames: {json_frames}")
+            logger.info(f"    Actual frames: {frame_count}")
+            logger.info(f"    JSON discontinuities: {jump_list}")
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Process video and JSON files to check frame consistency and save results."
+        description="Process video and JSON files to check frame consistency and log results."
     )
     parser.add_argument(
         "directory",
         type=str,
         help="Path to the video directory containing subdirectories of video and JSON files.",
     )
-    parser.add_argument("output", type=str, help="Path to save the output JSON file.")
+    parser.add_argument("logfile", type=str, help="Path to save the log file.")
     args = parser.parse_args()
 
-    results = process_directory(args.directory)
+    # Setup logging
+    logger = setup_logging(args.logfile)
+    logger.info(f"Starting processing of directory: {args.directory}")
 
-    # Save results to JSON file
-    with open(args.output, "w") as json_file:
-        json.dump(results, json_file, indent=4)
-    print(f"Results saved to {args.output}")
+    try:
+        process_directory(args.directory, logger)
+        logger.info("Processing complete.")
+    except Exception as e:
+        logger.error(f"An error occurred: {e}", exc_info=True)
 
 
 if __name__ == "__main__":
