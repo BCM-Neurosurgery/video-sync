@@ -1,0 +1,1957 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../../img/favicon.ico" />
+    <title>DataPool - Video Sync</title>
+    <link rel="stylesheet" href="../../css/theme.css" />
+    <link rel="stylesheet" href="../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="../../assets/_mkdocstrings.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "DataPool";
+        var mkdocs_page_input_path = "api/datapool.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../.." class="icon icon-home"> Video Sync
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../configuration/">Configuration</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../usage/">Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../features/">Features</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../emu-cameras/">EMU Camera Serials</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../faq/">FAQ</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../license/">License</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Developer Guide</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../developer-guide/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../developer-guide/program-flow/">Program Flow</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../developer-guide/edge-cases/">Edge Cases</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../developer-guide/contributing/">Contributing</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">API Reference</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../">Overview</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">DataPool</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#datapool-class">📌 DataPool Class</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.DataPool">DataPool</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.DataPool.cam_recording_dir">cam_recording_dir</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.DataPool.nev_pool">nev_pool</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.DataPool.nsp_dir">nsp_dir</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.DataPool.nsx_pool">nsx_pool</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.DataPool.video_file_pool">video_file_pool</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.DataPool.video_json_pool">video_json_pool</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.DataPool.video_pool">video_pool</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.DataPool.__init__">__init__</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.DataPool.get_nsp1_nev_path">get_nsp1_nev_path</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.DataPool.get_nsp1_ns5_path">get_nsp1_ns5_path</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.DataPool.get_video_file_pool">get_video_file_pool</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.DataPool.init_pools">init_pools</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.DataPool.verify_integrity">verify_integrity</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#supporting-classes">📌 Supporting Classes</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#nevpool">NevPool</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.NevPool">NevPool</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.NevPool.files">files</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.NevPool.__init__">__init__</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.NevPool.add_file">add_file</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#nsxpool">NsxPool</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.NsxPool">NsxPool</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.NsxPool.files">files</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.NsxPool.__init__">__init__</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.NsxPool.add_file">add_file</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#videopool">VideoPool</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.VideoPool">VideoPool</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.VideoPool.files">files</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.VideoPool.__init__">__init__</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.VideoPool.add_file">add_file</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#videojsonpool">VideoJsonPool</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.VideoJsonPool">VideoJsonPool</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.VideoJsonPool.files">files</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.VideoJsonPool.__init__">__init__</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.VideoJsonPool.add_file">add_file</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.VideoJsonPool.list_groups">list_groups</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#videofilespool">VideoFilesPool</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.VideoFilesPool">VideoFilesPool</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.VideoFilesPool.files">files</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.VideoFilesPool.__init__">__init__</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.VideoFilesPool.add_file">add_file</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.VideoFilesPool.find_one_random_json">find_one_random_json</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.VideoFilesPool.get_unique_cam_serials">get_unique_cam_serials</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pyvideosync.data_pool.VideoFilesPool.list_groups">list_groups</a>
+    </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../nev/">Nev</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../nsx/">Nsx</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../video/">Video</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../videojson/">Videojson</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../pathutils/">Pathutils</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../utils/">Utils</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../..">Video Sync</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../.." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">API Reference</li>
+      <li class="breadcrumb-item active">DataPool</li>
+    <li class="wy-breadcrumbs-aside">
+          <a href="https://github.com/BCM-Neurosurgery/video-sync/edit/master/docs/api/datapool.md">Edit on BCM-Neurosurgery/video-sync</a>
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="datapool-api-documentation">📄 DataPool API Documentation<a class="headerlink" href="#datapool-api-documentation" title="Permanent link">&para;</a></h1>
+<p>This section provides detailed documentation for <code>pyvideosync.data_pool</code>.</p>
+<h2 id="datapool-class"><strong>📌 DataPool Class</strong><a class="headerlink" href="#datapool-class" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<a id="pyvideosync.data_pool.DataPool"></a>
+    <div class="doc doc-contents first">
+
+
+        <p>Manages NSP and video data for integrity verification and statistics.</p>
+
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Attributes:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>nsp_dir</code></b>
+                  (<code><span title="str">str</span></code>)
+              –
+              <div class="doc-md-description">
+                <p>Directory containing NSP files.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>cam_recording_dir</code></b>
+                  (<code><span title="str">str</span></code>)
+              –
+              <div class="doc-md-description">
+                <p>Directory containing camera recordings.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>nev_pool</code></b>
+                  (<code><a class="autorefs autorefs-internal" title="pyvideosync.data_pool.NevPool" href="#pyvideosync.data_pool.NevPool">NevPool</a></code>)
+              –
+              <div class="doc-md-description">
+                <p>Stores NEV files.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>nsx_pool</code></b>
+                  (<code><a class="autorefs autorefs-internal" title="pyvideosync.data_pool.NsxPool" href="#pyvideosync.data_pool.NsxPool">NsxPool</a></code>)
+              –
+              <div class="doc-md-description">
+                <p>Stores NS5/NS3 files.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>video_pool</code></b>
+                  (<code><a class="autorefs autorefs-internal" title="pyvideosync.data_pool.VideoPool" href="#pyvideosync.data_pool.VideoPool">VideoPool</a></code>)
+              –
+              <div class="doc-md-description">
+                <p>Stores video files.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>video_json_pool</code></b>
+                  (<code><a class="autorefs autorefs-internal" title="pyvideosync.data_pool.VideoJsonPool" href="#pyvideosync.data_pool.VideoJsonPool">VideoJsonPool</a></code>)
+              –
+              <div class="doc-md-description">
+                <p>Stores video metadata.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>video_file_pool</code></b>
+                  (<code><a class="autorefs autorefs-internal" title="pyvideosync.data_pool.VideoFilesPool" href="#pyvideosync.data_pool.VideoFilesPool">VideoFilesPool</a></code>)
+              –
+              <div class="doc-md-description">
+                <p>Stores all video-related files.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
+                <pre class="highlight"><code class="language-python">class DataPool:
+    """Manages NSP and video data for integrity verification and statistics.
+
+    Attributes:
+        nsp_dir (str): Directory containing NSP files.
+        cam_recording_dir (str): Directory containing camera recordings.
+        nev_pool (NevPool): Stores NEV files.
+        nsx_pool (NsxPool): Stores NS5/NS3 files.
+        video_pool (VideoPool): Stores video files.
+        video_json_pool (VideoJsonPool): Stores video metadata.
+        video_file_pool (VideoFilesPool): Stores all video-related files.
+    """
+
+    def __init__(self, nsp_dir: str, cam_recording_dir: str) -&gt; None:
+        """Initializes the DataPool class.
+
+        Args:
+            nsp_dir (str): Path to the NSP directory.
+            cam_recording_dir (str): Path to the camera recording directory.
+        """
+        self.nsp_dir = nsp_dir
+        self.cam_recording_dir = cam_recording_dir
+        self.nev_pool = NevPool()
+        self.nsx_pool = NsxPool()
+        self.video_pool = VideoPool()
+        self.video_json_pool = VideoJsonPool()
+        self.video_file_pool = VideoFilesPool()
+        self.init_pools()
+
+    def init_pools(self):
+        """Initializes the pools by:
+
+        1. Populating NEV and NSX pools with corresponding files.
+        2. Grouping the files in the video pool by timestamp.
+        """
+        for file_path in Path(self.nsp_dir).iterdir():
+            if file_path.suffix == ".nev":
+                self.nev_pool.add_file(file_path.name)
+            elif file_path.suffix in {".ns5", ".ns3"}:
+                self.nsx_pool.add_file(file_path.name)
+
+        for datefolder_path in Path(self.cam_recording_dir).iterdir():
+            if datefolder_path.is_dir():
+                for file_path in datefolder_path.iterdir():
+                    self.video_file_pool.add_file(file_path.name)
+                    if file_path.suffix == ".mp4":
+                        self.video_pool.add_file(file_path.name)
+                    elif file_path.suffix == ".json":
+                        self.video_json_pool.add_file(file_path.name)
+
+    def verify_integrity(self) -&gt; bool:
+        """Verifies the integrity of the directory by ensuring it contains exactly one of each required file.
+
+        Required files:
+            - One file matching pattern `*NSP-1.nev`
+            - One file matching pattern `*NSP-1.ns3`
+            - One file matching pattern `*NSP-1.ns5`
+            - One file matching pattern `*NSP-2.nev`
+
+        Returns:
+            bool: True if exactly one of each required file is found, otherwise False.
+        """
+        required_files = {
+            "*NSP-1.nev": 0,
+            "*NSP-1.ns3": 0,
+            "*NSP-1.ns5": 0,
+            "*NSP-2.nev": 0,
+        }
+
+        for file in os.listdir(self.nsp_dir):
+            for pattern in required_files.keys():
+                if fnmatch.fnmatch(file, pattern):
+                    required_files[pattern] += 1
+
+        return all(count == 1 for count in required_files.values())
+
+    def get_nsp1_nev_path(self) -&gt; str:
+        """Finds the NSP-1 NEV file path.
+
+        Returns:
+            str: The full path of the matching file if found, otherwise an empty string.
+        """
+        pattern = "*NSP-1.nev"
+
+        for file in os.listdir(self.nsp_dir):
+            if fnmatch.fnmatch(file, pattern):
+                return os.path.join(self.nsp_dir, file)
+
+        return ""
+
+    def get_nsp1_ns5_path(self) -&gt; str:
+        """Finds the NSP-1 NS5 file path.
+
+        Returns:
+            str: The full path of the matching file if found, otherwise an empty string.
+        """
+        pattern = "*NSP-1.ns5"
+
+        for file in os.listdir(self.nsp_dir):
+            if fnmatch.fnmatch(file, pattern):
+                return os.path.join(self.nsp_dir, file)
+
+        return ""
+
+    def get_video_file_pool(self) -&gt; "VideoFilesPool":
+        """Retrieves the video file pool.
+
+        Returns:
+            VideoFilesPool: The video file pool object.
+        """
+        return self.video_file_pool</code></pre>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h2 id="pyvideosync.data_pool.DataPool.cam_recording_dir" class="doc doc-heading">
+            <code class="highlight language-python">cam_recording_dir = cam_recording_dir</code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#pyvideosync.data_pool.DataPool.cam_recording_dir" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h2 id="pyvideosync.data_pool.DataPool.nev_pool" class="doc doc-heading">
+            <code class="highlight language-python">nev_pool = NevPool()</code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#pyvideosync.data_pool.DataPool.nev_pool" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h2 id="pyvideosync.data_pool.DataPool.nsp_dir" class="doc doc-heading">
+            <code class="highlight language-python">nsp_dir = nsp_dir</code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#pyvideosync.data_pool.DataPool.nsp_dir" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h2 id="pyvideosync.data_pool.DataPool.nsx_pool" class="doc doc-heading">
+            <code class="highlight language-python">nsx_pool = NsxPool()</code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#pyvideosync.data_pool.DataPool.nsx_pool" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h2 id="pyvideosync.data_pool.DataPool.video_file_pool" class="doc doc-heading">
+            <code class="highlight language-python">video_file_pool = VideoFilesPool()</code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#pyvideosync.data_pool.DataPool.video_file_pool" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h2 id="pyvideosync.data_pool.DataPool.video_json_pool" class="doc doc-heading">
+            <code class="highlight language-python">video_json_pool = VideoJsonPool()</code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#pyvideosync.data_pool.DataPool.video_json_pool" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h2 id="pyvideosync.data_pool.DataPool.video_pool" class="doc doc-heading">
+            <code class="highlight language-python">video_pool = VideoPool()</code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#pyvideosync.data_pool.DataPool.video_pool" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+    </div>
+
+</div>
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="pyvideosync.data_pool.DataPool.__init__" class="doc doc-heading">
+            <code class="highlight language-python">__init__(nsp_dir: str, cam_recording_dir: str) -&gt; None</code>
+
+<a href="#pyvideosync.data_pool.DataPool.__init__" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Initializes the DataPool class.</p>
+
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>nsp_dir</code></b>
+                  (<code><span title="str">str</span></code>)
+              –
+              <div class="doc-md-description">
+                <p>Path to the NSP directory.</p>
+              </div>
+            </li>
+            <li>
+              <b><code>cam_recording_dir</code></b>
+                  (<code><span title="str">str</span></code>)
+              –
+              <div class="doc-md-description">
+                <p>Path to the camera recording directory.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+            <details class="quote">
+              <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
+              <pre class="highlight"><code class="language-python">def __init__(self, nsp_dir: str, cam_recording_dir: str) -&gt; None:
+    """Initializes the DataPool class.
+
+    Args:
+        nsp_dir (str): Path to the NSP directory.
+        cam_recording_dir (str): Path to the camera recording directory.
+    """
+    self.nsp_dir = nsp_dir
+    self.cam_recording_dir = cam_recording_dir
+    self.nev_pool = NevPool()
+    self.nsx_pool = NsxPool()
+    self.video_pool = VideoPool()
+    self.video_json_pool = VideoJsonPool()
+    self.video_file_pool = VideoFilesPool()
+    self.init_pools()</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="pyvideosync.data_pool.DataPool.get_nsp1_nev_path" class="doc doc-heading">
+            <code class="highlight language-python">get_nsp1_nev_path() -&gt; str</code>
+
+<a href="#pyvideosync.data_pool.DataPool.get_nsp1_nev_path" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Finds the NSP-1 NEV file path.</p>
+
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Returns:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+<b><code>str</code></b>(                  <code><span title="str">str</span></code>
+)              –
+              <div class="doc-md-description">
+                <p>The full path of the matching file if found, otherwise an empty string.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+            <details class="quote">
+              <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
+              <pre class="highlight"><code class="language-python">def get_nsp1_nev_path(self) -&gt; str:
+    """Finds the NSP-1 NEV file path.
+
+    Returns:
+        str: The full path of the matching file if found, otherwise an empty string.
+    """
+    pattern = "*NSP-1.nev"
+
+    for file in os.listdir(self.nsp_dir):
+        if fnmatch.fnmatch(file, pattern):
+            return os.path.join(self.nsp_dir, file)
+
+    return ""</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="pyvideosync.data_pool.DataPool.get_nsp1_ns5_path" class="doc doc-heading">
+            <code class="highlight language-python">get_nsp1_ns5_path() -&gt; str</code>
+
+<a href="#pyvideosync.data_pool.DataPool.get_nsp1_ns5_path" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Finds the NSP-1 NS5 file path.</p>
+
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Returns:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+<b><code>str</code></b>(                  <code><span title="str">str</span></code>
+)              –
+              <div class="doc-md-description">
+                <p>The full path of the matching file if found, otherwise an empty string.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+            <details class="quote">
+              <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
+              <pre class="highlight"><code class="language-python">def get_nsp1_ns5_path(self) -&gt; str:
+    """Finds the NSP-1 NS5 file path.
+
+    Returns:
+        str: The full path of the matching file if found, otherwise an empty string.
+    """
+    pattern = "*NSP-1.ns5"
+
+    for file in os.listdir(self.nsp_dir):
+        if fnmatch.fnmatch(file, pattern):
+            return os.path.join(self.nsp_dir, file)
+
+    return ""</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="pyvideosync.data_pool.DataPool.get_video_file_pool" class="doc doc-heading">
+            <code class="highlight language-python">get_video_file_pool() -&gt; 'VideoFilesPool'</code>
+
+<a href="#pyvideosync.data_pool.DataPool.get_video_file_pool" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Retrieves the video file pool.</p>
+
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Returns:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+<b><code>VideoFilesPool</code></b>(                  <code>&#39;VideoFilesPool&#39;</code>
+)              –
+              <div class="doc-md-description">
+                <p>The video file pool object.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+            <details class="quote">
+              <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
+              <pre class="highlight"><code class="language-python">def get_video_file_pool(self) -&gt; "VideoFilesPool":
+    """Retrieves the video file pool.
+
+    Returns:
+        VideoFilesPool: The video file pool object.
+    """
+    return self.video_file_pool</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="pyvideosync.data_pool.DataPool.init_pools" class="doc doc-heading">
+            <code class="highlight language-python">init_pools()</code>
+
+<a href="#pyvideosync.data_pool.DataPool.init_pools" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Initializes the pools by:</p>
+<ol>
+<li>Populating NEV and NSX pools with corresponding files.</li>
+<li>Grouping the files in the video pool by timestamp.</li>
+</ol>
+
+            <details class="quote">
+              <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
+              <pre class="highlight"><code class="language-python">def init_pools(self):
+    """Initializes the pools by:
+
+    1. Populating NEV and NSX pools with corresponding files.
+    2. Grouping the files in the video pool by timestamp.
+    """
+    for file_path in Path(self.nsp_dir).iterdir():
+        if file_path.suffix == ".nev":
+            self.nev_pool.add_file(file_path.name)
+        elif file_path.suffix in {".ns5", ".ns3"}:
+            self.nsx_pool.add_file(file_path.name)
+
+    for datefolder_path in Path(self.cam_recording_dir).iterdir():
+        if datefolder_path.is_dir():
+            for file_path in datefolder_path.iterdir():
+                self.video_file_pool.add_file(file_path.name)
+                if file_path.suffix == ".mp4":
+                    self.video_pool.add_file(file_path.name)
+                elif file_path.suffix == ".json":
+                    self.video_json_pool.add_file(file_path.name)</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="pyvideosync.data_pool.DataPool.verify_integrity" class="doc doc-heading">
+            <code class="highlight language-python">verify_integrity() -&gt; bool</code>
+
+<a href="#pyvideosync.data_pool.DataPool.verify_integrity" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Verifies the integrity of the directory by ensuring it contains exactly one of each required file.</p>
+
+
+<details class="required-files" open>
+  <summary>Required files</summary>
+  <ul>
+<li>One file matching pattern <code>*NSP-1.nev</code></li>
+<li>One file matching pattern <code>*NSP-1.ns3</code></li>
+<li>One file matching pattern <code>*NSP-1.ns5</code></li>
+<li>One file matching pattern <code>*NSP-2.nev</code></li>
+</ul>
+</details>
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Returns:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+<b><code>bool</code></b>(                  <code><span title="bool">bool</span></code>
+)              –
+              <div class="doc-md-description">
+                <p>True if exactly one of each required file is found, otherwise False.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+            <details class="quote">
+              <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
+              <pre class="highlight"><code class="language-python">def verify_integrity(self) -&gt; bool:
+    """Verifies the integrity of the directory by ensuring it contains exactly one of each required file.
+
+    Required files:
+        - One file matching pattern `*NSP-1.nev`
+        - One file matching pattern `*NSP-1.ns3`
+        - One file matching pattern `*NSP-1.ns5`
+        - One file matching pattern `*NSP-2.nev`
+
+    Returns:
+        bool: True if exactly one of each required file is found, otherwise False.
+    """
+    required_files = {
+        "*NSP-1.nev": 0,
+        "*NSP-1.ns3": 0,
+        "*NSP-1.ns5": 0,
+        "*NSP-2.nev": 0,
+    }
+
+    for file in os.listdir(self.nsp_dir):
+        for pattern in required_files.keys():
+            if fnmatch.fnmatch(file, pattern):
+                required_files[pattern] += 1
+
+    return all(count == 1 for count in required_files.values())</code></pre>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div><h2 id="supporting-classes"><strong>📌 Supporting Classes</strong><a class="headerlink" href="#supporting-classes" title="Permanent link">&para;</a></h2>
+<h3 id="nevpool"><strong>NevPool</strong><a class="headerlink" href="#nevpool" title="Permanent link">&para;</a></h3>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<a id="pyvideosync.data_pool.NevPool"></a>
+    <div class="doc doc-contents first">
+
+
+        <p>Stores NEV files grouped by suffix.</p>
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
+                <pre class="highlight"><code class="language-python">class NevPool:
+    """Stores NEV files grouped by suffix."""
+
+    def __init__(self) -&gt; None:
+        self.files = defaultdict(list)
+
+    def add_file(self, file: str):
+        """Adds a NEV file to the pool.
+
+        Args:
+            file (str): File name to be added.
+        """
+        suffix = file.split("-")[-1]
+        self.files[suffix].append(file)</code></pre>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h2 id="pyvideosync.data_pool.NevPool.files" class="doc doc-heading">
+            <code class="highlight language-python">files = defaultdict(list)</code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#pyvideosync.data_pool.NevPool.files" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+    </div>
+
+</div>
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="pyvideosync.data_pool.NevPool.__init__" class="doc doc-heading">
+            <code class="highlight language-python">__init__() -&gt; None</code>
+
+<a href="#pyvideosync.data_pool.NevPool.__init__" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+            <details class="quote">
+              <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
+              <pre class="highlight"><code class="language-python">def __init__(self) -&gt; None:
+    self.files = defaultdict(list)</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="pyvideosync.data_pool.NevPool.add_file" class="doc doc-heading">
+            <code class="highlight language-python">add_file(file: str)</code>
+
+<a href="#pyvideosync.data_pool.NevPool.add_file" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Adds a NEV file to the pool.</p>
+
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>file</code></b>
+                  (<code><span title="str">str</span></code>)
+              –
+              <div class="doc-md-description">
+                <p>File name to be added.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+            <details class="quote">
+              <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
+              <pre class="highlight"><code class="language-python">def add_file(self, file: str):
+    """Adds a NEV file to the pool.
+
+    Args:
+        file (str): File name to be added.
+    """
+    suffix = file.split("-")[-1]
+    self.files[suffix].append(file)</code></pre>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div><h3 id="nsxpool"><strong>NsxPool</strong><a class="headerlink" href="#nsxpool" title="Permanent link">&para;</a></h3>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<a id="pyvideosync.data_pool.NsxPool"></a>
+    <div class="doc doc-contents first">
+
+
+        <p>Stores NS5 and NS3 files grouped by suffix.</p>
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
+                <pre class="highlight"><code class="language-python">class NsxPool:
+    """Stores NS5 and NS3 files grouped by suffix."""
+
+    def __init__(self) -&gt; None:
+        self.files = defaultdict(list)
+
+    def add_file(self, file: str):
+        """Adds an NS5/NS3 file to the pool.
+
+        Args:
+            file (str): File name to be added.
+        """
+        suffix = file.split("-")[-1]
+        self.files[suffix].append(file)</code></pre>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h2 id="pyvideosync.data_pool.NsxPool.files" class="doc doc-heading">
+            <code class="highlight language-python">files = defaultdict(list)</code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#pyvideosync.data_pool.NsxPool.files" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+    </div>
+
+</div>
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="pyvideosync.data_pool.NsxPool.__init__" class="doc doc-heading">
+            <code class="highlight language-python">__init__() -&gt; None</code>
+
+<a href="#pyvideosync.data_pool.NsxPool.__init__" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+            <details class="quote">
+              <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
+              <pre class="highlight"><code class="language-python">def __init__(self) -&gt; None:
+    self.files = defaultdict(list)</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="pyvideosync.data_pool.NsxPool.add_file" class="doc doc-heading">
+            <code class="highlight language-python">add_file(file: str)</code>
+
+<a href="#pyvideosync.data_pool.NsxPool.add_file" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Adds an NS5/NS3 file to the pool.</p>
+
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>file</code></b>
+                  (<code><span title="str">str</span></code>)
+              –
+              <div class="doc-md-description">
+                <p>File name to be added.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+            <details class="quote">
+              <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
+              <pre class="highlight"><code class="language-python">def add_file(self, file: str):
+    """Adds an NS5/NS3 file to the pool.
+
+    Args:
+        file (str): File name to be added.
+    """
+    suffix = file.split("-")[-1]
+    self.files[suffix].append(file)</code></pre>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div><h3 id="videopool"><strong>VideoPool</strong><a class="headerlink" href="#videopool" title="Permanent link">&para;</a></h3>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<a id="pyvideosync.data_pool.VideoPool"></a>
+    <div class="doc doc-contents first">
+
+
+        <p>Stores video files grouped by timestamp.</p>
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
+                <pre class="highlight"><code class="language-python">class VideoPool:
+    """Stores video files grouped by timestamp."""
+
+    def __init__(self) -&gt; None:
+        self.files = defaultdict(list)
+
+    def add_file(self, file: str):
+        """Adds a video file to the pool.
+
+        Args:
+            file (str): File name to be added.
+        """
+        timestamp = file.split("_")[-1].split(".")[0]
+        self.files[timestamp].append(file)</code></pre>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h2 id="pyvideosync.data_pool.VideoPool.files" class="doc doc-heading">
+            <code class="highlight language-python">files = defaultdict(list)</code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#pyvideosync.data_pool.VideoPool.files" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+    </div>
+
+</div>
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="pyvideosync.data_pool.VideoPool.__init__" class="doc doc-heading">
+            <code class="highlight language-python">__init__() -&gt; None</code>
+
+<a href="#pyvideosync.data_pool.VideoPool.__init__" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+            <details class="quote">
+              <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
+              <pre class="highlight"><code class="language-python">def __init__(self) -&gt; None:
+    self.files = defaultdict(list)</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="pyvideosync.data_pool.VideoPool.add_file" class="doc doc-heading">
+            <code class="highlight language-python">add_file(file: str)</code>
+
+<a href="#pyvideosync.data_pool.VideoPool.add_file" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Adds a video file to the pool.</p>
+
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>file</code></b>
+                  (<code><span title="str">str</span></code>)
+              –
+              <div class="doc-md-description">
+                <p>File name to be added.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+            <details class="quote">
+              <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
+              <pre class="highlight"><code class="language-python">def add_file(self, file: str):
+    """Adds a video file to the pool.
+
+    Args:
+        file (str): File name to be added.
+    """
+    timestamp = file.split("_")[-1].split(".")[0]
+    self.files[timestamp].append(file)</code></pre>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div><h3 id="videojsonpool"><strong>VideoJsonPool</strong><a class="headerlink" href="#videojsonpool" title="Permanent link">&para;</a></h3>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<a id="pyvideosync.data_pool.VideoJsonPool"></a>
+    <div class="doc doc-contents first">
+
+
+        <p>Stores video metadata JSON files grouped by timestamp.</p>
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
+                <pre class="highlight"><code class="language-python">class VideoJsonPool:
+    """Stores video metadata JSON files grouped by timestamp."""
+
+    def __init__(self) -&gt; None:
+        self.files = defaultdict(list)
+
+    def add_file(self, file: str):
+        timestamp = file.split("_")[-1].split(".")[0]
+        self.files[timestamp].append(file)
+
+    def list_groups(self) -&gt; dict[str, list[str]]:
+        """Lists all groups of video metadata files.
+
+        Returns:
+            dict[str, list[str]]: A dictionary where keys are timestamps (str)
+            and values are lists of file names (str).
+        """
+        return {timestamp: files for timestamp, files in self.files.items()}</code></pre>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h2 id="pyvideosync.data_pool.VideoJsonPool.files" class="doc doc-heading">
+            <code class="highlight language-python">files = defaultdict(list)</code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#pyvideosync.data_pool.VideoJsonPool.files" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+    </div>
+
+</div>
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="pyvideosync.data_pool.VideoJsonPool.__init__" class="doc doc-heading">
+            <code class="highlight language-python">__init__() -&gt; None</code>
+
+<a href="#pyvideosync.data_pool.VideoJsonPool.__init__" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+            <details class="quote">
+              <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
+              <pre class="highlight"><code class="language-python">def __init__(self) -&gt; None:
+    self.files = defaultdict(list)</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="pyvideosync.data_pool.VideoJsonPool.add_file" class="doc doc-heading">
+            <code class="highlight language-python">add_file(file: str)</code>
+
+<a href="#pyvideosync.data_pool.VideoJsonPool.add_file" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+            <details class="quote">
+              <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
+              <pre class="highlight"><code class="language-python">def add_file(self, file: str):
+    timestamp = file.split("_")[-1].split(".")[0]
+    self.files[timestamp].append(file)</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="pyvideosync.data_pool.VideoJsonPool.list_groups" class="doc doc-heading">
+            <code class="highlight language-python">list_groups() -&gt; dict[str, list[str]]</code>
+
+<a href="#pyvideosync.data_pool.VideoJsonPool.list_groups" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Lists all groups of video metadata files.</p>
+
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Returns:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="list">list</span>[<span title="str">str</span>]]</code>
+              –
+              <div class="doc-md-description">
+                <p>dict[str, list[str]]: A dictionary where keys are timestamps (str)</p>
+              </div>
+            </li>
+            <li>
+                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="list">list</span>[<span title="str">str</span>]]</code>
+              –
+              <div class="doc-md-description">
+                <p>and values are lists of file names (str).</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+            <details class="quote">
+              <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
+              <pre class="highlight"><code class="language-python">def list_groups(self) -&gt; dict[str, list[str]]:
+    """Lists all groups of video metadata files.
+
+    Returns:
+        dict[str, list[str]]: A dictionary where keys are timestamps (str)
+        and values are lists of file names (str).
+    """
+    return {timestamp: files for timestamp, files in self.files.items()}</code></pre>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div><h3 id="videofilespool"><strong>VideoFilesPool</strong><a class="headerlink" href="#videofilespool" title="Permanent link">&para;</a></h3>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<a id="pyvideosync.data_pool.VideoFilesPool"></a>
+    <div class="doc doc-contents first">
+
+
+        <p>Stores all video-related files grouped by timestamp.</p>
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
+                <pre class="highlight"><code class="language-python">class VideoFilesPool:
+    """Stores all video-related files grouped by timestamp."""
+
+    def __init__(self) -&gt; None:
+        self.files = defaultdict(list)
+
+    def add_file(self, file: str):
+        """Adds a video-related file to the pool.
+
+        Args:
+            file (str): File name to be added.
+        """
+        timestamp = extract_timestamp(file)
+        self.files[timestamp].append(file)
+
+    def list_groups(self) -&gt; dict[str, list[str]]:
+        """Lists groups of files sorted by timestamp.
+
+        Returns:
+            dict[str, list[str]]: A dictionary where keys are timestamps (str)
+            and values are lists of file names (str).
+        """
+        return {timestamp: self.files[timestamp] for timestamp in sorted(self.files)}
+
+    def find_one_random_json(self) -&gt; str | None:
+        """Finds a random JSON file in the pool.
+
+        Returns:
+            str: A JSON file name if found, otherwise None.
+        """
+        for files in self.files.values():
+            for file in files:
+                if file.endswith(".json"):
+                    return file
+        return None
+
+    def get_unique_cam_serials(self) -&gt; set[str]:
+        """
+        Returns a set of all unique camera serial numbers found in the filenames.
+
+        Returns:
+            set[str]: A set of unique camera serial numbers.
+        """
+        serials = set()
+        for files in self.files.values():
+            for file in files:
+                if file.endswith(".mp4"):
+                    serial = extract_cam_serial(file)
+                if serial:
+                    serials.add(serial)
+        return serials</code></pre>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h2 id="pyvideosync.data_pool.VideoFilesPool.files" class="doc doc-heading">
+            <code class="highlight language-python">files = defaultdict(list)</code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#pyvideosync.data_pool.VideoFilesPool.files" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+    </div>
+
+</div>
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="pyvideosync.data_pool.VideoFilesPool.__init__" class="doc doc-heading">
+            <code class="highlight language-python">__init__() -&gt; None</code>
+
+<a href="#pyvideosync.data_pool.VideoFilesPool.__init__" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+            <details class="quote">
+              <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
+              <pre class="highlight"><code class="language-python">def __init__(self) -&gt; None:
+    self.files = defaultdict(list)</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="pyvideosync.data_pool.VideoFilesPool.add_file" class="doc doc-heading">
+            <code class="highlight language-python">add_file(file: str)</code>
+
+<a href="#pyvideosync.data_pool.VideoFilesPool.add_file" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Adds a video-related file to the pool.</p>
+
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Parameters:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+              <b><code>file</code></b>
+                  (<code><span title="str">str</span></code>)
+              –
+              <div class="doc-md-description">
+                <p>File name to be added.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+            <details class="quote">
+              <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
+              <pre class="highlight"><code class="language-python">def add_file(self, file: str):
+    """Adds a video-related file to the pool.
+
+    Args:
+        file (str): File name to be added.
+    """
+    timestamp = extract_timestamp(file)
+    self.files[timestamp].append(file)</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="pyvideosync.data_pool.VideoFilesPool.find_one_random_json" class="doc doc-heading">
+            <code class="highlight language-python">find_one_random_json() -&gt; str | None</code>
+
+<a href="#pyvideosync.data_pool.VideoFilesPool.find_one_random_json" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Finds a random JSON file in the pool.</p>
+
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Returns:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+<b><code>str</code></b>(                  <code><span title="str">str</span> | None</code>
+)              –
+              <div class="doc-md-description">
+                <p>A JSON file name if found, otherwise None.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+            <details class="quote">
+              <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
+              <pre class="highlight"><code class="language-python">def find_one_random_json(self) -&gt; str | None:
+    """Finds a random JSON file in the pool.
+
+    Returns:
+        str: A JSON file name if found, otherwise None.
+    """
+    for files in self.files.values():
+        for file in files:
+            if file.endswith(".json"):
+                return file
+    return None</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="pyvideosync.data_pool.VideoFilesPool.get_unique_cam_serials" class="doc doc-heading">
+            <code class="highlight language-python">get_unique_cam_serials() -&gt; set[str]</code>
+
+<a href="#pyvideosync.data_pool.VideoFilesPool.get_unique_cam_serials" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Returns a set of all unique camera serial numbers found in the filenames.</p>
+
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Returns:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+                  <code><span title="set">set</span>[<span title="str">str</span>]</code>
+              –
+              <div class="doc-md-description">
+                <p>set[str]: A set of unique camera serial numbers.</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+            <details class="quote">
+              <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
+              <pre class="highlight"><code class="language-python">def get_unique_cam_serials(self) -&gt; set[str]:
+    """
+    Returns a set of all unique camera serial numbers found in the filenames.
+
+    Returns:
+        set[str]: A set of unique camera serial numbers.
+    """
+    serials = set()
+    for files in self.files.values():
+        for file in files:
+            if file.endswith(".mp4"):
+                serial = extract_cam_serial(file)
+            if serial:
+                serials.add(serial)
+    return serials</code></pre>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="pyvideosync.data_pool.VideoFilesPool.list_groups" class="doc doc-heading">
+            <code class="highlight language-python">list_groups() -&gt; dict[str, list[str]]</code>
+
+<a href="#pyvideosync.data_pool.VideoFilesPool.list_groups" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Lists groups of files sorted by timestamp.</p>
+
+
+<table class="field-list">
+  <colgroup>
+    <col class="field-name" />
+    <col class="field-body" />
+  </colgroup>
+  <tbody valign="top">
+    <tr class="field">
+      <th class="field-name">Returns:</th>
+      <td class="field-body">
+        <ul class="first simple">
+            <li>
+                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="list">list</span>[<span title="str">str</span>]]</code>
+              –
+              <div class="doc-md-description">
+                <p>dict[str, list[str]]: A dictionary where keys are timestamps (str)</p>
+              </div>
+            </li>
+            <li>
+                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="list">list</span>[<span title="str">str</span>]]</code>
+              –
+              <div class="doc-md-description">
+                <p>and values are lists of file names (str).</p>
+              </div>
+            </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+            <details class="quote">
+              <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
+              <pre class="highlight"><code class="language-python">def list_groups(self) -&gt; dict[str, list[str]]:
+    """Lists groups of files sorted by timestamp.
+
+    Returns:
+        dict[str, list[str]]: A dictionary where keys are timestamps (str)
+        and values are lists of file names (str).
+    """
+    return {timestamp: self.files[timestamp] for timestamp in sorted(self.files)}</code></pre>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../" class="btn btn-neutral float-left" title="Overview"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../nev/" class="btn btn-neutral float-right" title="Nev">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/BCM-Neurosurgery/video-sync" class="fa fa-code-fork" style="color: #fcfcfc"> BCM-Neurosurgery/video-sync</a>
+        </span>
+    
+    
+      <span><a href="../" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../nev/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "../..";</script>
+    <script src="../../js/theme_extra.js"></script>
+    <script src="../../js/theme.js"></script>
+      <script src="../../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>
