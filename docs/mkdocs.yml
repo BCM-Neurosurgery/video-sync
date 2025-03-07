@@ -23,10 +23,25 @@ nav:
       - Program Flow: developer-guide/program-flow.md
       - Edge Cases: developer-guide/edge-cases.md
       - Contributing: developer-guide/contributing.md
-
+  - API Reference:
+      - Overview: api/index.md
+      - DataPool: api/datapool.md
+      - Nev: api/nev.md
+      - Nsx: api/nsx.md
+      - Video: api/video.md
+      - Videojson: api/videojson.md
+      - Pathutils: api/pathutils.md
+      - Utils: api/utils.md
 
 plugins:
   - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            show_source: true
+            show_signature_annotations: true
+            members_order: alphabetical
 
 markdown_extensions:
   - toc:

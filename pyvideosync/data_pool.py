@@ -3,15 +3,29 @@ from collections import defaultdict
 from pyvideosync.utils import extract_timestamp, extract_cam_serial
 import fnmatch
 from pathlib import Path
+from __future__ import annotations
 
 
 class DataPool:
-    """This class does the following to the NSP data:
-    1. verify integrity
-    2. get basic statistics
+    """Manages NSP and video data for integrity verification and statistics.
+
+    Attributes:
+        nsp_dir (str): Directory containing NSP files.
+        cam_recording_dir (str): Directory containing camera recordings.
+        nev_pool (NevPool): Stores NEV files.
+        nsx_pool (NsxPool): Stores NS5/NS3 files.
+        video_pool (VideoPool): Stores video files.
+        video_json_pool (VideoJsonPool): Stores video metadata.
+        video_file_pool (VideoFilesPool): Stores all video-related files.
     """
 
     def __init__(self, nsp_dir: str, cam_recording_dir: str) -> None:
+        """Initializes the DataPool class.
+
+        Args:
+            nsp_dir (str): Path to the NSP directory.
+            cam_recording_dir (str): Path to the camera recording directory.
+        """
         self.nsp_dir = nsp_dir
         self.cam_recording_dir = cam_recording_dir
         self.nev_pool = NevPool()
@@ -22,11 +36,10 @@ class DataPool:
         self.init_pools()
 
     def init_pools(self):
-        """Do the following:
-        1. Initialize nevpool and nsxpool
-        2. Create mapping which allows constant access between:
-            - nev-ns5-ns3
-            - previous and next file of nev/ns5/ns3
+        """Initializes the pools by:
+
+        1. Populating NEV and NSX pools with corresponding files.
+        2. Grouping the files in the video pool by timestamp.
         """
         for file_path in Path(self.nsp_dir).iterdir():
             if file_path.suffix == ".nev":
@@ -44,15 +57,13 @@ class DataPool:
                         self.video_json_pool.add_file(file_path.name)
 
     def verify_integrity(self) -> bool:
-        """
-        Verifies the integrity of a directory by checking if it contains exactly one of each required file:
-        - One file matching pattern `*NSP-1.nev`
-        - One file matching pattern `*NSP-1.ns3`
-        - One file matching pattern `*NSP-1.ns5`
-        - One file matching pattern `*NSP-2.nev`
+        """Verifies the integrity of the directory by ensuring it contains exactly one of each required file.
 
-        Args:
-            directory (str): The path to the directory to check.
+        Required files:
+            - One file matching pattern `*NSP-1.nev`
+            - One file matching pattern `*NSP-1.ns3`
+            - One file matching pattern `*NSP-1.ns5`
+            - One file matching pattern `*NSP-2.nev`
 
         Returns:
             bool: True if exactly one of each required file is found, otherwise False.
@@ -72,11 +83,7 @@ class DataPool:
         return all(count == 1 for count in required_files.values())
 
     def get_nsp1_nev_path(self) -> str:
-        """
-        Searches for a file matching the pattern '*NSP-1.nev' in the specified directory and returns its path.
-
-        Args:
-            directory (str): The path to the directory to search.
+        """Finds the NSP-1 NEV file path.
 
         Returns:
             str: The full path of the matching file if found, otherwise an empty string.
@@ -90,11 +97,7 @@ class DataPool:
         return ""
 
     def get_nsp1_ns5_path(self) -> str:
-        """
-        Searches for a file matching the pattern '*NSP-1.ns5' in the specified directory and returns its path.
-
-        Args:
-            directory (str): The path to the directory to search.
+        """Finds the NSP-1 NS5 file path.
 
         Returns:
             str: The full path of the matching file if found, otherwise an empty string.
@@ -107,38 +110,66 @@ class DataPool:
 
         return ""
 
-    def get_video_file_pool(self):
+    def get_video_file_pool(self) -> "VideoFilesPool":
+        """Retrieves the video file pool.
+
+        Returns:
+            VideoFilesPool: The video file pool object.
+        """
         return self.video_file_pool
 
 
 class NevPool:
+    """Stores NEV files grouped by suffix."""
+
     def __init__(self) -> None:
         self.files = defaultdict(list)
 
     def add_file(self, file: str):
+        """Adds a NEV file to the pool.
+
+        Args:
+            file (str): File name to be added.
+        """
         suffix = file.split("-")[-1]
         self.files[suffix].append(file)
 
 
 class NsxPool:
+    """Stores NS5 and NS3 files grouped by suffix."""
+
     def __init__(self) -> None:
         self.files = defaultdict(list)
 
     def add_file(self, file: str):
+        """Adds an NS5/NS3 file to the pool.
+
+        Args:
+            file (str): File name to be added.
+        """
         suffix = file.split("-")[-1]
         self.files[suffix].append(file)
 
 
 class VideoPool:
+    """Stores video files grouped by timestamp."""
+
     def __init__(self) -> None:
         self.files = defaultdict(list)
 
     def add_file(self, file: str):
+        """Adds a video file to the pool.
+
+        Args:
+            file (str): File name to be added.
+        """
         timestamp = file.split("_")[-1].split(".")[0]
         self.files[timestamp].append(file)
 
 
 class VideoJsonPool:
+    """Stores video metadata JSON files grouped by timestamp."""
+
     def __init__(self) -> None:
         self.files = defaultdict(list)
 
@@ -146,37 +177,58 @@ class VideoJsonPool:
         timestamp = file.split("_")[-1].split(".")[0]
         self.files[timestamp].append(file)
 
-    def list_groups(self):
+    def list_groups(self) -> dict[str, list[str]]:
+        """Lists all groups of video metadata files.
+
+        Returns:
+            dict[str, list[str]]: A dictionary where keys are timestamps (str)
+            and values are lists of file names (str).
+        """
         return {timestamp: files for timestamp, files in self.files.items()}
 
 
 class VideoFilesPool:
+    """Stores all video-related files grouped by timestamp."""
+
     def __init__(self) -> None:
         self.files = defaultdict(list)
 
     def add_file(self, file: str):
+        """Adds a video-related file to the pool.
+
+        Args:
+            file (str): File name to be added.
+        """
         timestamp = extract_timestamp(file)
         self.files[timestamp].append(file)
 
-    def list_groups(self):
-        """
-        Returns a dictionary of sorted timestamps and corresponding files.
+    def list_groups(self) -> dict[str, list[str]]:
+        """Lists groups of files sorted by timestamp.
+
+        Returns:
+            dict[str, list[str]]: A dictionary where keys are timestamps (str)
+            and values are lists of file names (str).
         """
         return {timestamp: self.files[timestamp] for timestamp in sorted(self.files)}
 
-    def find_one_random_json(self):
+    def find_one_random_json(self) -> str | None:
+        """Finds a random JSON file in the pool.
+
+        Returns:
+            str: A JSON file name if found, otherwise None.
+        """
         for files in self.files.values():
             for file in files:
                 if file.endswith(".json"):
                     return file
         return None
 
-    def get_unique_cam_serials(self):
+    def get_unique_cam_serials(self) -> set[str]:
         """
         Returns a set of all unique camera serial numbers found in the filenames.
 
         Returns:
-        set: A set of unique camera serial numbers.
+            set[str]: A set of unique camera serial numbers.
         """
         serials = set()
         for files in self.files.values():
