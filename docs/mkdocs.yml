@@ -1,0 +1,45 @@
+site_name: Video Sync
+repo_url: https://github.com/BCM-Neurosurgery/video-sync
+repo_name: BCM-Neurosurgery/video-sync
+
+
+theme:
+  name: readthedocs
+  features:
+    - content.code.copy
+
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Configuration: configuration.md
+  - Usage: usage.md
+  - Features: features.md
+  - EMU Camera Serials: emu-cameras.md
+  - FAQ: faq.md
+  - License: license.md
+  - Developer Guide:
+      - Overview: developer-guide/index.md
+      - Program Flow: developer-guide/program-flow.md
+      - Edge Cases: developer-guide/edge-cases.md
+      - Contributing: developer-guide/contributing.md
+
+
+plugins:
+  - search
+
+markdown_extensions:
+  - toc:
+      permalink: true
+  - attr_list
+  - md_in_html
+  - admonition
+  - pymdownx.superfences
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/BCM-Neurosurgery/video-sync
