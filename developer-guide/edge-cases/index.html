@@ -79,7 +79,19 @@
                   </li>
                   <li class="toctree-l1 current"><a class="reference internal current" href="#">Edge Cases</a>
     <ul class="current">
-    <li class="toctree-l2"><a class="reference internal" href="#1-missing-frame-timestamps">1️⃣ Missing Frame Timestamps</a>
+    <li class="toctree-l2"><a class="reference internal" href="#1-frame-counter-anomalies">1️⃣ Frame Counter Anomalies</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#problem">🧐 Problem</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#example-json-incorrect-frame-sequence">📄 Example JSON (Incorrect Frame Sequence)</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#observations">🔍 Observations</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#conclusion">📝 Conclusion</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#download-reference-json-file">📂 Download Reference JSON File</a>
+    </li>
+        </ul>
     </li>
     </ul>
                   </li>
@@ -112,17 +124,30 @@
             <div class="section" itemprop="articleBody">
               
                 <h1 id="edge-cases-real-examples">⚠️ Edge Cases &amp; Real Examples<a class="headerlink" href="#edge-cases-real-examples" title="Permanent link">&para;</a></h1>
-<p>This section highlights real-world edge cases and solutions.</p>
-<h2 id="1-missing-frame-timestamps"><strong>1️⃣ Missing Frame Timestamps</strong><a class="headerlink" href="#1-missing-frame-timestamps" title="Permanent link">&para;</a></h2>
-<p><strong>Example JSON:</strong>
-```json
-{
+<p>This section highlights real-world edge cases encountered when synchronizing video and neural data. Each example provides a problem description, a sample JSON snippet, analysis, and a possible solution.</p>
+<h2 id="1-frame-counter-anomalies"><strong>1️⃣ Frame Counter Anomalies</strong><a class="headerlink" href="#1-frame-counter-anomalies" title="Permanent link">&para;</a></h2>
+<h3 id="problem"><strong>🧐 Problem</strong><a class="headerlink" href="#problem" title="Permanent link">&para;</a></h3>
+<p>In some cases, the JSON metadata file may show frame counters that jump unexpectedly. However, the total frame count remains consistent across multiple verification methods, suggesting that frames are not actually lost.</p>
+<h3 id="example-json-incorrect-frame-sequence"><strong>📄 Example JSON (Incorrect Frame Sequence)</strong><a class="headerlink" href="#example-json-incorrect-frame-sequence" title="Permanent link">&para;</a></h3>
+<pre class="highlight"><code class="language-json">{
   "frames": [
-    { "frame_id": 1, "timestamp": 1700000000 },
-    { "frame_id": 2 },
-    { "frame_id": 3, "timestamp": 1700000005 }
+    [19393, 19393, 19392, 19393, 19392],
+    [19400, 19400, 19399, 19400, 19399]
   ]
-}</p>
+}</code></pre>
+<p>In this case, the frame IDs <strong>jump from 19392 to 19399</strong>, which may indicate a counter issue.</p>
+<h3 id="observations"><strong>🔍 Observations</strong><a class="headerlink" href="#observations" title="Permanent link">&para;</a></h3>
+<p>The JSON metadata suggests that frames skip from 19392 → 19399.</p>
+<p>However, when checking the total number of frames in the JSON:</p>
+<pre class="highlight"><code class="language-bash">&gt;&gt;&gt; len(yfb_json["frame_id"])
+18000</code></pre>
+<p>it still returns 18000 frames, meaning that the frames exist but their numbering is inconsistent.</p>
+<p>Similarly, probing the corresponding MP4 video file also returns 18000 frames, further confirming that no frames are missing.</p>
+<h3 id="conclusion"><strong>📝 Conclusion</strong><a class="headerlink" href="#conclusion" title="Permanent link">&para;</a></h3>
+<p>This issue is not a missing frame problem, but rather a frame counter anomaly.</p>
+<h3 id="download-reference-json-file">📂 Download Reference JSON File<a class="headerlink" href="#download-reference-json-file" title="Permanent link">&para;</a></h3>
+<p>You can download the example JSON file here:  </p>
+<p><a href="../../examples/YFB_20240505_133351.json">📥 Download YFB_20240505_133351.json</a></p>
               
             </div>
           </div><footer>
