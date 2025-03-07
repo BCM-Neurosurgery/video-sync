@@ -633,12 +633,12 @@ def fill_missing_serials_df(df, timestamp_col, serial_col, utc_timestamp_col):
 
 def extract_timestamp(filename):
     """
-    Extracts the timestamp from a filename of the format:
+    Extracts the timestamp from a file path. The filename must follow the format:
     'YFIDatafile_YYYYMMDD_HHMMSS.ext' where '.ext' can be '.mp4' or '.json',
     and returns a datetime object.
 
     Parameters:
-    filename (str): The filename containing the timestamp.
+    filename (str): The absolute path to the file.
 
     Returns:
     datetime: A datetime object representing the extracted timestamp.
@@ -647,18 +647,19 @@ def extract_timestamp(filename):
     ValueError: If the filename does not match the expected pattern.
 
     Example:
-    >>> extract_timestamp('YFIDatafile_20241015_094946.23512906.mp4')
+    >>> extract_timestamp('/mnt/datalake/data/emu/YFCDatafile/VIDEO/20240719/YFIDatafile_20241015_094946.23512906.mp4')
     datetime.datetime(2024, 10, 15, 9, 49, 46)
 
-    >>> extract_timestamp('YFIDatafile_20241015_094946.json')
+    >>> extract_timestamp('/home/user/YFIDatafile_20241015_094946.json')
     datetime.datetime(2024, 10, 15, 9, 49, 46)
     """
+    filename = os.path.basename(filename)
     match = re.search(r"_(\d{8})_(\d{6})(?:\.\d+)?\.(mp4|json)$", filename)
     if match:
         date_part, time_part, _ = match.groups()
         return datetime.strptime(date_part + time_part, "%Y%m%d%H%M%S")
     else:
-        raise ValueError("Filename format does not match expected pattern")
+        raise ValueError(f"Filename format does not match expected pattern: {filename}")
 
 
 def extract_cam_serial(filename):
@@ -668,7 +669,7 @@ def extract_cam_serial(filename):
     and returns it as a string.
 
     Parameters:
-    filename (str): The filename containing the camera serial number.
+    filename (str): The absolute path to the file.
 
     Returns:
     str: The extracted camera serial number.
@@ -677,12 +678,13 @@ def extract_cam_serial(filename):
     ValueError: If the filename does not match the expected pattern.
 
     Example:
-    >>> extract_cam_serial('YFIDatafile_20241015_094946.23512906.mp4')
+    >>> extract_cam_serial('/mnt/datalake/data/emu/YFCDatafile/VIDEO/20240719/YFIDatafile_20241015_094946.23512906.mp4')
     '23512906'
 
-    >>> extract_cam_serial('YFIDatafile_20241015_094946.json')
+    >>> extract_cam_serial('/mnt/datalake/data/emu/YFCDatafile/VIDEO/20240719/YFIDatafile_20241015_094946.23512906.mp4')
     None
     """
+    filename = os.path.basename(filename)
     match = re.search(r"_(\d{8})_(\d{6})\.(\d+)\.(mp4|json)$", filename)
     if match:
         return match.group(3)
@@ -771,11 +773,7 @@ def get_json_file(files: list, pathutils) -> str:
     """
     json_files = [file for file in files if file.lower().endswith(".json")]
 
-    return (
-        os.path.join(pathutils.cam_recording_dir, json_files[0])
-        if len(json_files) == 1
-        else None
-    )
+    return json_files[0] if len(json_files) == 1 else None
 
 
 def get_mp4_file(files: list, camera_serial: str, pathutils) -> str:
@@ -796,8 +794,4 @@ def get_mp4_file(files: list, camera_serial: str, pathutils) -> str:
         if file.lower().endswith(".mp4") and camera_serial in file
     ]
 
-    return (
-        os.path.join(pathutils.cam_recording_dir, mp4_files[0])
-        if len(mp4_files) == 1
-        else None
-    )
+    return mp4_files[0] if len(mp4_files) == 1 else None
