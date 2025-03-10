@@ -367,11 +367,7 @@
         for datefolder_path in Path(self.cam_recording_dir).iterdir():
             if datefolder_path.is_dir():
                 for file_path in datefolder_path.iterdir():
-                    self.video_file_pool.add_file(file_path.name)
-                    if file_path.suffix == ".mp4":
-                        self.video_pool.add_file(file_path.name)
-                    elif file_path.suffix == ".json":
-                        self.video_json_pool.add_file(file_path.name)
+                    self.video_file_pool.add_file(str(file_path.resolve()))
 
     def verify_integrity(self) -&gt; bool:
         """Verifies the integrity of the directory by ensuring it contains exactly one of each required file.
@@ -844,11 +840,7 @@
     for datefolder_path in Path(self.cam_recording_dir).iterdir():
         if datefolder_path.is_dir():
             for file_path in datefolder_path.iterdir():
-                self.video_file_pool.add_file(file_path.name)
-                if file_path.suffix == ".mp4":
-                    self.video_pool.add_file(file_path.name)
-                elif file_path.suffix == ".json":
-                    self.video_json_pool.add_file(file_path.name)</code></pre>
+                self.video_file_pool.add_file(str(file_path.resolve()))</code></pre>
             </details>
     </div>
 
