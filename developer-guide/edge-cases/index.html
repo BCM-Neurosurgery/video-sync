@@ -76,17 +76,31 @@
                   </li>
                   <li class="toctree-l1 current"><a class="reference internal current" href="#">Edge Cases</a>
     <ul class="current">
-    <li class="toctree-l2"><a class="reference internal" href="#1-frame-counter-anomalies">1️⃣ Frame Counter Anomalies</a>
+    <li class="toctree-l2"><a class="reference internal" href="#1-frame-counter-anomalies">1. Frame Counter Anomalies</a>
         <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#problem">🧐 Problem</a>
+    <li class="toctree-l3"><a class="reference internal" href="#the-problem">The Problem</a>
     </li>
-    <li class="toctree-l3"><a class="reference internal" href="#example-json-incorrect-frame-sequence">📄 Example JSON (Incorrect Frame Sequence)</a>
+    <li class="toctree-l3"><a class="reference internal" href="#example-json-incorrect-frame-sequence">Example JSON (Incorrect Frame Sequence)</a>
     </li>
-    <li class="toctree-l3"><a class="reference internal" href="#observations">🔍 Observations</a>
+    <li class="toctree-l3"><a class="reference internal" href="#observations">Observations</a>
     </li>
-    <li class="toctree-l3"><a class="reference internal" href="#conclusion">📝 Conclusion</a>
+    <li class="toctree-l3"><a class="reference internal" href="#conclusion">Conclusion</a>
     </li>
-    <li class="toctree-l3"><a class="reference internal" href="#download-reference-json-file">📂 Download Reference JSON File</a>
+    <li class="toctree-l3"><a class="reference internal" href="#download-reference-json-file">Download Reference JSON File</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#2-chunk-serial-discontinuities-in-json">2. Chunk Serial Discontinuities in JSON</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#the-problem_1">The Problem</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#example-json">Example JSON</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#observation">Observation</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#conclusion_1">Conclusion</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#download-example-data">Download Example Data</a>
     </li>
         </ul>
     </li>
@@ -139,12 +153,12 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
             <div class="section" itemprop="articleBody">
               
-                <h1 id="edge-cases-real-examples">⚠️ Edge Cases &amp; Real Examples<a class="headerlink" href="#edge-cases-real-examples" title="Permanent link">&para;</a></h1>
+                <h1 id="edge-cases-real-examples">Edge Cases &amp; Real Examples<a class="headerlink" href="#edge-cases-real-examples" title="Permanent link">&para;</a></h1>
 <p>This section highlights real-world edge cases encountered when synchronizing video and neural data. Each example provides a problem description, a sample JSON snippet, analysis, and a possible solution.</p>
-<h2 id="1-frame-counter-anomalies"><strong>1️⃣ Frame Counter Anomalies</strong><a class="headerlink" href="#1-frame-counter-anomalies" title="Permanent link">&para;</a></h2>
-<h3 id="problem"><strong>🧐 Problem</strong><a class="headerlink" href="#problem" title="Permanent link">&para;</a></h3>
+<h2 id="1-frame-counter-anomalies"><strong>1. Frame Counter Anomalies</strong><a class="headerlink" href="#1-frame-counter-anomalies" title="Permanent link">&para;</a></h2>
+<h3 id="the-problem"><strong>The Problem</strong><a class="headerlink" href="#the-problem" title="Permanent link">&para;</a></h3>
 <p>In some cases, the JSON metadata file may show frame counters that jump unexpectedly. However, the total frame count remains consistent across multiple verification methods, suggesting that frames are not actually lost.</p>
-<h3 id="example-json-incorrect-frame-sequence"><strong>📄 Example JSON (Incorrect Frame Sequence)</strong><a class="headerlink" href="#example-json-incorrect-frame-sequence" title="Permanent link">&para;</a></h3>
+<h3 id="example-json-incorrect-frame-sequence"><strong>Example JSON (Incorrect Frame Sequence)</strong><a class="headerlink" href="#example-json-incorrect-frame-sequence" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
 <span class="w">  </span><span class="nt">&quot;frames&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">    </span><span class="p">[</span><span class="mi">19393</span><span class="p">,</span><span class="w"> </span><span class="mi">19393</span><span class="p">,</span><span class="w"> </span><span class="mi">19392</span><span class="p">,</span><span class="w"> </span><span class="mi">19393</span><span class="p">,</span><span class="w"> </span><span class="mi">19392</span><span class="p">],</span>
@@ -153,7 +167,7 @@
 <span class="p">}</span>
 </code></pre></div>
 <p>In this case, the frame IDs <strong>jump from 19392 to 19399</strong>, which may indicate a counter issue.</p>
-<h3 id="observations"><strong>🔍 Observations</strong><a class="headerlink" href="#observations" title="Permanent link">&para;</a></h3>
+<h3 id="observations"><strong>Observations</strong><a class="headerlink" href="#observations" title="Permanent link">&para;</a></h3>
 <p>The JSON metadata suggests that frames skip from 19392 → 19399.</p>
 <p>However, when checking the total number of frames in the JSON:</p>
 <div class="highlight"><pre><span></span><code>&gt;&gt;&gt;<span class="w"> </span>len<span class="o">(</span>yfb_json<span class="o">[</span><span class="s2">&quot;frame_id&quot;</span><span class="o">])</span>
@@ -161,11 +175,101 @@
 </code></pre></div>
 <p>it still returns 18000 frames, meaning that the frames exist but their numbering is inconsistent.</p>
 <p>Similarly, probing the corresponding MP4 video file also returns 18000 frames, further confirming that no frames are missing.</p>
-<h3 id="conclusion"><strong>📝 Conclusion</strong><a class="headerlink" href="#conclusion" title="Permanent link">&para;</a></h3>
+<h3 id="conclusion"><strong>Conclusion</strong><a class="headerlink" href="#conclusion" title="Permanent link">&para;</a></h3>
 <p>This issue is not a missing frame problem, but rather a frame counter anomaly.</p>
-<h3 id="download-reference-json-file">📂 Download Reference JSON File<a class="headerlink" href="#download-reference-json-file" title="Permanent link">&para;</a></h3>
+<h3 id="download-reference-json-file"><strong>Download Reference JSON File</strong><a class="headerlink" href="#download-reference-json-file" title="Permanent link">&para;</a></h3>
 <p>You can download the example JSON file here:  </p>
-<p><a href="../../examples/YFB_20240505_133351.json">📥 Download YFB_20240505_133351.json</a></p>
+<p><a href="../../examples/YFB_20240505_133351.json">YFB_20240505_133351.json</a></p>
+<h2 id="2-chunk-serial-discontinuities-in-json"><strong>2. Chunk Serial Discontinuities in JSON</strong><a class="headerlink" href="#2-chunk-serial-discontinuities-in-json" title="Permanent link">&para;</a></h2>
+<h3 id="the-problem_1"><strong>The Problem</strong><a class="headerlink" href="#the-problem_1" title="Permanent link">&para;</a></h3>
+<p>When analyzing chunk serial data in the JSON files, discontinuities can occur in different forms. These discontinuities can affect downstream processing, requiring careful identification and handling. The types of discontinuities observed in the dataset are:</p>
+<ul>
+<li>Type I Discontinuity: The number drops to zero and then increases to a value greater than 1.</li>
+<li>Type II Discontinuity: The number resets from zero to 1.</li>
+<li>Type III Discontinuity: The difference between consecutive numbers is greater than 1.</li>
+<li>Type IV Discontinuity: The number hits -1.</li>
+</ul>
+<p>These discontinuities can impact the integrity of data streams, requiring careful detection and mitigation strategies.</p>
+<h3 id="example-json"><strong>Example JSON</strong><a class="headerlink" href="#example-json" title="Permanent link">&para;</a></h3>
+<p>Type I discontinuity</p>
+<div class="highlight"><pre><span></span><code><span class="p">[</span>
+<span class="w">    </span><span class="mi">20323583</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">20323583</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">20323583</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">20323583</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">20323583</span>
+<span class="p">],</span>
+<span class="p">[</span>
+<span class="w">    </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">0</span>
+<span class="p">],</span>
+<span class="p">[</span>
+<span class="w">    </span><span class="mi">20323585</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">20323585</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">20323585</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">20323585</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">20323585</span>
+<span class="p">],</span>
+</code></pre></div>
+<p>Type II discontinuity</p>
+<div class="highlight"><pre><span></span><code><span class="p">[</span>
+<span class="w">    </span><span class="mi">20332543</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">20332543</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">20332543</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">20332543</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">20332543</span>
+<span class="p">],</span>
+<span class="p">[</span>
+<span class="w">    </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">0</span>
+<span class="p">],</span>
+<span class="p">[</span>
+<span class="w">    </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">1</span>
+<span class="p">],</span>
+<span class="err">...</span>
+<span class="p">[</span>
+<span class="w">    </span><span class="mi">127</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">127</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">127</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">127</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">127</span>
+<span class="p">],</span>
+<span class="p">[</span>
+<span class="w">    </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">0</span>
+<span class="p">],</span>
+<span class="p">[</span>
+<span class="w">    </span><span class="mi">20332673</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">20332673</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">20332673</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">20332673</span><span class="p">,</span>
+<span class="w">    </span><span class="mi">20332673</span>
+<span class="p">],</span>
+</code></pre></div>
+<h3 id="observation"><strong>Observation</strong><a class="headerlink" href="#observation" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Type I discontinuities dominate the dataset, with a structured gap pattern of 128 occurring repeatedly.</li>
+<li>Type II discontinuities are rare but show a similar gap pattern to Type I. The chunk serial usually drops to 0, and gradually increases to 127, before dropping to 0 again and resuming from where it left off as if all those data were not missing.</li>
+<li>Type III and Type IV discontinuities are absent, suggesting no extreme jumps or invalid serial numbers.</li>
+</ul>
+<h3 id="conclusion_1"><strong>Conclusion</strong><a class="headerlink" href="#conclusion_1" title="Permanent link">&para;</a></h3>
+<p>The analysis highlights a strong pattern of Type I discontinuities, suggesting a structured reset mechanism rather than random errors. The gaps of 128 could indicate an intentional segmentation in the data stream, possibly due to a recording or transmission mechanism. Extra attention is required when handling chunk serial stream in JSON files.</p>
+<h3 id="download-example-data"><strong>Download Example Data</strong><a class="headerlink" href="#download-example-data" title="Permanent link">&para;</a></h3>
+<p><a href="../../examples/2024-07-19_09%3A10%3A54_chunk_discontinuities.json">2024-07-19_09:10:54_chunk_discontinuities.json</a></p>
+<p><a href="../../examples/YFC_20240719_091054.json">YFC_20240719_091054.json</a></p>
               
             </div>
           </div><footer>
