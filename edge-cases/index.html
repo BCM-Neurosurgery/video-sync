@@ -14,7 +14,7 @@
       <script>
         // Current page data
         var mkdocs_page_name = "Overview";
-        var mkdocs_page_input_path = "api/index.md";
+        var mkdocs_page_input_path = "edge-cases/index.md";
         var mkdocs_page_url = null;
       </script>
     
@@ -78,33 +78,33 @@
                   </li>
               </ul>
               <p class="caption"><span class="caption-text">API Reference</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../api/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../api/datapool/">DataPool</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../api/nev/">Nev</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../api/nsx/">Nsx</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../api/video/">Video</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../api/videojson/">Videojson</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../api/pathutils/">Pathutils</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../api/utils/">Utils</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Edge Cases</span></p>
               <ul class="current">
                   <li class="toctree-l1 current"><a class="reference internal current" href="#">Overview</a>
     <ul class="current">
     </ul>
                   </li>
-                  <li class="toctree-l1"><a class="reference internal" href="datapool/">DataPool</a>
+                  <li class="toctree-l1"><a class="reference internal" href="frame_counter_anomalies/">Frame Counter Anomalies</a>
                   </li>
-                  <li class="toctree-l1"><a class="reference internal" href="nev/">Nev</a>
-                  </li>
-                  <li class="toctree-l1"><a class="reference internal" href="nsx/">Nsx</a>
-                  </li>
-                  <li class="toctree-l1"><a class="reference internal" href="video/">Video</a>
-                  </li>
-                  <li class="toctree-l1"><a class="reference internal" href="videojson/">Videojson</a>
-                  </li>
-                  <li class="toctree-l1"><a class="reference internal" href="pathutils/">Pathutils</a>
-                  </li>
-                  <li class="toctree-l1"><a class="reference internal" href="utils/">Utils</a>
-                  </li>
-              </ul>
-              <p class="caption"><span class="caption-text">Edge Cases</span></p>
-              <ul>
-                  <li class="toctree-l1"><a class="reference internal" href="../edge-cases/">Overview</a>
-                  </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../edge-cases/frame_counter_anomalies/">Frame Counter Anomalies</a>
-                  </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../edge-cases/chunk_serial_json_discontinuity/">Chunk Serial Discontinuities in JSON</a>
+                  <li class="toctree-l1"><a class="reference internal" href="chunk_serial_json_discontinuity/">Chunk Serial Discontinuities in JSON</a>
                   </li>
               </ul>
       </div>
@@ -121,10 +121,10 @@
         <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
   <ul class="wy-breadcrumbs">
     <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
-          <li class="breadcrumb-item">API Reference</li>
+          <li class="breadcrumb-item">Edge Cases</li>
       <li class="breadcrumb-item active">Overview</li>
     <li class="wy-breadcrumbs-aside">
-          <a href="https://github.com/BCM-Neurosurgery/video-sync/edit/master/docs/api/index.md">Edit on BCM-Neurosurgery/video-sync</a>
+          <a href="https://github.com/BCM-Neurosurgery/video-sync/edit/master/docs/edge-cases/index.md">Edit on BCM-Neurosurgery/video-sync</a>
     </li>
   </ul>
   <hr/>
@@ -132,24 +132,18 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
             <div class="section" itemprop="articleBody">
               
-                <h1 id="api-reference">🛠 API Reference<a class="headerlink" href="#api-reference" title="Permanent link">&para;</a></h1>
-<p>This section provides documentation for all scripts used in <code>video-sync</code>.</p>
+                <h1 id="edge-cases-real-examples">Edge Cases &amp; Real Examples<a class="headerlink" href="#edge-cases-real-examples" title="Permanent link">&para;</a></h1>
+<p>This section highlights real-world edge cases encountered when synchronizing video and neural data. Each example provides a problem description, a sample JSON snippet, analysis, and a possible solution.</p>
 <ul>
-<li><a href="datapool/">DataPoool Module</a></li>
-<li><a href="nev/">Nev Module</a></li>
-<li><a href="nsx/">Nsx Module</a></li>
-<li><a href="nsx/">Nsx Module</a></li>
-<li><a href="video/">Video Module</a></li>
-<li><a href="videojson/">Videojson Module</a></li>
-<li><a href="pathutils/">Pathutils Module</a></li>
-<li><a href="utils/">Utils Module</a></li>
+<li><strong><a href="frame_counter_anomalies/">Frame Counter Anomalies</a></strong></li>
+<li><strong><a href="chunk_serial_json_discontinuity/">Chunk Serial Discontinuities in JSON</a></strong></li>
 </ul>
               
             </div>
           </div><footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
-        <a href="../developer-guide/contributing/" class="btn btn-neutral float-left" title="Contributing"><span class="icon icon-circle-arrow-left"></span> Previous</a>
-        <a href="datapool/" class="btn btn-neutral float-right" title="DataPool">Next <span class="icon icon-circle-arrow-right"></span></a>
+        <a href="../api/utils/" class="btn btn-neutral float-left" title="Utils"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="frame_counter_anomalies/" class="btn btn-neutral float-right" title="Frame Counter Anomalies">Next <span class="icon icon-circle-arrow-right"></span></a>
     </div>
 
   <hr/>
@@ -176,10 +170,10 @@
         </span>
     
     
-      <span><a href="../developer-guide/contributing/" style="color: #fcfcfc">&laquo; Previous</a></span>
+      <span><a href="../api/utils/" style="color: #fcfcfc">&laquo; Previous</a></span>
     
     
-      <span><a href="datapool/" style="color: #fcfcfc">Next &raquo;</a></span>
+      <span><a href="frame_counter_anomalies/" style="color: #fcfcfc">Next &raquo;</a></span>
     
   </span>
 </div>
