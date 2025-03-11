@@ -154,92 +154,91 @@
 <p>These discontinuities can impact the integrity of data streams, requiring careful detection and mitigation strategies.</p>
 <h3 id="example-json"><strong>Example JSON</strong><a class="headerlink" href="#example-json" title="Permanent link">&para;</a></h3>
 <p>Type I discontinuity</p>
-<div class="highlight"><pre><span></span><code><span class="p">[</span>
-<span class="w">    </span><span class="mi">20323583</span><span class="p">,</span>
-<span class="w">    </span><span class="mi">20323583</span><span class="p">,</span>
-<span class="w">    </span><span class="mi">20323583</span><span class="p">,</span>
-<span class="w">    </span><span class="mi">20323583</span><span class="p">,</span>
-<span class="w">    </span><span class="mi">20323583</span>
-<span class="p">],</span>
-<span class="p">[</span>
-<span class="w">    </span><span class="mi">0</span><span class="p">,</span>
-<span class="w">    </span><span class="mi">0</span><span class="p">,</span>
-<span class="w">    </span><span class="mi">0</span><span class="p">,</span>
-<span class="w">    </span><span class="mi">0</span><span class="p">,</span>
-<span class="w">    </span><span class="mi">0</span>
-<span class="p">],</span>
-<span class="p">[</span>
-<span class="w">    </span><span class="mi">20323585</span><span class="p">,</span>
-<span class="w">    </span><span class="mi">20323585</span><span class="p">,</span>
-<span class="w">    </span><span class="mi">20323585</span><span class="p">,</span>
-<span class="w">    </span><span class="mi">20323585</span><span class="p">,</span>
-<span class="w">    </span><span class="mi">20323585</span>
-<span class="p">],</span>
+<div class="highlight"><pre><span></span><code><span class="nt">&quot;chunk_serial_data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="mi">20323583</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">20323583</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">20323583</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">20323583</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">20323583</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="p">[</span>
+<span class="w">        </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">0</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="p">[</span>
+<span class="w">        </span><span class="mi">20323585</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">20323585</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">20323585</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">20323585</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">20323585</span>
+<span class="w">    </span><span class="p">],</span>
 </code></pre></div>
 <p>Type II discontinuity</p>
-<div class="highlight"><pre><span></span><code><span class="p">[</span>
-<span class="w">    </span><span class="mi">20332543</span><span class="p">,</span>
-<span class="w">    </span><span class="mi">20332543</span><span class="p">,</span>
-<span class="w">    </span><span class="mi">20332543</span><span class="p">,</span>
-<span class="w">    </span><span class="mi">20332543</span><span class="p">,</span>
-<span class="w">    </span><span class="mi">20332543</span>
-<span class="p">],</span>
-<span class="p">[</span>
-<span class="w">    </span><span class="mi">0</span><span class="p">,</span>
-<span class="w">    </span><span class="mi">0</span><span class="p">,</span>
-<span class="w">    </span><span class="mi">0</span><span class="p">,</span>
-<span class="w">    </span><span class="mi">0</span><span class="p">,</span>
-<span class="w">    </span><span class="mi">0</span>
-<span class="p">],</span>
-<span class="p">[</span>
-<span class="w">    </span><span class="mi">1</span><span class="p">,</span>
-<span class="w">    </span><span class="mi">1</span><span class="p">,</span>
-<span class="w">    </span><span class="mi">1</span><span class="p">,</span>
-<span class="w">    </span><span class="mi">1</span><span class="p">,</span>
-<span class="w">    </span><span class="mi">1</span>
-<span class="p">],</span>
-<span class="err">...</span>
-<span class="p">[</span>
-<span class="w">    </span><span class="mi">127</span><span class="p">,</span>
-<span class="w">    </span><span class="mi">127</span><span class="p">,</span>
-<span class="w">    </span><span class="mi">127</span><span class="p">,</span>
-<span class="w">    </span><span class="mi">127</span><span class="p">,</span>
-<span class="w">    </span><span class="mi">127</span>
-<span class="p">],</span>
-<span class="p">[</span>
-<span class="w">    </span><span class="mi">0</span><span class="p">,</span>
-<span class="w">    </span><span class="mi">0</span><span class="p">,</span>
-<span class="w">    </span><span class="mi">0</span><span class="p">,</span>
-<span class="w">    </span><span class="mi">0</span><span class="p">,</span>
-<span class="w">    </span><span class="mi">0</span>
-<span class="p">],</span>
-<span class="p">[</span>
-<span class="w">    </span><span class="mi">20332673</span><span class="p">,</span>
-<span class="w">    </span><span class="mi">20332673</span><span class="p">,</span>
-<span class="w">    </span><span class="mi">20332673</span><span class="p">,</span>
-<span class="w">    </span><span class="mi">20332673</span><span class="p">,</span>
-<span class="w">    </span><span class="mi">20332673</span>
-<span class="p">],</span>
+<div class="highlight"><pre><span></span><code><span class="nt">&quot;chunk_serial_data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="mi">20332543</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">20332543</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">20332543</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">20332543</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">20332543</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="p">[</span>
+<span class="w">        </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">0</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="p">[</span>
+<span class="w">        </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">1</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="err">...</span>
+<span class="w">    </span><span class="p">[</span>
+<span class="w">        </span><span class="mi">127</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">127</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">127</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">127</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">127</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="p">[</span>
+<span class="w">        </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">0</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="p">[</span>
+<span class="w">        </span><span class="mi">20332673</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">20332673</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">20332673</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">20332673</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">20332673</span>
+<span class="w">    </span><span class="p">],</span>
 </code></pre></div>
 <p>Type IV discontinuities</p>
 <div class="highlight"><pre><span></span><code><span class="nt">&quot;chunk_serial_data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<span class="w">        </span><span class="p">[</span>
-<span class="w">            </span><span class="mi">20323571</span><span class="p">,</span>
-<span class="w">            </span><span class="mi">20323571</span><span class="p">,</span>
-<span class="w">            </span><span class="mi">-1</span><span class="p">,</span>
-<span class="w">            </span><span class="mi">-1</span><span class="p">,</span>
-<span class="w">            </span><span class="mi">-1</span>
-<span class="w">        </span><span class="p">],</span>
-<span class="w">        </span><span class="p">[</span>
-<span class="w">            </span><span class="mi">20323572</span><span class="p">,</span>
-<span class="w">            </span><span class="mi">20323572</span><span class="p">,</span>
-<span class="w">            </span><span class="mi">20323572</span><span class="p">,</span>
-<span class="w">            </span><span class="mi">20323572</span><span class="p">,</span>
-<span class="w">            </span><span class="mi">20323572</span>
-<span class="w">        </span><span class="p">],</span>
+<span class="w">        </span><span class="mi">20323571</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">20323571</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">-1</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">-1</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">-1</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="p">[</span>
+<span class="w">        </span><span class="mi">20323572</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">20323572</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">20323572</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">20323572</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">20323572</span>
+<span class="w">    </span><span class="p">],</span>
 </code></pre></div>
 <h3 id="observation"><strong>Observation</strong><a class="headerlink" href="#observation" title="Permanent link">&para;</a></h3>
-<p>Running the <a href="../../notebooks/json_discontinuities.ipynb">script</a> to detect discontinuities on <a href="../../examples/YFC_20240719_091054.json">YFC_20240719_091054.json</a>, we get <a href="../../examples/2024-07-19_09%3A10%3A54_chunk_discontinuities.json">2024-07-19_09:10:54_chunk_discontinuities.json</a></p>
+<p>Running the <a href="../notebooks/json_discontinuities.ipynb">script</a> to detect discontinuities on <a href="../files/YFC_20240719_091054.json">YFC_20240719_091054.json</a>, we get <a href="../files/2024-07-19_09%3A10%3A54_chunk_discontinuities.json">2024-07-19_09:10:54_chunk_discontinuities.json</a></p>
 <p>By observation along with other json files:
 - Type I discontinuities occur the most frequent with almost all JSON, with a structured gap pattern of 128 occurring repeatedly.
 - Type II discontinuities occur usually once in each JSON. The chunk serial usually drops to 0, and gradually increases to 127, before dropping to 0 again and resuming from where it left off as if all those data were not missing.
@@ -248,9 +247,11 @@
 <h3 id="conclusion"><strong>Conclusion</strong><a class="headerlink" href="#conclusion" title="Permanent link">&para;</a></h3>
 <p>The analysis highlights a strong pattern of Type I discontinuities, suggesting a structured reset mechanism rather than random errors. The gaps of 128 could indicate an intentional segmentation in the data stream, possibly due to a recording or transmission mechanism. Extra attention is required when handling chunk serial stream in JSON files.</p>
 <h3 id="download-example-data"><strong>Download Example Data</strong><a class="headerlink" href="#download-example-data" title="Permanent link">&para;</a></h3>
-<p><a href="../../examples/2024-07-19_09%3A10%3A54_chunk_discontinuities.json">2024-07-19_09:10:54_chunk_discontinuities.json</a></p>
-<p><a href="../../examples/YFC_20240719_091054.json">YFC_20240719_091054.json</a></p>
-<p><a href="../../notebooks/json_discontinuities.ipynb">Jupyter Notebook to Reproduce Results</a></p>
+<ul>
+<li><a href="../files/2024-07-19_09%3A10%3A54_chunk_discontinuities.json">2024-07-19_09:10:54_chunk_discontinuities.json</a></li>
+<li><a href="../files/YFC_20240719_091054.json">YFC_20240719_091054.json</a></li>
+<li><a href="../notebooks/json_discontinuities.ipynb">Jupyter Notebook to Reproduce Results</a></li>
+</ul>
               
             </div>
           </div><footer>
