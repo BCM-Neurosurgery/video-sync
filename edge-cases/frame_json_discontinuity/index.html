@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../../img/favicon.ico" />
+    <title>Frame ID Discontinuities in JSON - Video Sync</title>
+    <link rel="stylesheet" href="../../css/theme.css" />
+    <link rel="stylesheet" href="../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="../../assets/_mkdocstrings.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Frame ID Discontinuities in JSON";
+        var mkdocs_page_input_path = "edge-cases/frame_json_discontinuity.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../.." class="icon icon-home"> Video Sync
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../configuration/">Configuration</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../usage/">Usage</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../features/">Features</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../emu-cameras/">EMU Camera Serials</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../license/">License</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Developer Guide</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../developer-guide/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../developer-guide/program-flow/">Program Flow</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../developer-guide/contributing/">Contributing</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">API Reference</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../api/">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../api/datapool/">DataPool</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../api/nev/">Nev</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../api/nsx/">Nsx</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../api/video/">Video</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../api/videojson/">Videojson</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../api/pathutils/">Pathutils</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../api/utils/">Utils</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Edge Cases</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../">Overview</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../frame_counter_anomalies/">Frame Counter Anomalies</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../chunk_serial_json_discontinuity/">Chunk Serial Discontinuities in JSON</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Frame ID Discontinuities in JSON</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#the-problem">The Problem</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#examples">Examples</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#observation">Observation</a>
+    </li>
+    </ul>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../..">Video Sync</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../.." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Edge Cases</li>
+      <li class="breadcrumb-item active">Frame ID Discontinuities in JSON</li>
+    <li class="wy-breadcrumbs-aside">
+          <a href="https://github.com/BCM-Neurosurgery/video-sync/edit/master/docs/edge-cases/frame_json_discontinuity.md">Edit on BCM-Neurosurgery/video-sync</a>
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="3-frame-id-discontinuities-in-json"><strong>3. Frame ID Discontinuities in JSON</strong><a class="headerlink" href="#3-frame-id-discontinuities-in-json" title="Permanent link">&para;</a></h1>
+<h3 id="the-problem"><strong>The Problem</strong><a class="headerlink" href="#the-problem" title="Permanent link">&para;</a></h3>
+<p>The 4 types of discontinuities can also occur in JSON frame ID</p>
+<h3 id="examples"><strong>Examples</strong><a class="headerlink" href="#examples" title="Permanent link">&para;</a></h3>
+<p>Type III discontinuities (<a href="../files/YFB_20240504_052717.json">YFB_20240504_052717.json</a>)</p>
+<div class="highlight"><pre><span></span><code><span class="nt">&quot;frame_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="mi">12656</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">12656</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">12657</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">12657</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">12657</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="p">[</span>
+<span class="w">        </span><span class="mi">12658</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">12658</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">12658</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">12658</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">12658</span>
+<span class="w">    </span><span class="p">],</span>
+</code></pre></div>
+<h3 id="observation"><strong>Observation</strong><a class="headerlink" href="#observation" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Type I discontinuities - no incidents detected so far</li>
+<li>Type II discontinuities - no incidents detected so far</li>
+<li>Type III discontinuities - typically occur infrequently among JSON frame id</li>
+<li>Type IV discontinuities - no incidents detected so far</li>
+</ul>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../chunk_serial_json_discontinuity/" class="btn btn-neutral float-left" title="Chunk Serial Discontinuities in JSON"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/BCM-Neurosurgery/video-sync" class="fa fa-code-fork" style="color: #fcfcfc"> BCM-Neurosurgery/video-sync</a>
+        </span>
+    
+    
+      <span><a href="../chunk_serial_json_discontinuity/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+  </span>
+</div>
+    <script src="../../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "../..";</script>
+    <script src="../../js/theme_extra.js"></script>
+    <script src="../../js/theme.js"></script>
+      <script src="../../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

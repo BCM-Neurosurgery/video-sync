@@ -106,7 +106,7 @@
     <ul class="current">
     <li class="toctree-l2"><a class="reference internal" href="#the-problem">The Problem</a>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#example-json">Example JSON</a>
+    <li class="toctree-l2"><a class="reference internal" href="#examples">Examples</a>
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#observation">Observation</a>
     </li>
@@ -115,6 +115,8 @@
     <li class="toctree-l2"><a class="reference internal" href="#download-example-data">Download Example Data</a>
     </li>
     </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../frame_json_discontinuity/">Frame ID Discontinuities in JSON</a>
                   </li>
               </ul>
       </div>
@@ -152,8 +154,8 @@
 <li>Type IV Discontinuity: The number hits -1.</li>
 </ul>
 <p>These discontinuities can impact the integrity of data streams, requiring careful detection and mitigation strategies.</p>
-<h3 id="example-json"><strong>Example JSON</strong><a class="headerlink" href="#example-json" title="Permanent link">&para;</a></h3>
-<p>Type I discontinuity</p>
+<h3 id="examples"><strong>Examples</strong><a class="headerlink" href="#examples" title="Permanent link">&para;</a></h3>
+<p>Type I discontinuity (<a href="../files/YFC_20240719_091054.json">YFC_20240719_091054.json</a>)</p>
 <div class="highlight"><pre><span></span><code><span class="nt">&quot;chunk_serial_data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">        </span><span class="mi">20323583</span><span class="p">,</span>
 <span class="w">        </span><span class="mi">20323583</span><span class="p">,</span>
@@ -176,7 +178,7 @@
 <span class="w">        </span><span class="mi">20323585</span>
 <span class="w">    </span><span class="p">],</span>
 </code></pre></div>
-<p>Type II discontinuity</p>
+<p>Type II discontinuity (<a href="../files/YFC_20240719_091054.json">YFC_20240719_091054.json</a>)</p>
 <div class="highlight"><pre><span></span><code><span class="nt">&quot;chunk_serial_data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">        </span><span class="mi">20332543</span><span class="p">,</span>
 <span class="w">        </span><span class="mi">20332543</span><span class="p">,</span>
@@ -221,7 +223,23 @@
 <span class="w">        </span><span class="mi">20332673</span>
 <span class="w">    </span><span class="p">],</span>
 </code></pre></div>
-<p>Type IV discontinuities</p>
+<p>Type III discontinuities (<a href="../files/YFB_20240504_052717.json">YFB_20240504_052717.json</a>)</p>
+<div class="highlight"><pre><span></span><code><span class="nt">&quot;chunk_serial_data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="mi">30133802</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">30133802</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">30133803</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">30133803</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">30133803</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="p">[</span>
+<span class="w">        </span><span class="mi">30133804</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">30133804</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">30133804</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">30133804</span><span class="p">,</span>
+<span class="w">        </span><span class="mi">30133804</span>
+<span class="w">    </span><span class="p">],</span>
+</code></pre></div>
+<p>Type IV discontinuities (<a href="../files/YFC_20240719_091054.json">YFC_20240719_091054.json</a>)</p>
 <div class="highlight"><pre><span></span><code><span class="nt">&quot;chunk_serial_data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">        </span><span class="mi">20323571</span><span class="p">,</span>
 <span class="w">        </span><span class="mi">20323571</span><span class="p">,</span>
@@ -239,11 +257,13 @@
 </code></pre></div>
 <h3 id="observation"><strong>Observation</strong><a class="headerlink" href="#observation" title="Permanent link">&para;</a></h3>
 <p>Running the <a href="../notebooks/json_discontinuities.ipynb">script</a> to detect discontinuities on <a href="../files/YFC_20240719_091054.json">YFC_20240719_091054.json</a>, we get <a href="../files/2024-07-19_09%3A10%3A54_chunk_discontinuities.json">2024-07-19_09:10:54_chunk_discontinuities.json</a></p>
-<p>By observation along with other json files:
-- Type I discontinuities occur the most frequent with almost all JSON, with a structured gap pattern of 128 occurring repeatedly.
-- Type II discontinuities occur usually once in each JSON. The chunk serial usually drops to 0, and gradually increases to 127, before dropping to 0 again and resuming from where it left off as if all those data were not missing.
-- Type III discontinuities are rare.
-- Type IV discontinuities often appear in the very beginning of file, suggesting its relation with booting up.</p>
+<p>By observation along with other json files:</p>
+<ul>
+<li>Type I discontinuities occur the most frequent with almost all JSON, with a structured gap pattern of 128 occurring repeatedly.</li>
+<li>Type II discontinuities occur usually once in each JSON. The chunk serial usually drops to 0, and gradually increases to 127, before dropping to 0 again and resuming from where it left off as if all those data were not missing.</li>
+<li>Type III discontinuities are rare but they do occur</li>
+<li>Type IV discontinuities often appear in the very beginning of file, suggesting its relation with booting up.</li>
+</ul>
 <h3 id="conclusion"><strong>Conclusion</strong><a class="headerlink" href="#conclusion" title="Permanent link">&para;</a></h3>
 <p>The analysis highlights a strong pattern of Type I discontinuities, suggesting a structured reset mechanism rather than random errors. The gaps of 128 could indicate an intentional segmentation in the data stream, possibly due to a recording or transmission mechanism. Extra attention is required when handling chunk serial stream in JSON files.</p>
 <h3 id="download-example-data"><strong>Download Example Data</strong><a class="headerlink" href="#download-example-data" title="Permanent link">&para;</a></h3>
@@ -257,6 +277,7 @@
           </div><footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
         <a href="../frame_counter_anomalies/" class="btn btn-neutral float-left" title="Frame Counter Anomalies"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../frame_json_discontinuity/" class="btn btn-neutral float-right" title="Frame ID Discontinuities in JSON">Next <span class="icon icon-circle-arrow-right"></span></a>
     </div>
 
   <hr/>
@@ -285,6 +306,8 @@
     
       <span><a href="../frame_counter_anomalies/" style="color: #fcfcfc">&laquo; Previous</a></span>
     
+    
+      <span><a href="../frame_json_discontinuity/" style="color: #fcfcfc">Next &raquo;</a></span>
     
   </span>
 </div>
