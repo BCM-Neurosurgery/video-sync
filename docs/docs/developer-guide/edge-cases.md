@@ -150,3 +150,5 @@ The analysis highlights a strong pattern of Type I discontinuities, suggesting a
 [2024-07-19_09:10:54_chunk_discontinuities.json](../examples/2024-07-19_09:10:54_chunk_discontinuities.json)
 
 [YFC_20240719_091054.json](../examples/YFC_20240719_091054.json)
+
+[Jupyter Notebook to Reproduce Results](../examples/json_discontinuities.ipynb)
