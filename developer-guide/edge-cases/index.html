@@ -65,10 +65,6 @@
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../../faq/">FAQ</a>
-                </li>
-              </ul>
-              <ul>
                 <li class="toctree-l1"><a class="reference internal" href="../../license/">License</a>
                 </li>
               </ul>
@@ -149,18 +145,20 @@
 <h3 id="problem"><strong>🧐 Problem</strong><a class="headerlink" href="#problem" title="Permanent link">&para;</a></h3>
 <p>In some cases, the JSON metadata file may show frame counters that jump unexpectedly. However, the total frame count remains consistent across multiple verification methods, suggesting that frames are not actually lost.</p>
 <h3 id="example-json-incorrect-frame-sequence"><strong>📄 Example JSON (Incorrect Frame Sequence)</strong><a class="headerlink" href="#example-json-incorrect-frame-sequence" title="Permanent link">&para;</a></h3>
-<pre class="highlight"><code class="language-json">{
-  "frames": [
-    [19393, 19393, 19392, 19393, 19392],
-    [19400, 19400, 19399, 19400, 19399]
-  ]
-}</code></pre>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;frames&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">[</span><span class="mi">19393</span><span class="p">,</span><span class="w"> </span><span class="mi">19393</span><span class="p">,</span><span class="w"> </span><span class="mi">19392</span><span class="p">,</span><span class="w"> </span><span class="mi">19393</span><span class="p">,</span><span class="w"> </span><span class="mi">19392</span><span class="p">],</span>
+<span class="w">    </span><span class="p">[</span><span class="mi">19400</span><span class="p">,</span><span class="w"> </span><span class="mi">19400</span><span class="p">,</span><span class="w"> </span><span class="mi">19399</span><span class="p">,</span><span class="w"> </span><span class="mi">19400</span><span class="p">,</span><span class="w"> </span><span class="mi">19399</span><span class="p">]</span>
+<span class="w">  </span><span class="p">]</span>
+<span class="p">}</span>
+</code></pre></div>
 <p>In this case, the frame IDs <strong>jump from 19392 to 19399</strong>, which may indicate a counter issue.</p>
 <h3 id="observations"><strong>🔍 Observations</strong><a class="headerlink" href="#observations" title="Permanent link">&para;</a></h3>
 <p>The JSON metadata suggests that frames skip from 19392 → 19399.</p>
 <p>However, when checking the total number of frames in the JSON:</p>
-<pre class="highlight"><code class="language-bash">&gt;&gt;&gt; len(yfb_json["frame_id"])
-18000</code></pre>
+<div class="highlight"><pre><span></span><code>&gt;&gt;&gt;<span class="w"> </span>len<span class="o">(</span>yfb_json<span class="o">[</span><span class="s2">&quot;frame_id&quot;</span><span class="o">])</span>
+<span class="m">18000</span>
+</code></pre></div>
 <p>it still returns 18000 frames, meaning that the frames exist but their numbering is inconsistent.</p>
 <p>Similarly, probing the corresponding MP4 video file also returns 18000 frames, further confirming that no frames are missing.</p>
 <h3 id="conclusion"><strong>📝 Conclusion</strong><a class="headerlink" href="#conclusion" title="Permanent link">&para;</a></h3>

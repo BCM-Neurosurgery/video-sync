@@ -65,10 +65,6 @@
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../../faq/">FAQ</a>
-                </li>
-              </ul>
-              <ul>
                 <li class="toctree-l1"><a class="reference internal" href="../../license/">License</a>
                 </li>
               </ul>
@@ -78,6 +74,22 @@
                   </li>
                   <li class="toctree-l1 current"><a class="reference internal current" href="#">Program Flow</a>
     <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#1-configuration">1. Configuration</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#2-data-integrity-check">2. Data Integrity Check</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#3-extracting-neural-data-nev">3. Extracting Neural Data (NEV)</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#4-identifying-relevant-video-and-metadata-files-for-synchronization">4. Identifying Relevant Video and Metadata Files for Synchronization</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#5-processing-videos-for-synchronization">5. Processing Videos for Synchronization</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#before-processing-videos-extracting-and-merging-data">Before Processing Videos: Extracting and Merging Data</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#after-processing-videos-synchronizing-and-exporting">After Processing Videos: Synchronizing and Exporting</a>
+    </li>
+        </ul>
+    </li>
     </ul>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../edge-cases/">Edge Cases</a>
@@ -131,6 +143,214 @@
               
                 <h1 id="program-flow">🔄 Program Flow<a class="headerlink" href="#program-flow" title="Permanent link">&para;</a></h1>
 <p>This section explains the <strong>data processing flow</strong> of <code>video-sync</code>.</p>
+<h3 id="1-configuration">1. Configuration<a class="headerlink" href="#1-configuration" title="Permanent link">&para;</a></h3>
+<p>In main.py, we load and validate the configuration using the <code>PathUtils</code> class.</p>
+<div class="highlight"><pre><span></span><code><span class="n">timestamp</span> <span class="o">=</span> <span class="n">get_current_ts</span><span class="p">()</span>
+
+<span class="n">pathutils</span> <span class="o">=</span> <span class="n">PathUtils</span><span class="p">(</span><span class="n">config_path</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">)</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">configure_logging</span><span class="p">(</span><span class="n">pathutils</span><span class="o">.</span><span class="n">output_dir</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="ow">not</span> <span class="n">pathutils</span><span class="o">.</span><span class="n">is_config_valid</span><span class="p">():</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Config not valid, exiting to inital screen...&quot;</span><span class="p">)</span>
+    <span class="k">return</span>
+</code></pre></div>
+<p>This ensures the configuration is valid before proceeding with synchronization.</p>
+<h3 id="2-data-integrity-check">2. Data Integrity Check<a class="headerlink" href="#2-data-integrity-check" title="Permanent link">&para;</a></h3>
+<p>The DataPool class ensures all required neural and camera files are present.</p>
+<p>If files are missing, the process stops.</p>
+<div class="highlight"><pre><span></span><code><span class="n">datapool</span> <span class="o">=</span> <span class="n">DataPool</span><span class="p">(</span><span class="n">pathutils</span><span class="o">.</span><span class="n">nsp_dir</span><span class="p">,</span> <span class="n">pathutils</span><span class="o">.</span><span class="n">cam_recording_dir</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="ow">not</span> <span class="n">datapool</span><span class="o">.</span><span class="n">verify_integrity</span><span class="p">():</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+        <span class="s2">&quot;File integrity check failed: Missing or duplicate NSP files detected. &quot;</span>
+        <span class="s2">&quot;Please verify the directory structure and try again. Returning to the initial screen.&quot;</span>
+    <span class="p">)</span>
+    <span class="k">return</span>
+</code></pre></div>
+<h3 id="3-extracting-neural-data-nev">3. Extracting Neural Data (NEV)<a class="headerlink" href="#3-extracting-neural-data-nev" title="Permanent link">&para;</a></h3>
+<p>This step extracts and reconstructs chunk serial data in the format of a dataframe from the stitched NSP-1 <code>.nev</code> file, which contains event-based neural data. The chunk serial values are reconstructed by combining <strong>five split chunks</strong> of serial communication sent from an Arduino.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># 1. Get NEV serial start and end</span>
+<span class="n">nsp1_nev_path</span> <span class="o">=</span> <span class="n">datapool</span><span class="o">.</span><span class="n">get_nsp1_nev_path</span><span class="p">()</span>
+<span class="n">nev</span> <span class="o">=</span> <span class="n">Nev</span><span class="p">(</span><span class="n">nsp1_nev_path</span><span class="p">)</span>
+<span class="n">nev_chunk_serial_df</span> <span class="o">=</span> <span class="n">nev</span><span class="o">.</span><span class="n">get_chunk_serial_df</span><span class="p">()</span>
+<span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;NEV dataframe</span><span class="se">\n</span><span class="s2">: </span><span class="si">{</span><span class="n">nev_chunk_serial_df</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="n">nev_start_serial</span><span class="p">,</span> <span class="n">nev_end_serial</span> <span class="o">=</span> <span class="n">get_column_min_max</span><span class="p">(</span>
+    <span class="n">nev_chunk_serial_df</span><span class="p">,</span> <span class="s2">&quot;chunk_serial&quot;</span>
+<span class="p">)</span>
+<span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Start serial: </span><span class="si">{</span><span class="n">nev_start_serial</span><span class="si">}</span><span class="s2">, End serial: </span><span class="si">{</span><span class="n">nev_end_serial</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
+<p>The script first retrieves the NSP-1 <code>.nev</code> file path and initializes an instance of the Nev class to parse its contents. It then calls <code>get_chunk_serial_df()</code>, which reconstructs the chunk serials by combining the five split parts. This reconstructed DataFrame provides a sequential timeline of neural events, essential for aligning with video data.</p>
+<p>To establish the valid time range for synchronization, the script determines <strong>the earliest and latest chunk serial values</strong> from the NEV data using <code>get_column_min_max()</code>. These values define the window in which video frames should be extracted later to ensure proper alignment.</p>
+<h3 id="4-identifying-relevant-video-and-metadata-files-for-synchronization">4. Identifying Relevant Video and Metadata Files for Synchronization<a class="headerlink" href="#4-identifying-relevant-video-and-metadata-files-for-synchronization" title="Permanent link">&para;</a></h3>
+<p>To ensure proper alignment between neural and video data, the script identifies which camera recordings overlap with the neural event (NEV) time range. Each video recording has an associated JSON metadata file containing start and end chunk serials, which are extracted and compared against the NEV serial range.</p>
+<p>To optimize performance, the script first checks if previously computed timestamps exist in <code>timestamps.json</code>. If found, these timestamps are used directly to skip redundant processing. Otherwise, the script iterates through all available JSON metadata files, extracting their chunk serials and determining whether they overlap with the neural recording. If a video’s serial range falls within the NEV range, its timestamp is added to the processing list.</p>
+<p>Once all relevant timestamps are identified, they are saved to <code>timestamps.json</code> for future runs and <strong>sorted</strong> to maintain chronological order. This approach ensures that only the necessary video files are processed, reducing computational overhead while maintaining precise synchronization.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># 3. load camera serials from the config file</span>
+<span class="n">camera_serials</span> <span class="o">=</span> <span class="n">pathutils</span><span class="o">.</span><span class="n">cam_serial</span>
+<span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Camera serials loaded from config: </span><span class="si">{</span><span class="n">camera_serials</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="c1"># 4. Go through all JSON files and find the ones that</span>
+<span class="c1"># are within the NEV serial range</span>
+<span class="c1"># read timestamps if available</span>
+<span class="n">timestamps_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">pathutils</span><span class="o">.</span><span class="n">output_dir</span><span class="p">,</span> <span class="s2">&quot;timestamps.json&quot;</span><span class="p">)</span>
+<span class="n">timestamps</span> <span class="o">=</span> <span class="n">load_timestamps</span><span class="p">(</span><span class="n">timestamps_path</span><span class="p">,</span> <span class="n">logger</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">timestamps</span><span class="p">:</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loaded timestamps: </span><span class="si">{</span><span class="n">timestamps</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;No timestamps found&quot;</span><span class="p">)</span>
+    <span class="n">timestamps</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">camera_file_group</span> <span class="ow">in</span> <span class="n">camera_files</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+
+        <span class="n">json_path</span> <span class="o">=</span> <span class="n">get_json_file</span><span class="p">(</span><span class="n">camera_file_group</span><span class="p">,</span> <span class="n">pathutils</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">json_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No JSON file found in group </span><span class="si">{</span><span class="n">timestamp</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">continue</span>
+        <span class="n">videojson</span> <span class="o">=</span> <span class="n">Videojson</span><span class="p">(</span><span class="n">json_path</span><span class="p">)</span>
+        <span class="n">start_serial</span><span class="p">,</span> <span class="n">end_serial</span> <span class="o">=</span> <span class="n">videojson</span><span class="o">.</span><span class="n">get_min_max_chunk_serial</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">start_serial</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">end_serial</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No chunk serials found in JSON file: </span><span class="si">{</span><span class="n">json_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="k">if</span> <span class="n">end_serial</span> <span class="o">&lt;</span> <span class="n">nev_start_serial</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No overlap found: </span><span class="si">{</span><span class="n">timestamp</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="k">elif</span> <span class="n">start_serial</span> <span class="o">&lt;=</span> <span class="n">nev_end_serial</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Overlap found, timestamp: </span><span class="si">{</span><span class="n">timestamp</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">timestamps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">timestamp</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Break: </span><span class="si">{</span><span class="n">timestamp</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">break</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;timestamps: </span><span class="si">{</span><span class="n">timestamps</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">save_timestamps</span><span class="p">(</span><span class="n">timestamps_path</span><span class="p">,</span> <span class="n">timestamps</span><span class="p">)</span>
+
+<span class="n">sorted_timestamps</span> <span class="o">=</span> <span class="n">sort_timestamps</span><span class="p">(</span><span class="n">timestamps</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="5-processing-videos-for-synchronization">5. Processing Videos for Synchronization<a class="headerlink" href="#5-processing-videos-for-synchronization" title="Permanent link">&para;</a></h3>
+<p>Once the relevant timestamps are identified, this part of the script processes video files to align them with neural data. The workflow can be divided into two phases:</p>
+<ul>
+<li>Before Processing Videos → Extract and merge neural and video data.</li>
+<li>After Processing Videos → Generate subclips, add synchronized audio, and export the final video.</li>
+</ul>
+<h4 id="before-processing-videos-extracting-and-merging-data">Before Processing Videos: Extracting and Merging Data<a class="headerlink" href="#before-processing-videos-extracting-and-merging-data" title="Permanent link">&para;</a></h4>
+<p>The script iterates over each camera serial number and processes the corresponding video recordings. For each timestamp, it loads the associated camera metadata JSON file, extracts frame information, and filters the frames that overlap with the NEV chunk serial range.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># 5. Go through the timestamps and process the videos</span>
+<span class="k">for</span> <span class="n">camera_serial</span> <span class="ow">in</span> <span class="n">camera_serials</span><span class="p">:</span>
+    <span class="n">all_merged_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">timestamp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sorted_timestamps</span><span class="p">):</span>
+        <span class="n">camera_file_group</span> <span class="o">=</span> <span class="n">camera_files</span><span class="p">[</span><span class="n">timestamp</span><span class="p">]</span>
+
+        <span class="n">json_path</span> <span class="o">=</span> <span class="n">get_json_file</span><span class="p">(</span><span class="n">camera_file_group</span><span class="p">,</span> <span class="n">pathutils</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">json_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No JSON file found in group </span><span class="si">{</span><span class="n">timestamp</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="n">videojson</span> <span class="o">=</span> <span class="n">Videojson</span><span class="p">(</span><span class="n">json_path</span><span class="p">)</span>
+        <span class="n">camera_df</span> <span class="o">=</span> <span class="n">videojson</span><span class="o">.</span><span class="n">get_camera_df</span><span class="p">(</span><span class="n">camera_serial</span><span class="p">)</span>
+        <span class="n">camera_df</span><span class="p">[</span><span class="s2">&quot;frame_ids_relative&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">camera_df</span><span class="p">[</span><span class="s2">&quot;frame_ids_reconstructed&quot;</span><span class="p">]</span>
+            <span class="o">-</span> <span class="n">camera_df</span><span class="p">[</span><span class="s2">&quot;frame_ids_reconstructed&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="o">+</span> <span class="mi">1</span>
+        <span class="p">)</span>
+
+        <span class="n">camera_df</span> <span class="o">=</span> <span class="n">camera_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span>
+            <span class="p">(</span><span class="n">camera_df</span><span class="p">[</span><span class="s2">&quot;chunk_serial_data&quot;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">nev_start_serial</span><span class="p">)</span>
+            <span class="o">&amp;</span> <span class="p">(</span><span class="n">camera_df</span><span class="p">[</span><span class="s2">&quot;chunk_serial_data&quot;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">nev_end_serial</span><span class="p">)</span>
+        <span class="p">]</span>
+</code></pre></div>
+<p>The filtered camera frame data is then <strong>merged with the NEV chunk serials on serial</strong> to create a synchronized dataset. Next, the script extracts continuous neural/audio signals (NS5 data) for the same time window and merges them with the existing dataset. This results in a combined DataFrame containing timestamped neural/audio data, camera frame IDs, and amplitudes from the NS5 file.</p>
+<p>Note: the audio signal and the neural data are all arrays in the same format in NS5, so they can be processed in the same way.</p>
+<div class="highlight"><pre><span></span><code>        <span class="n">chunk_serial_joined</span> <span class="o">=</span> <span class="n">nev_chunk_serial_df</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span>
+            <span class="n">camera_df</span><span class="p">,</span>
+            <span class="n">left_on</span><span class="o">=</span><span class="s2">&quot;chunk_serial&quot;</span><span class="p">,</span>
+            <span class="n">right_on</span><span class="o">=</span><span class="s2">&quot;chunk_serial_data&quot;</span><span class="p">,</span>
+            <span class="n">how</span><span class="o">=</span><span class="s2">&quot;inner&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Processing ns5 filtered channel df...&quot;</span><span class="p">)</span>
+        <span class="n">ns5_slice</span> <span class="o">=</span> <span class="n">ns5</span><span class="o">.</span><span class="n">get_filtered_channel_df</span><span class="p">(</span>
+            <span class="n">pathutils</span><span class="o">.</span><span class="n">ns5_channel</span><span class="p">,</span>
+            <span class="n">chunk_serial_joined</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;TimeStamps&quot;</span><span class="p">],</span>
+            <span class="n">chunk_serial_joined</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;TimeStamps&quot;</span><span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Merging ns5 and chunk serial df...&quot;</span><span class="p">)</span>
+        <span class="n">all_merged</span> <span class="o">=</span> <span class="n">ns5_slice</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span>
+            <span class="n">chunk_serial_joined</span><span class="p">,</span>
+            <span class="n">left_on</span><span class="o">=</span><span class="s2">&quot;TimeStamp&quot;</span><span class="p">,</span>
+            <span class="n">right_on</span><span class="o">=</span><span class="s2">&quot;TimeStamps&quot;</span><span class="p">,</span>
+            <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">all_merged</span> <span class="o">=</span> <span class="n">all_merged</span><span class="p">[</span>
+            <span class="p">[</span>
+                <span class="s2">&quot;TimeStamp&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;Amplitude&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;chunk_serial&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;frame_id&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;frame_ids_reconstructed&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;frame_ids_relative&quot;</span><span class="p">,</span>
+            <span class="p">]</span>
+        <span class="p">]</span>
+</code></pre></div>
+<p>If a matching MP4 file is found for the timestamp, it is added to the processing list. After iterating through all timestamps, the merged data for the camera serial is stored and logged for validation.</p>
+<div class="highlight"><pre><span></span><code>        <span class="n">mp4_path</span> <span class="o">=</span> <span class="n">get_mp4_file</span><span class="p">(</span><span class="n">camera_file_group</span><span class="p">,</span> <span class="n">camera_serial</span><span class="p">,</span> <span class="n">pathutils</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">mp4_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No MP4 file found in group </span><span class="si">{</span><span class="n">timestamp</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="n">all_merged</span><span class="p">[</span><span class="s2">&quot;mp4_file&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mp4_path</span>
+        <span class="n">all_merged_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">all_merged</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">all_merged_list</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No valid merged data for </span><span class="si">{</span><span class="n">camera_serial</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">continue</span>
+
+    <span class="n">all_merged_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">all_merged_list</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;Final merged DataFrame for </span><span class="si">{</span><span class="n">camera_serial</span><span class="si">}</span><span class="s2"> head:</span><span class="se">\n</span><span class="si">{</span><span class="n">all_merged_df</span><span class="o">.</span><span class="n">head</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;Final merged DataFrame for </span><span class="si">{</span><span class="n">camera_serial</span><span class="si">}</span><span class="s2"> tail:</span><span class="se">\n</span><span class="si">{</span><span class="n">all_merged_df</span><span class="o">.</span><span class="n">tail</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="p">)</span>
+</code></pre></div>
+<h4 id="after-processing-videos-synchronizing-and-exporting">After Processing Videos: Synchronizing and Exporting<a class="headerlink" href="#after-processing-videos-synchronizing-and-exporting" title="Permanent link">&para;</a></h4>
+<p>With the synchronized DataFrame ready, the script processes the corresponding video files. It iterates through each unique MP4 file and <strong>extracts relevant frames</strong> based on the filtered timestamps. Using <code>make_synced_subclip_ffmpeg()</code>, the script generates subclips, attaching the audio data at 30 kHz.</p>
+<div class="highlight"><pre><span></span><code><span class="k">for</span> <span class="n">camera_serial</span> <span class="ow">in</span> <span class="n">camera_serials</span><span class="p">:</span>
+    <span class="o">...</span>
+    <span class="c1"># process the videos</span>
+    <span class="n">video_output_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">pathutils</span><span class="o">.</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">camera_serial</span><span class="p">)</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">video_output_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">video_output_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">video_output_dir</span><span class="p">,</span> <span class="s2">&quot;output.mp4&quot;</span><span class="p">)</span>
+
+    <span class="n">subclip_paths</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">mp4_path</span> <span class="ow">in</span> <span class="n">all_merged_df</span><span class="p">[</span><span class="s2">&quot;mp4_file&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">():</span>
+        <span class="n">df_sub</span> <span class="o">=</span> <span class="n">all_merged_df</span><span class="p">[</span><span class="n">all_merged_df</span><span class="p">[</span><span class="s2">&quot;mp4_file&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">mp4_path</span><span class="p">]</span>
+
+        <span class="c1"># Build a subclip from the relevant frames, attach audio</span>
+        <span class="n">subclip</span> <span class="o">=</span> <span class="n">make_synced_subclip_ffmpeg</span><span class="p">(</span>
+            <span class="n">df_sub</span><span class="p">,</span>
+            <span class="n">mp4_path</span><span class="p">,</span>
+            <span class="n">fps_audio</span><span class="o">=</span><span class="mi">30000</span><span class="p">,</span>  <span class="c1"># 30kHz</span>
+            <span class="n">out_dir</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">pathutils</span><span class="o">.</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">camera_serial</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">subclip_paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">subclip</span><span class="p">)</span>
+</code></pre></div>
+<p>If multiple subclips are generated, they are concatenated into a single video using <code>ffmpeg_concat_mp4s()</code>. Finally, the fully synchronized video is saved to the output directory, completing the alignment process. This ensures that the final exported video is precisely synchronized with continuous audio amplitude signals.</p>
+<div class="highlight"><pre><span></span><code>    <span class="c1"># Now &#39;subclip_paths&#39; has each final MP4 subclip</span>
+    <span class="c1"># If we have only one, just rename or copy it</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">subclip_paths</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">final_path</span> <span class="o">=</span> <span class="n">subclip_paths</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">final_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="n">pathutils</span><span class="o">.</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">camera_serial</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;stitched_</span><span class="si">{</span><span class="n">camera_serial</span><span class="si">}</span><span class="s2">.mp4&quot;</span>
+        <span class="p">)</span>
+        <span class="n">ffmpeg_concat_mp4s</span><span class="p">(</span><span class="n">subclip_paths</span><span class="p">,</span> <span class="n">final_path</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saved </span><span class="si">{</span><span class="n">camera_serial</span><span class="si">}</span><span class="s2"> to </span><span class="si">{</span><span class="n">video_output_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
               
             </div>
           </div><footer>

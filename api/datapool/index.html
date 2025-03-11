@@ -65,10 +65,6 @@
                 </li>
               </ul>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../../faq/">FAQ</a>
-                </li>
-              </ul>
-              <ul>
                 <li class="toctree-l1"><a class="reference internal" href="../../license/">License</a>
                 </li>
               </ul>
@@ -323,113 +319,220 @@
 
               <details class="quote">
                 <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
-                <pre class="highlight"><code class="language-python">class DataPool:
-    """Manages NSP and video data for integrity verification and statistics.
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">  9</span>
+<span class="normal"> 10</span>
+<span class="normal"> 11</span>
+<span class="normal"> 12</span>
+<span class="normal"> 13</span>
+<span class="normal"> 14</span>
+<span class="normal"> 15</span>
+<span class="normal"> 16</span>
+<span class="normal"> 17</span>
+<span class="normal"> 18</span>
+<span class="normal"> 19</span>
+<span class="normal"> 20</span>
+<span class="normal"> 21</span>
+<span class="normal"> 22</span>
+<span class="normal"> 23</span>
+<span class="normal"> 24</span>
+<span class="normal"> 25</span>
+<span class="normal"> 26</span>
+<span class="normal"> 27</span>
+<span class="normal"> 28</span>
+<span class="normal"> 29</span>
+<span class="normal"> 30</span>
+<span class="normal"> 31</span>
+<span class="normal"> 32</span>
+<span class="normal"> 33</span>
+<span class="normal"> 34</span>
+<span class="normal"> 35</span>
+<span class="normal"> 36</span>
+<span class="normal"> 37</span>
+<span class="normal"> 38</span>
+<span class="normal"> 39</span>
+<span class="normal"> 40</span>
+<span class="normal"> 41</span>
+<span class="normal"> 42</span>
+<span class="normal"> 43</span>
+<span class="normal"> 44</span>
+<span class="normal"> 45</span>
+<span class="normal"> 46</span>
+<span class="normal"> 47</span>
+<span class="normal"> 48</span>
+<span class="normal"> 49</span>
+<span class="normal"> 50</span>
+<span class="normal"> 51</span>
+<span class="normal"> 52</span>
+<span class="normal"> 53</span>
+<span class="normal"> 54</span>
+<span class="normal"> 55</span>
+<span class="normal"> 56</span>
+<span class="normal"> 57</span>
+<span class="normal"> 58</span>
+<span class="normal"> 59</span>
+<span class="normal"> 60</span>
+<span class="normal"> 61</span>
+<span class="normal"> 62</span>
+<span class="normal"> 63</span>
+<span class="normal"> 64</span>
+<span class="normal"> 65</span>
+<span class="normal"> 66</span>
+<span class="normal"> 67</span>
+<span class="normal"> 68</span>
+<span class="normal"> 69</span>
+<span class="normal"> 70</span>
+<span class="normal"> 71</span>
+<span class="normal"> 72</span>
+<span class="normal"> 73</span>
+<span class="normal"> 74</span>
+<span class="normal"> 75</span>
+<span class="normal"> 76</span>
+<span class="normal"> 77</span>
+<span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span>
+<span class="normal">107</span>
+<span class="normal">108</span>
+<span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">DataPool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Manages NSP and video data for integrity verification and statistics.</span>
 
-    Attributes:
-        nsp_dir (str): Directory containing NSP files.
-        cam_recording_dir (str): Directory containing camera recordings.
-        nev_pool (NevPool): Stores NEV files.
-        nsx_pool (NsxPool): Stores NS5/NS3 files.
-        video_pool (VideoPool): Stores video files.
-        video_json_pool (VideoJsonPool): Stores video metadata.
-        video_file_pool (VideoFilesPool): Stores all video-related files.
-    """
+<span class="sd">    Attributes:</span>
+<span class="sd">        nsp_dir (str): Directory containing NSP files.</span>
+<span class="sd">        cam_recording_dir (str): Directory containing camera recordings.</span>
+<span class="sd">        nev_pool (NevPool): Stores NEV files.</span>
+<span class="sd">        nsx_pool (NsxPool): Stores NS5/NS3 files.</span>
+<span class="sd">        video_pool (VideoPool): Stores video files.</span>
+<span class="sd">        video_json_pool (VideoJsonPool): Stores video metadata.</span>
+<span class="sd">        video_file_pool (VideoFilesPool): Stores all video-related files.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
-    def __init__(self, nsp_dir: str, cam_recording_dir: str) -&gt; None:
-        """Initializes the DataPool class.
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nsp_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">cam_recording_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initializes the DataPool class.</span>
 
-        Args:
-            nsp_dir (str): Path to the NSP directory.
-            cam_recording_dir (str): Path to the camera recording directory.
-        """
-        self.nsp_dir = nsp_dir
-        self.cam_recording_dir = cam_recording_dir
-        self.nev_pool = NevPool()
-        self.nsx_pool = NsxPool()
-        self.video_pool = VideoPool()
-        self.video_json_pool = VideoJsonPool()
-        self.video_file_pool = VideoFilesPool()
-        self.init_pools()
+<span class="sd">        Args:</span>
+<span class="sd">            nsp_dir (str): Path to the NSP directory.</span>
+<span class="sd">            cam_recording_dir (str): Path to the camera recording directory.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nsp_dir</span> <span class="o">=</span> <span class="n">nsp_dir</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cam_recording_dir</span> <span class="o">=</span> <span class="n">cam_recording_dir</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nev_pool</span> <span class="o">=</span> <span class="n">NevPool</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nsx_pool</span> <span class="o">=</span> <span class="n">NsxPool</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">video_pool</span> <span class="o">=</span> <span class="n">VideoPool</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">video_json_pool</span> <span class="o">=</span> <span class="n">VideoJsonPool</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">video_file_pool</span> <span class="o">=</span> <span class="n">VideoFilesPool</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_pools</span><span class="p">()</span>
 
-    def init_pools(self):
-        """Initializes the pools by:
+    <span class="k">def</span><span class="w"> </span><span class="nf">init_pools</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initializes the pools by:</span>
 
-        1. Populating NEV and NSX pools with corresponding files.
-        2. Grouping the files in the video pool by timestamp.
-        """
-        for file_path in Path(self.nsp_dir).iterdir():
-            if file_path.suffix == ".nev":
-                self.nev_pool.add_file(file_path.name)
-            elif file_path.suffix in {".ns5", ".ns3"}:
-                self.nsx_pool.add_file(file_path.name)
+<span class="sd">        1. Populating NEV and NSX pools with corresponding files.</span>
+<span class="sd">        2. Grouping the files in the video pool by timestamp.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">file_path</span> <span class="ow">in</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsp_dir</span><span class="p">)</span><span class="o">.</span><span class="n">iterdir</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">file_path</span><span class="o">.</span><span class="n">suffix</span> <span class="o">==</span> <span class="s2">&quot;.nev&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">nev_pool</span><span class="o">.</span><span class="n">add_file</span><span class="p">(</span><span class="n">file_path</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">file_path</span><span class="o">.</span><span class="n">suffix</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;.ns5&quot;</span><span class="p">,</span> <span class="s2">&quot;.ns3&quot;</span><span class="p">}:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">nsx_pool</span><span class="o">.</span><span class="n">add_file</span><span class="p">(</span><span class="n">file_path</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 
-        for datefolder_path in Path(self.cam_recording_dir).iterdir():
-            if datefolder_path.is_dir():
-                for file_path in datefolder_path.iterdir():
-                    self.video_file_pool.add_file(str(file_path.resolve()))
+        <span class="k">for</span> <span class="n">datefolder_path</span> <span class="ow">in</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cam_recording_dir</span><span class="p">)</span><span class="o">.</span><span class="n">iterdir</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">datefolder_path</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
+                <span class="k">for</span> <span class="n">file_path</span> <span class="ow">in</span> <span class="n">datefolder_path</span><span class="o">.</span><span class="n">iterdir</span><span class="p">():</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">video_file_pool</span><span class="o">.</span><span class="n">add_file</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">file_path</span><span class="o">.</span><span class="n">resolve</span><span class="p">()))</span>
 
-    def verify_integrity(self) -&gt; bool:
-        """Verifies the integrity of the directory by ensuring it contains exactly one of each required file.
+    <span class="k">def</span><span class="w"> </span><span class="nf">verify_integrity</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Verifies the integrity of the directory by ensuring it contains exactly one of each required file.</span>
 
-        Required files:
-            - One file matching pattern `*NSP-1.nev`
-            - One file matching pattern `*NSP-1.ns3`
-            - One file matching pattern `*NSP-1.ns5`
-            - One file matching pattern `*NSP-2.nev`
+<span class="sd">        Required files:</span>
+<span class="sd">            - One file matching pattern `*NSP-1.nev`</span>
+<span class="sd">            - One file matching pattern `*NSP-1.ns3`</span>
+<span class="sd">            - One file matching pattern `*NSP-1.ns5`</span>
+<span class="sd">            - One file matching pattern `*NSP-2.nev`</span>
 
-        Returns:
-            bool: True if exactly one of each required file is found, otherwise False.
-        """
-        required_files = {
-            "*NSP-1.nev": 0,
-            "*NSP-1.ns3": 0,
-            "*NSP-1.ns5": 0,
-            "*NSP-2.nev": 0,
-        }
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: True if exactly one of each required file is found, otherwise False.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">required_files</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;*NSP-1.nev&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s2">&quot;*NSP-1.ns3&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s2">&quot;*NSP-1.ns5&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s2">&quot;*NSP-2.nev&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="p">}</span>
 
-        for file in os.listdir(self.nsp_dir):
-            for pattern in required_files.keys():
-                if fnmatch.fnmatch(file, pattern):
-                    required_files[pattern] += 1
+        <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsp_dir</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">pattern</span> <span class="ow">in</span> <span class="n">required_files</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">fnmatch</span><span class="o">.</span><span class="n">fnmatch</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">pattern</span><span class="p">):</span>
+                    <span class="n">required_files</span><span class="p">[</span><span class="n">pattern</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
 
-        return all(count == 1 for count in required_files.values())
+        <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="n">count</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">count</span> <span class="ow">in</span> <span class="n">required_files</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
 
-    def get_nsp1_nev_path(self) -&gt; str:
-        """Finds the NSP-1 NEV file path.
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_nsp1_nev_path</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Finds the NSP-1 NEV file path.</span>
 
-        Returns:
-            str: The full path of the matching file if found, otherwise an empty string.
-        """
-        pattern = "*NSP-1.nev"
+<span class="sd">        Returns:</span>
+<span class="sd">            str: The full path of the matching file if found, otherwise an empty string.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pattern</span> <span class="o">=</span> <span class="s2">&quot;*NSP-1.nev&quot;</span>
 
-        for file in os.listdir(self.nsp_dir):
-            if fnmatch.fnmatch(file, pattern):
-                return os.path.join(self.nsp_dir, file)
+        <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsp_dir</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">fnmatch</span><span class="o">.</span><span class="n">fnmatch</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">pattern</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsp_dir</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span>
 
-        return ""
+        <span class="k">return</span> <span class="s2">&quot;&quot;</span>
 
-    def get_nsp1_ns5_path(self) -&gt; str:
-        """Finds the NSP-1 NS5 file path.
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_nsp1_ns5_path</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Finds the NSP-1 NS5 file path.</span>
 
-        Returns:
-            str: The full path of the matching file if found, otherwise an empty string.
-        """
-        pattern = "*NSP-1.ns5"
+<span class="sd">        Returns:</span>
+<span class="sd">            str: The full path of the matching file if found, otherwise an empty string.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pattern</span> <span class="o">=</span> <span class="s2">&quot;*NSP-1.ns5&quot;</span>
 
-        for file in os.listdir(self.nsp_dir):
-            if fnmatch.fnmatch(file, pattern):
-                return os.path.join(self.nsp_dir, file)
+        <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsp_dir</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">fnmatch</span><span class="o">.</span><span class="n">fnmatch</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">pattern</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsp_dir</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span>
 
-        return ""
+        <span class="k">return</span> <span class="s2">&quot;&quot;</span>
 
-    def get_video_file_pool(self) -&gt; "VideoFilesPool":
-        """Retrieves the video file pool.
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_video_file_pool</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;VideoFilesPool&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieves the video file pool.</span>
 
-        Returns:
-            VideoFilesPool: The video file pool object.
-        """
-        return self.video_file_pool</code></pre>
+<span class="sd">        Returns:</span>
+<span class="sd">            VideoFilesPool: The video file pool object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">video_file_pool</span>
+</code></pre></div></td></tr></table></div>
               </details>
 
 
@@ -447,7 +550,7 @@
 
 
 <h2 id="pyvideosync.data_pool.DataPool.cam_recording_dir" class="doc doc-heading">
-            <code class="highlight language-python">cam_recording_dir = cam_recording_dir</code>
+            <code class="highlight language-python"><span class="n">cam_recording_dir</span> <span class="o">=</span> <span class="n">cam_recording_dir</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
@@ -466,7 +569,7 @@
 
 
 <h2 id="pyvideosync.data_pool.DataPool.nev_pool" class="doc doc-heading">
-            <code class="highlight language-python">nev_pool = NevPool()</code>
+            <code class="highlight language-python"><span class="n">nev_pool</span> <span class="o">=</span> <span class="n">NevPool</span><span class="p">()</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
@@ -485,7 +588,7 @@
 
 
 <h2 id="pyvideosync.data_pool.DataPool.nsp_dir" class="doc doc-heading">
-            <code class="highlight language-python">nsp_dir = nsp_dir</code>
+            <code class="highlight language-python"><span class="n">nsp_dir</span> <span class="o">=</span> <span class="n">nsp_dir</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
@@ -504,7 +607,7 @@
 
 
 <h2 id="pyvideosync.data_pool.DataPool.nsx_pool" class="doc doc-heading">
-            <code class="highlight language-python">nsx_pool = NsxPool()</code>
+            <code class="highlight language-python"><span class="n">nsx_pool</span> <span class="o">=</span> <span class="n">NsxPool</span><span class="p">()</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
@@ -523,7 +626,7 @@
 
 
 <h2 id="pyvideosync.data_pool.DataPool.video_file_pool" class="doc doc-heading">
-            <code class="highlight language-python">video_file_pool = VideoFilesPool()</code>
+            <code class="highlight language-python"><span class="n">video_file_pool</span> <span class="o">=</span> <span class="n">VideoFilesPool</span><span class="p">()</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
@@ -542,7 +645,7 @@
 
 
 <h2 id="pyvideosync.data_pool.DataPool.video_json_pool" class="doc doc-heading">
-            <code class="highlight language-python">video_json_pool = VideoJsonPool()</code>
+            <code class="highlight language-python"><span class="n">video_json_pool</span> <span class="o">=</span> <span class="n">VideoJsonPool</span><span class="p">()</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
@@ -561,7 +664,7 @@
 
 
 <h2 id="pyvideosync.data_pool.DataPool.video_pool" class="doc doc-heading">
-            <code class="highlight language-python">video_pool = VideoPool()</code>
+            <code class="highlight language-python"><span class="n">video_pool</span> <span class="o">=</span> <span class="n">VideoPool</span><span class="p">()</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
@@ -581,7 +684,7 @@
 
 
 <h2 id="pyvideosync.data_pool.DataPool.__init__" class="doc doc-heading">
-            <code class="highlight language-python">__init__(nsp_dir: str, cam_recording_dir: str) -&gt; None</code>
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">nsp_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">cam_recording_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
 
 <a href="#pyvideosync.data_pool.DataPool.__init__" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -624,21 +727,36 @@
 </table>
             <details class="quote">
               <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
-              <pre class="highlight"><code class="language-python">def __init__(self, nsp_dir: str, cam_recording_dir: str) -&gt; None:
-    """Initializes the DataPool class.
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">22</span>
+<span class="normal">23</span>
+<span class="normal">24</span>
+<span class="normal">25</span>
+<span class="normal">26</span>
+<span class="normal">27</span>
+<span class="normal">28</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nsp_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">cam_recording_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Initializes the DataPool class.</span>
 
-    Args:
-        nsp_dir (str): Path to the NSP directory.
-        cam_recording_dir (str): Path to the camera recording directory.
-    """
-    self.nsp_dir = nsp_dir
-    self.cam_recording_dir = cam_recording_dir
-    self.nev_pool = NevPool()
-    self.nsx_pool = NsxPool()
-    self.video_pool = VideoPool()
-    self.video_json_pool = VideoJsonPool()
-    self.video_file_pool = VideoFilesPool()
-    self.init_pools()</code></pre>
+<span class="sd">    Args:</span>
+<span class="sd">        nsp_dir (str): Path to the NSP directory.</span>
+<span class="sd">        cam_recording_dir (str): Path to the camera recording directory.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">nsp_dir</span> <span class="o">=</span> <span class="n">nsp_dir</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">cam_recording_dir</span> <span class="o">=</span> <span class="n">cam_recording_dir</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">nev_pool</span> <span class="o">=</span> <span class="n">NevPool</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">nsx_pool</span> <span class="o">=</span> <span class="n">NsxPool</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">video_pool</span> <span class="o">=</span> <span class="n">VideoPool</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">video_json_pool</span> <span class="o">=</span> <span class="n">VideoJsonPool</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">video_file_pool</span> <span class="o">=</span> <span class="n">VideoFilesPool</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">init_pools</span><span class="p">()</span>
+</code></pre></div></td></tr></table></div>
             </details>
     </div>
 
@@ -648,7 +766,7 @@
 
 
 <h2 id="pyvideosync.data_pool.DataPool.get_nsp1_nev_path" class="doc doc-heading">
-            <code class="highlight language-python">get_nsp1_nev_path() -&gt; str</code>
+            <code class="highlight language-python"><span class="n">get_nsp1_nev_path</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span></code>
 
 <a href="#pyvideosync.data_pool.DataPool.get_nsp1_nev_path" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -682,19 +800,32 @@
 </table>
             <details class="quote">
               <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
-              <pre class="highlight"><code class="language-python">def get_nsp1_nev_path(self) -&gt; str:
-    """Finds the NSP-1 NEV file path.
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">81</span>
+<span class="normal">82</span>
+<span class="normal">83</span>
+<span class="normal">84</span>
+<span class="normal">85</span>
+<span class="normal">86</span>
+<span class="normal">87</span>
+<span class="normal">88</span>
+<span class="normal">89</span>
+<span class="normal">90</span>
+<span class="normal">91</span>
+<span class="normal">92</span>
+<span class="normal">93</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_nsp1_nev_path</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Finds the NSP-1 NEV file path.</span>
 
-    Returns:
-        str: The full path of the matching file if found, otherwise an empty string.
-    """
-    pattern = "*NSP-1.nev"
+<span class="sd">    Returns:</span>
+<span class="sd">        str: The full path of the matching file if found, otherwise an empty string.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">pattern</span> <span class="o">=</span> <span class="s2">&quot;*NSP-1.nev&quot;</span>
 
-    for file in os.listdir(self.nsp_dir):
-        if fnmatch.fnmatch(file, pattern):
-            return os.path.join(self.nsp_dir, file)
+    <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsp_dir</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">fnmatch</span><span class="o">.</span><span class="n">fnmatch</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">pattern</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsp_dir</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span>
 
-    return ""</code></pre>
+    <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+</code></pre></div></td></tr></table></div>
             </details>
     </div>
 
@@ -704,7 +835,7 @@
 
 
 <h2 id="pyvideosync.data_pool.DataPool.get_nsp1_ns5_path" class="doc doc-heading">
-            <code class="highlight language-python">get_nsp1_ns5_path() -&gt; str</code>
+            <code class="highlight language-python"><span class="n">get_nsp1_ns5_path</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span></code>
 
 <a href="#pyvideosync.data_pool.DataPool.get_nsp1_ns5_path" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -738,19 +869,32 @@
 </table>
             <details class="quote">
               <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
-              <pre class="highlight"><code class="language-python">def get_nsp1_ns5_path(self) -&gt; str:
-    """Finds the NSP-1 NS5 file path.
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span>
+<span class="normal">107</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_nsp1_ns5_path</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Finds the NSP-1 NS5 file path.</span>
 
-    Returns:
-        str: The full path of the matching file if found, otherwise an empty string.
-    """
-    pattern = "*NSP-1.ns5"
+<span class="sd">    Returns:</span>
+<span class="sd">        str: The full path of the matching file if found, otherwise an empty string.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">pattern</span> <span class="o">=</span> <span class="s2">&quot;*NSP-1.ns5&quot;</span>
 
-    for file in os.listdir(self.nsp_dir):
-        if fnmatch.fnmatch(file, pattern):
-            return os.path.join(self.nsp_dir, file)
+    <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsp_dir</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">fnmatch</span><span class="o">.</span><span class="n">fnmatch</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">pattern</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsp_dir</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span>
 
-    return ""</code></pre>
+    <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+</code></pre></div></td></tr></table></div>
             </details>
     </div>
 
@@ -760,7 +904,7 @@
 
 
 <h2 id="pyvideosync.data_pool.DataPool.get_video_file_pool" class="doc doc-heading">
-            <code class="highlight language-python">get_video_file_pool() -&gt; 'VideoFilesPool'</code>
+            <code class="highlight language-python"><span class="n">get_video_file_pool</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="s1">&#39;VideoFilesPool&#39;</span></code>
 
 <a href="#pyvideosync.data_pool.DataPool.get_video_file_pool" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -794,13 +938,20 @@
 </table>
             <details class="quote">
               <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
-              <pre class="highlight"><code class="language-python">def get_video_file_pool(self) -&gt; "VideoFilesPool":
-    """Retrieves the video file pool.
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_video_file_pool</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;VideoFilesPool&quot;</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Retrieves the video file pool.</span>
 
-    Returns:
-        VideoFilesPool: The video file pool object.
-    """
-    return self.video_file_pool</code></pre>
+<span class="sd">    Returns:</span>
+<span class="sd">        VideoFilesPool: The video file pool object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">video_file_pool</span>
+</code></pre></div></td></tr></table></div>
             </details>
     </div>
 
@@ -810,7 +961,7 @@
 
 
 <h2 id="pyvideosync.data_pool.DataPool.init_pools" class="doc doc-heading">
-            <code class="highlight language-python">init_pools()</code>
+            <code class="highlight language-python"><span class="n">init_pools</span><span class="p">()</span></code>
 
 <a href="#pyvideosync.data_pool.DataPool.init_pools" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -825,22 +976,38 @@
 
             <details class="quote">
               <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
-              <pre class="highlight"><code class="language-python">def init_pools(self):
-    """Initializes the pools by:
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span>
+<span class="normal">41</span>
+<span class="normal">42</span>
+<span class="normal">43</span>
+<span class="normal">44</span>
+<span class="normal">45</span>
+<span class="normal">46</span>
+<span class="normal">47</span>
+<span class="normal">48</span>
+<span class="normal">49</span>
+<span class="normal">50</span>
+<span class="normal">51</span>
+<span class="normal">52</span>
+<span class="normal">53</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">init_pools</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Initializes the pools by:</span>
 
-    1. Populating NEV and NSX pools with corresponding files.
-    2. Grouping the files in the video pool by timestamp.
-    """
-    for file_path in Path(self.nsp_dir).iterdir():
-        if file_path.suffix == ".nev":
-            self.nev_pool.add_file(file_path.name)
-        elif file_path.suffix in {".ns5", ".ns3"}:
-            self.nsx_pool.add_file(file_path.name)
+<span class="sd">    1. Populating NEV and NSX pools with corresponding files.</span>
+<span class="sd">    2. Grouping the files in the video pool by timestamp.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">file_path</span> <span class="ow">in</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsp_dir</span><span class="p">)</span><span class="o">.</span><span class="n">iterdir</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">file_path</span><span class="o">.</span><span class="n">suffix</span> <span class="o">==</span> <span class="s2">&quot;.nev&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nev_pool</span><span class="o">.</span><span class="n">add_file</span><span class="p">(</span><span class="n">file_path</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">file_path</span><span class="o">.</span><span class="n">suffix</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;.ns5&quot;</span><span class="p">,</span> <span class="s2">&quot;.ns3&quot;</span><span class="p">}:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nsx_pool</span><span class="o">.</span><span class="n">add_file</span><span class="p">(</span><span class="n">file_path</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 
-    for datefolder_path in Path(self.cam_recording_dir).iterdir():
-        if datefolder_path.is_dir():
-            for file_path in datefolder_path.iterdir():
-                self.video_file_pool.add_file(str(file_path.resolve()))</code></pre>
+    <span class="k">for</span> <span class="n">datefolder_path</span> <span class="ow">in</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cam_recording_dir</span><span class="p">)</span><span class="o">.</span><span class="n">iterdir</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">datefolder_path</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">file_path</span> <span class="ow">in</span> <span class="n">datefolder_path</span><span class="o">.</span><span class="n">iterdir</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">video_file_pool</span><span class="o">.</span><span class="n">add_file</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">file_path</span><span class="o">.</span><span class="n">resolve</span><span class="p">()))</span>
+</code></pre></div></td></tr></table></div>
             </details>
     </div>
 
@@ -850,7 +1017,7 @@
 
 
 <h2 id="pyvideosync.data_pool.DataPool.verify_integrity" class="doc doc-heading">
-            <code class="highlight language-python">verify_integrity() -&gt; bool</code>
+            <code class="highlight language-python"><span class="n">verify_integrity</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span></code>
 
 <a href="#pyvideosync.data_pool.DataPool.verify_integrity" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -894,31 +1061,56 @@
 </table>
             <details class="quote">
               <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
-              <pre class="highlight"><code class="language-python">def verify_integrity(self) -&gt; bool:
-    """Verifies the integrity of the directory by ensuring it contains exactly one of each required file.
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">55</span>
+<span class="normal">56</span>
+<span class="normal">57</span>
+<span class="normal">58</span>
+<span class="normal">59</span>
+<span class="normal">60</span>
+<span class="normal">61</span>
+<span class="normal">62</span>
+<span class="normal">63</span>
+<span class="normal">64</span>
+<span class="normal">65</span>
+<span class="normal">66</span>
+<span class="normal">67</span>
+<span class="normal">68</span>
+<span class="normal">69</span>
+<span class="normal">70</span>
+<span class="normal">71</span>
+<span class="normal">72</span>
+<span class="normal">73</span>
+<span class="normal">74</span>
+<span class="normal">75</span>
+<span class="normal">76</span>
+<span class="normal">77</span>
+<span class="normal">78</span>
+<span class="normal">79</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">verify_integrity</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Verifies the integrity of the directory by ensuring it contains exactly one of each required file.</span>
 
-    Required files:
-        - One file matching pattern `*NSP-1.nev`
-        - One file matching pattern `*NSP-1.ns3`
-        - One file matching pattern `*NSP-1.ns5`
-        - One file matching pattern `*NSP-2.nev`
+<span class="sd">    Required files:</span>
+<span class="sd">        - One file matching pattern `*NSP-1.nev`</span>
+<span class="sd">        - One file matching pattern `*NSP-1.ns3`</span>
+<span class="sd">        - One file matching pattern `*NSP-1.ns5`</span>
+<span class="sd">        - One file matching pattern `*NSP-2.nev`</span>
 
-    Returns:
-        bool: True if exactly one of each required file is found, otherwise False.
-    """
-    required_files = {
-        "*NSP-1.nev": 0,
-        "*NSP-1.ns3": 0,
-        "*NSP-1.ns5": 0,
-        "*NSP-2.nev": 0,
-    }
+<span class="sd">    Returns:</span>
+<span class="sd">        bool: True if exactly one of each required file is found, otherwise False.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">required_files</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;*NSP-1.nev&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s2">&quot;*NSP-1.ns3&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s2">&quot;*NSP-1.ns5&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s2">&quot;*NSP-2.nev&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="p">}</span>
 
-    for file in os.listdir(self.nsp_dir):
-        for pattern in required_files.keys():
-            if fnmatch.fnmatch(file, pattern):
-                required_files[pattern] += 1
+    <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsp_dir</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">pattern</span> <span class="ow">in</span> <span class="n">required_files</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">fnmatch</span><span class="o">.</span><span class="n">fnmatch</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">pattern</span><span class="p">):</span>
+                <span class="n">required_files</span><span class="p">[</span><span class="n">pattern</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
 
-    return all(count == 1 for count in required_files.values())</code></pre>
+    <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="n">count</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">count</span> <span class="ow">in</span> <span class="n">required_files</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+</code></pre></div></td></tr></table></div>
             </details>
     </div>
 
@@ -951,20 +1143,34 @@
 
               <details class="quote">
                 <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
-                <pre class="highlight"><code class="language-python">class NevPool:
-    """Stores NEV files grouped by suffix."""
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">118</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span>
+<span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">NevPool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Stores NEV files grouped by suffix.&quot;&quot;&quot;</span>
 
-    def __init__(self) -&gt; None:
-        self.files = defaultdict(list)
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">files</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
 
-    def add_file(self, file: str):
-        """Adds a NEV file to the pool.
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Adds a NEV file to the pool.</span>
 
-        Args:
-            file (str): File name to be added.
-        """
-        suffix = file.split("-")[-1]
-        self.files[suffix].append(file)</code></pre>
+<span class="sd">        Args:</span>
+<span class="sd">            file (str): File name to be added.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">suffix</span> <span class="o">=</span> <span class="n">file</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="n">suffix</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
               </details>
 
 
@@ -982,7 +1188,7 @@
 
 
 <h2 id="pyvideosync.data_pool.NevPool.files" class="doc doc-heading">
-            <code class="highlight language-python">files = defaultdict(list)</code>
+            <code class="highlight language-python"><span class="n">files</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
@@ -1002,7 +1208,7 @@
 
 
 <h2 id="pyvideosync.data_pool.NevPool.__init__" class="doc doc-heading">
-            <code class="highlight language-python">__init__() -&gt; None</code>
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
 
 <a href="#pyvideosync.data_pool.NevPool.__init__" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -1011,8 +1217,10 @@
 
             <details class="quote">
               <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
-              <pre class="highlight"><code class="language-python">def __init__(self) -&gt; None:
-    self.files = defaultdict(list)</code></pre>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">121</span>
+<span class="normal">122</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">files</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
             </details>
     </div>
 
@@ -1022,7 +1230,7 @@
 
 
 <h2 id="pyvideosync.data_pool.NevPool.add_file" class="doc doc-heading">
-            <code class="highlight language-python">add_file(file: str)</code>
+            <code class="highlight language-python"><span class="n">add_file</span><span class="p">(</span><span class="n">file</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span></code>
 
 <a href="#pyvideosync.data_pool.NevPool.add_file" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -1057,14 +1265,22 @@
 </table>
             <details class="quote">
               <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
-              <pre class="highlight"><code class="language-python">def add_file(self, file: str):
-    """Adds a NEV file to the pool.
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">add_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Adds a NEV file to the pool.</span>
 
-    Args:
-        file (str): File name to be added.
-    """
-    suffix = file.split("-")[-1]
-    self.files[suffix].append(file)</code></pre>
+<span class="sd">    Args:</span>
+<span class="sd">        file (str): File name to be added.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">suffix</span> <span class="o">=</span> <span class="n">file</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="n">suffix</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
             </details>
     </div>
 
@@ -1096,20 +1312,34 @@
 
               <details class="quote">
                 <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
-                <pre class="highlight"><code class="language-python">class NsxPool:
-    """Stores NS5 and NS3 files grouped by suffix."""
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">134</span>
+<span class="normal">135</span>
+<span class="normal">136</span>
+<span class="normal">137</span>
+<span class="normal">138</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">NsxPool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Stores NS5 and NS3 files grouped by suffix.&quot;&quot;&quot;</span>
 
-    def __init__(self) -&gt; None:
-        self.files = defaultdict(list)
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">files</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
 
-    def add_file(self, file: str):
-        """Adds an NS5/NS3 file to the pool.
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Adds an NS5/NS3 file to the pool.</span>
 
-        Args:
-            file (str): File name to be added.
-        """
-        suffix = file.split("-")[-1]
-        self.files[suffix].append(file)</code></pre>
+<span class="sd">        Args:</span>
+<span class="sd">            file (str): File name to be added.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">suffix</span> <span class="o">=</span> <span class="n">file</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="n">suffix</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
               </details>
 
 
@@ -1127,7 +1357,7 @@
 
 
 <h2 id="pyvideosync.data_pool.NsxPool.files" class="doc doc-heading">
-            <code class="highlight language-python">files = defaultdict(list)</code>
+            <code class="highlight language-python"><span class="n">files</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
@@ -1147,7 +1377,7 @@
 
 
 <h2 id="pyvideosync.data_pool.NsxPool.__init__" class="doc doc-heading">
-            <code class="highlight language-python">__init__() -&gt; None</code>
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
 
 <a href="#pyvideosync.data_pool.NsxPool.__init__" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -1156,8 +1386,10 @@
 
             <details class="quote">
               <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
-              <pre class="highlight"><code class="language-python">def __init__(self) -&gt; None:
-    self.files = defaultdict(list)</code></pre>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">137</span>
+<span class="normal">138</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">files</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
             </details>
     </div>
 
@@ -1167,7 +1399,7 @@
 
 
 <h2 id="pyvideosync.data_pool.NsxPool.add_file" class="doc doc-heading">
-            <code class="highlight language-python">add_file(file: str)</code>
+            <code class="highlight language-python"><span class="n">add_file</span><span class="p">(</span><span class="n">file</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span></code>
 
 <a href="#pyvideosync.data_pool.NsxPool.add_file" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -1202,14 +1434,22 @@
 </table>
             <details class="quote">
               <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
-              <pre class="highlight"><code class="language-python">def add_file(self, file: str):
-    """Adds an NS5/NS3 file to the pool.
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">add_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Adds an NS5/NS3 file to the pool.</span>
 
-    Args:
-        file (str): File name to be added.
-    """
-    suffix = file.split("-")[-1]
-    self.files[suffix].append(file)</code></pre>
+<span class="sd">    Args:</span>
+<span class="sd">        file (str): File name to be added.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">suffix</span> <span class="o">=</span> <span class="n">file</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="n">suffix</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
             </details>
     </div>
 
@@ -1241,20 +1481,34 @@
 
               <details class="quote">
                 <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
-                <pre class="highlight"><code class="language-python">class VideoPool:
-    """Stores video files grouped by timestamp."""
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">150</span>
+<span class="normal">151</span>
+<span class="normal">152</span>
+<span class="normal">153</span>
+<span class="normal">154</span>
+<span class="normal">155</span>
+<span class="normal">156</span>
+<span class="normal">157</span>
+<span class="normal">158</span>
+<span class="normal">159</span>
+<span class="normal">160</span>
+<span class="normal">161</span>
+<span class="normal">162</span>
+<span class="normal">163</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">VideoPool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Stores video files grouped by timestamp.&quot;&quot;&quot;</span>
 
-    def __init__(self) -&gt; None:
-        self.files = defaultdict(list)
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">files</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
 
-    def add_file(self, file: str):
-        """Adds a video file to the pool.
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Adds a video file to the pool.</span>
 
-        Args:
-            file (str): File name to be added.
-        """
-        timestamp = file.split("_")[-1].split(".")[0]
-        self.files[timestamp].append(file)</code></pre>
+<span class="sd">        Args:</span>
+<span class="sd">            file (str): File name to be added.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">timestamp</span> <span class="o">=</span> <span class="n">file</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="n">timestamp</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
               </details>
 
 
@@ -1272,7 +1526,7 @@
 
 
 <h2 id="pyvideosync.data_pool.VideoPool.files" class="doc doc-heading">
-            <code class="highlight language-python">files = defaultdict(list)</code>
+            <code class="highlight language-python"><span class="n">files</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
@@ -1292,7 +1546,7 @@
 
 
 <h2 id="pyvideosync.data_pool.VideoPool.__init__" class="doc doc-heading">
-            <code class="highlight language-python">__init__() -&gt; None</code>
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
 
 <a href="#pyvideosync.data_pool.VideoPool.__init__" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -1301,8 +1555,10 @@
 
             <details class="quote">
               <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
-              <pre class="highlight"><code class="language-python">def __init__(self) -&gt; None:
-    self.files = defaultdict(list)</code></pre>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">153</span>
+<span class="normal">154</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">files</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
             </details>
     </div>
 
@@ -1312,7 +1568,7 @@
 
 
 <h2 id="pyvideosync.data_pool.VideoPool.add_file" class="doc doc-heading">
-            <code class="highlight language-python">add_file(file: str)</code>
+            <code class="highlight language-python"><span class="n">add_file</span><span class="p">(</span><span class="n">file</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span></code>
 
 <a href="#pyvideosync.data_pool.VideoPool.add_file" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -1347,14 +1603,22 @@
 </table>
             <details class="quote">
               <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
-              <pre class="highlight"><code class="language-python">def add_file(self, file: str):
-    """Adds a video file to the pool.
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">156</span>
+<span class="normal">157</span>
+<span class="normal">158</span>
+<span class="normal">159</span>
+<span class="normal">160</span>
+<span class="normal">161</span>
+<span class="normal">162</span>
+<span class="normal">163</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">add_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Adds a video file to the pool.</span>
 
-    Args:
-        file (str): File name to be added.
-    """
-    timestamp = file.split("_")[-1].split(".")[0]
-    self.files[timestamp].append(file)</code></pre>
+<span class="sd">    Args:</span>
+<span class="sd">        file (str): File name to be added.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">timestamp</span> <span class="o">=</span> <span class="n">file</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="n">timestamp</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
             </details>
     </div>
 
@@ -1386,24 +1650,42 @@
 
               <details class="quote">
                 <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
-                <pre class="highlight"><code class="language-python">class VideoJsonPool:
-    """Stores video metadata JSON files grouped by timestamp."""
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span>
+<span class="normal">176</span>
+<span class="normal">177</span>
+<span class="normal">178</span>
+<span class="normal">179</span>
+<span class="normal">180</span>
+<span class="normal">181</span>
+<span class="normal">182</span>
+<span class="normal">183</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">VideoJsonPool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Stores video metadata JSON files grouped by timestamp.&quot;&quot;&quot;</span>
 
-    def __init__(self) -&gt; None:
-        self.files = defaultdict(list)
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">files</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
 
-    def add_file(self, file: str):
-        timestamp = file.split("_")[-1].split(".")[0]
-        self.files[timestamp].append(file)
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">timestamp</span> <span class="o">=</span> <span class="n">file</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="n">timestamp</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
 
-    def list_groups(self) -&gt; dict[str, list[str]]:
-        """Lists all groups of video metadata files.
+    <span class="k">def</span><span class="w"> </span><span class="nf">list_groups</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Lists all groups of video metadata files.</span>
 
-        Returns:
-            dict[str, list[str]]: A dictionary where keys are timestamps (str)
-            and values are lists of file names (str).
-        """
-        return {timestamp: files for timestamp, files in self.files.items()}</code></pre>
+<span class="sd">        Returns:</span>
+<span class="sd">            dict[str, list[str]]: A dictionary where keys are timestamps (str)</span>
+<span class="sd">            and values are lists of file names (str).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">timestamp</span><span class="p">:</span> <span class="n">files</span> <span class="k">for</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+</code></pre></div></td></tr></table></div>
               </details>
 
 
@@ -1421,7 +1703,7 @@
 
 
 <h2 id="pyvideosync.data_pool.VideoJsonPool.files" class="doc doc-heading">
-            <code class="highlight language-python">files = defaultdict(list)</code>
+            <code class="highlight language-python"><span class="n">files</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
@@ -1441,7 +1723,7 @@
 
 
 <h2 id="pyvideosync.data_pool.VideoJsonPool.__init__" class="doc doc-heading">
-            <code class="highlight language-python">__init__() -&gt; None</code>
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
 
 <a href="#pyvideosync.data_pool.VideoJsonPool.__init__" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -1450,8 +1732,10 @@
 
             <details class="quote">
               <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
-              <pre class="highlight"><code class="language-python">def __init__(self) -&gt; None:
-    self.files = defaultdict(list)</code></pre>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">169</span>
+<span class="normal">170</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">files</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
             </details>
     </div>
 
@@ -1461,7 +1745,7 @@
 
 
 <h2 id="pyvideosync.data_pool.VideoJsonPool.add_file" class="doc doc-heading">
-            <code class="highlight language-python">add_file(file: str)</code>
+            <code class="highlight language-python"><span class="n">add_file</span><span class="p">(</span><span class="n">file</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span></code>
 
 <a href="#pyvideosync.data_pool.VideoJsonPool.add_file" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -1470,9 +1754,12 @@
 
             <details class="quote">
               <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
-              <pre class="highlight"><code class="language-python">def add_file(self, file: str):
-    timestamp = file.split("_")[-1].split(".")[0]
-    self.files[timestamp].append(file)</code></pre>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">add_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="n">timestamp</span> <span class="o">=</span> <span class="n">file</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="n">timestamp</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
             </details>
     </div>
 
@@ -1482,7 +1769,7 @@
 
 
 <h2 id="pyvideosync.data_pool.VideoJsonPool.list_groups" class="doc doc-heading">
-            <code class="highlight language-python">list_groups() -&gt; dict[str, list[str]]</code>
+            <code class="highlight language-python"><span class="n">list_groups</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span></code>
 
 <a href="#pyvideosync.data_pool.VideoJsonPool.list_groups" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -1523,14 +1810,22 @@
 </table>
             <details class="quote">
               <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
-              <pre class="highlight"><code class="language-python">def list_groups(self) -&gt; dict[str, list[str]]:
-    """Lists all groups of video metadata files.
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">176</span>
+<span class="normal">177</span>
+<span class="normal">178</span>
+<span class="normal">179</span>
+<span class="normal">180</span>
+<span class="normal">181</span>
+<span class="normal">182</span>
+<span class="normal">183</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">list_groups</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Lists all groups of video metadata files.</span>
 
-    Returns:
-        dict[str, list[str]]: A dictionary where keys are timestamps (str)
-        and values are lists of file names (str).
-    """
-    return {timestamp: files for timestamp, files in self.files.items()}</code></pre>
+<span class="sd">    Returns:</span>
+<span class="sd">        dict[str, list[str]]: A dictionary where keys are timestamps (str)</span>
+<span class="sd">        and values are lists of file names (str).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">{</span><span class="n">timestamp</span><span class="p">:</span> <span class="n">files</span> <span class="k">for</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+</code></pre></div></td></tr></table></div>
             </details>
     </div>
 
@@ -1562,57 +1857,108 @@
 
               <details class="quote">
                 <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
-                <pre class="highlight"><code class="language-python">class VideoFilesPool:
-    """Stores all video-related files grouped by timestamp."""
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">186</span>
+<span class="normal">187</span>
+<span class="normal">188</span>
+<span class="normal">189</span>
+<span class="normal">190</span>
+<span class="normal">191</span>
+<span class="normal">192</span>
+<span class="normal">193</span>
+<span class="normal">194</span>
+<span class="normal">195</span>
+<span class="normal">196</span>
+<span class="normal">197</span>
+<span class="normal">198</span>
+<span class="normal">199</span>
+<span class="normal">200</span>
+<span class="normal">201</span>
+<span class="normal">202</span>
+<span class="normal">203</span>
+<span class="normal">204</span>
+<span class="normal">205</span>
+<span class="normal">206</span>
+<span class="normal">207</span>
+<span class="normal">208</span>
+<span class="normal">209</span>
+<span class="normal">210</span>
+<span class="normal">211</span>
+<span class="normal">212</span>
+<span class="normal">213</span>
+<span class="normal">214</span>
+<span class="normal">215</span>
+<span class="normal">216</span>
+<span class="normal">217</span>
+<span class="normal">218</span>
+<span class="normal">219</span>
+<span class="normal">220</span>
+<span class="normal">221</span>
+<span class="normal">222</span>
+<span class="normal">223</span>
+<span class="normal">224</span>
+<span class="normal">225</span>
+<span class="normal">226</span>
+<span class="normal">227</span>
+<span class="normal">228</span>
+<span class="normal">229</span>
+<span class="normal">230</span>
+<span class="normal">231</span>
+<span class="normal">232</span>
+<span class="normal">233</span>
+<span class="normal">234</span>
+<span class="normal">235</span>
+<span class="normal">236</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">VideoFilesPool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Stores all video-related files grouped by timestamp.&quot;&quot;&quot;</span>
 
-    def __init__(self) -&gt; None:
-        self.files = defaultdict(list)
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">files</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
 
-    def add_file(self, file: str):
-        """Adds a video-related file to the pool.
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Adds a video-related file to the pool.</span>
 
-        Args:
-            file (str): File name to be added.
-        """
-        timestamp = extract_timestamp(file)
-        self.files[timestamp].append(file)
+<span class="sd">        Args:</span>
+<span class="sd">            file (str): File name to be added.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">timestamp</span> <span class="o">=</span> <span class="n">extract_timestamp</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="n">timestamp</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
 
-    def list_groups(self) -&gt; dict[str, list[str]]:
-        """Lists groups of files sorted by timestamp.
+    <span class="k">def</span><span class="w"> </span><span class="nf">list_groups</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Lists groups of files sorted by timestamp.</span>
 
-        Returns:
-            dict[str, list[str]]: A dictionary where keys are timestamps (str)
-            and values are lists of file names (str).
-        """
-        return {timestamp: self.files[timestamp] for timestamp in sorted(self.files)}
+<span class="sd">        Returns:</span>
+<span class="sd">            dict[str, list[str]]: A dictionary where keys are timestamps (str)</span>
+<span class="sd">            and values are lists of file names (str).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">timestamp</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="n">timestamp</span><span class="p">]</span> <span class="k">for</span> <span class="n">timestamp</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="p">)}</span>
 
-    def find_one_random_json(self) -&gt; str | None:
-        """Finds a random JSON file in the pool.
+    <span class="k">def</span><span class="w"> </span><span class="nf">find_one_random_json</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Finds a random JSON file in the pool.</span>
 
-        Returns:
-            str: A JSON file name if found, otherwise None.
-        """
-        for files in self.files.values():
-            for file in files:
-                if file.endswith(".json"):
-                    return file
-        return None
+<span class="sd">        Returns:</span>
+<span class="sd">            str: A JSON file name if found, otherwise None.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">files</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">file</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.json&quot;</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="n">file</span>
+        <span class="k">return</span> <span class="kc">None</span>
 
-    def get_unique_cam_serials(self) -&gt; set[str]:
-        """
-        Returns a set of all unique camera serial numbers found in the filenames.
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_unique_cam_serials</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a set of all unique camera serial numbers found in the filenames.</span>
 
-        Returns:
-            set[str]: A set of unique camera serial numbers.
-        """
-        serials = set()
-        for files in self.files.values():
-            for file in files:
-                if file.endswith(".mp4"):
-                    serial = extract_cam_serial(file)
-                if serial:
-                    serials.add(serial)
-        return serials</code></pre>
+<span class="sd">        Returns:</span>
+<span class="sd">            set[str]: A set of unique camera serial numbers.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">serials</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">files</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">file</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.mp4&quot;</span><span class="p">):</span>
+                    <span class="n">serial</span> <span class="o">=</span> <span class="n">extract_cam_serial</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">serial</span><span class="p">:</span>
+                    <span class="n">serials</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">serial</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">serials</span>
+</code></pre></div></td></tr></table></div>
               </details>
 
 
@@ -1630,7 +1976,7 @@
 
 
 <h2 id="pyvideosync.data_pool.VideoFilesPool.files" class="doc doc-heading">
-            <code class="highlight language-python">files = defaultdict(list)</code>
+            <code class="highlight language-python"><span class="n">files</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
@@ -1650,7 +1996,7 @@
 
 
 <h2 id="pyvideosync.data_pool.VideoFilesPool.__init__" class="doc doc-heading">
-            <code class="highlight language-python">__init__() -&gt; None</code>
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
 
 <a href="#pyvideosync.data_pool.VideoFilesPool.__init__" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -1659,8 +2005,10 @@
 
             <details class="quote">
               <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
-              <pre class="highlight"><code class="language-python">def __init__(self) -&gt; None:
-    self.files = defaultdict(list)</code></pre>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">189</span>
+<span class="normal">190</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">files</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
             </details>
     </div>
 
@@ -1670,7 +2018,7 @@
 
 
 <h2 id="pyvideosync.data_pool.VideoFilesPool.add_file" class="doc doc-heading">
-            <code class="highlight language-python">add_file(file: str)</code>
+            <code class="highlight language-python"><span class="n">add_file</span><span class="p">(</span><span class="n">file</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span></code>
 
 <a href="#pyvideosync.data_pool.VideoFilesPool.add_file" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -1705,14 +2053,22 @@
 </table>
             <details class="quote">
               <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
-              <pre class="highlight"><code class="language-python">def add_file(self, file: str):
-    """Adds a video-related file to the pool.
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">192</span>
+<span class="normal">193</span>
+<span class="normal">194</span>
+<span class="normal">195</span>
+<span class="normal">196</span>
+<span class="normal">197</span>
+<span class="normal">198</span>
+<span class="normal">199</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">add_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Adds a video-related file to the pool.</span>
 
-    Args:
-        file (str): File name to be added.
-    """
-    timestamp = extract_timestamp(file)
-    self.files[timestamp].append(file)</code></pre>
+<span class="sd">    Args:</span>
+<span class="sd">        file (str): File name to be added.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">timestamp</span> <span class="o">=</span> <span class="n">extract_timestamp</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="n">timestamp</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
             </details>
     </div>
 
@@ -1722,7 +2078,7 @@
 
 
 <h2 id="pyvideosync.data_pool.VideoFilesPool.find_one_random_json" class="doc doc-heading">
-            <code class="highlight language-python">find_one_random_json() -&gt; str | None</code>
+            <code class="highlight language-python"><span class="n">find_one_random_json</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span></code>
 
 <a href="#pyvideosync.data_pool.VideoFilesPool.find_one_random_json" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -1756,17 +2112,28 @@
 </table>
             <details class="quote">
               <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
-              <pre class="highlight"><code class="language-python">def find_one_random_json(self) -&gt; str | None:
-    """Finds a random JSON file in the pool.
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">210</span>
+<span class="normal">211</span>
+<span class="normal">212</span>
+<span class="normal">213</span>
+<span class="normal">214</span>
+<span class="normal">215</span>
+<span class="normal">216</span>
+<span class="normal">217</span>
+<span class="normal">218</span>
+<span class="normal">219</span>
+<span class="normal">220</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">find_one_random_json</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Finds a random JSON file in the pool.</span>
 
-    Returns:
-        str: A JSON file name if found, otherwise None.
-    """
-    for files in self.files.values():
-        for file in files:
-            if file.endswith(".json"):
-                return file
-    return None</code></pre>
+<span class="sd">    Returns:</span>
+<span class="sd">        str: A JSON file name if found, otherwise None.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">files</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">file</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.json&quot;</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">file</span>
+    <span class="k">return</span> <span class="kc">None</span>
+</code></pre></div></td></tr></table></div>
             </details>
     </div>
 
@@ -1776,7 +2143,7 @@
 
 
 <h2 id="pyvideosync.data_pool.VideoFilesPool.get_unique_cam_serials" class="doc doc-heading">
-            <code class="highlight language-python">get_unique_cam_serials() -&gt; set[str]</code>
+            <code class="highlight language-python"><span class="n">get_unique_cam_serials</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span></code>
 
 <a href="#pyvideosync.data_pool.VideoFilesPool.get_unique_cam_serials" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -1810,21 +2177,36 @@
 </table>
             <details class="quote">
               <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
-              <pre class="highlight"><code class="language-python">def get_unique_cam_serials(self) -&gt; set[str]:
-    """
-    Returns a set of all unique camera serial numbers found in the filenames.
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">222</span>
+<span class="normal">223</span>
+<span class="normal">224</span>
+<span class="normal">225</span>
+<span class="normal">226</span>
+<span class="normal">227</span>
+<span class="normal">228</span>
+<span class="normal">229</span>
+<span class="normal">230</span>
+<span class="normal">231</span>
+<span class="normal">232</span>
+<span class="normal">233</span>
+<span class="normal">234</span>
+<span class="normal">235</span>
+<span class="normal">236</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_unique_cam_serials</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns a set of all unique camera serial numbers found in the filenames.</span>
 
-    Returns:
-        set[str]: A set of unique camera serial numbers.
-    """
-    serials = set()
-    for files in self.files.values():
-        for file in files:
-            if file.endswith(".mp4"):
-                serial = extract_cam_serial(file)
-            if serial:
-                serials.add(serial)
-    return serials</code></pre>
+<span class="sd">    Returns:</span>
+<span class="sd">        set[str]: A set of unique camera serial numbers.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">serials</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">files</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">file</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.mp4&quot;</span><span class="p">):</span>
+                <span class="n">serial</span> <span class="o">=</span> <span class="n">extract_cam_serial</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">serial</span><span class="p">:</span>
+                <span class="n">serials</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">serial</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">serials</span>
+</code></pre></div></td></tr></table></div>
             </details>
     </div>
 
@@ -1834,7 +2216,7 @@
 
 
 <h2 id="pyvideosync.data_pool.VideoFilesPool.list_groups" class="doc doc-heading">
-            <code class="highlight language-python">list_groups() -&gt; dict[str, list[str]]</code>
+            <code class="highlight language-python"><span class="n">list_groups</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span></code>
 
 <a href="#pyvideosync.data_pool.VideoFilesPool.list_groups" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -1875,14 +2257,22 @@
 </table>
             <details class="quote">
               <summary>Source code in <code>pyvideosync/data_pool.py</code></summary>
-              <pre class="highlight"><code class="language-python">def list_groups(self) -&gt; dict[str, list[str]]:
-    """Lists groups of files sorted by timestamp.
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">201</span>
+<span class="normal">202</span>
+<span class="normal">203</span>
+<span class="normal">204</span>
+<span class="normal">205</span>
+<span class="normal">206</span>
+<span class="normal">207</span>
+<span class="normal">208</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">list_groups</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Lists groups of files sorted by timestamp.</span>
 
-    Returns:
-        dict[str, list[str]]: A dictionary where keys are timestamps (str)
-        and values are lists of file names (str).
-    """
-    return {timestamp: self.files[timestamp] for timestamp in sorted(self.files)}</code></pre>
+<span class="sd">    Returns:</span>
+<span class="sd">        dict[str, list[str]]: A dictionary where keys are timestamps (str)</span>
+<span class="sd">        and values are lists of file names (str).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">{</span><span class="n">timestamp</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="n">timestamp</span><span class="p">]</span> <span class="k">for</span> <span class="n">timestamp</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="p">)}</span>
+</code></pre></div></td></tr></table></div>
             </details>
     </div>
 
