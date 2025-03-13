@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="../../css/theme_extra.css" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
         <link href="../../assets/_mkdocstrings.css" rel="stylesheet" />
+        <link href="../../css/extra.css" rel="stylesheet" />
     
       <script>
         // Current page data
@@ -76,6 +77,22 @@
                   </li>
                   <li class="toctree-l1 current"><a class="reference internal current" href="#">Contributing</a>
     <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#1-fork-clone-the-repository">1: Fork &amp; Clone the Repository</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#2-set-up-your-environment">2: Set Up Your Environment</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#3-create-a-branch">3: Create a Branch</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#4-make-changes-test">4: Make Changes &amp; Test</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#5-commit-and-push">5: Commit and Push</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#6-submit-a-pull-request">6: Submit a Pull Request</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#7-keep-your-fork-updated">7: Keep Your Fork Updated</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#contribution-guidelines">Contribution Guidelines</a>
+    </li>
     </ul>
                   </li>
               </ul>
@@ -137,7 +154,66 @@
             <div class="section" itemprop="articleBody">
               
                 <h1 id="contributing-guide">🤝 Contributing Guide<a class="headerlink" href="#contributing-guide" title="Permanent link">&para;</a></h1>
-<p>Want to contribute? Follow these steps:</p>
+<p>We welcome contributions to improve video-sync! Follow these steps to contribute:</p>
+<p>Note: This guide assumes basic familiarity with Git, Python, and command-line environments. </p>
+<h2 id="1-fork-clone-the-repository">1: Fork &amp; Clone the Repository<a class="headerlink" href="#1-fork-clone-the-repository" title="Permanent link">&para;</a></h2>
+<p>Click the Fork button at the top right of the GitHub repository</p>
+<p>Clone your fork
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/YOUR_USERNAME/video-sync.git
+<span class="nb">cd</span><span class="w"> </span>video-sync
+</code></pre></div></p>
+<p>Set the upstream remote</p>
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>remote<span class="w"> </span>add<span class="w"> </span>upstream<span class="w"> </span>https://github.com/bcm-neurosurgery/video-sync.git
+</code></pre></div>
+<h2 id="2-set-up-your-environment">2: Set Up Your Environment<a class="headerlink" href="#2-set-up-your-environment" title="Permanent link">&para;</a></h2>
+<p>Please refer to <a href="../../installation/">installations guide</a></p>
+<p>Verify installation
+<div class="highlight"><pre><span></span><code>stitch-videos<span class="w"> </span>--help
+</code></pre></div></p>
+<h2 id="3-create-a-branch">3: Create a Branch<a class="headerlink" href="#3-create-a-branch" title="Permanent link">&para;</a></h2>
+<p>Before making any changes, create a new branch:</p>
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>checkout<span class="w"> </span>-b<span class="w"> </span>feature/my-awesome-feature
+</code></pre></div>
+<p>For bug fixes, use:</p>
+<div class="highlight"><pre><span></span><code>git checkout -b fix/issue-123
+</code></pre></div>
+<p>Replace my-awesome-feature or issue-123 with a meaningful name.</p>
+<h2 id="4-make-changes-test">4: Make Changes &amp; Test<a class="headerlink" href="#4-make-changes-test" title="Permanent link">&para;</a></h2>
+<p>Write your code and make changes. Run tests to ensure everything works:</p>
+<p>Format your code with:
+<div class="highlight"><pre><span></span><code>black<span class="w"> </span>.
+</code></pre></div></p>
+<h2 id="5-commit-and-push">5: Commit and Push<a class="headerlink" href="#5-commit-and-push" title="Permanent link">&para;</a></h2>
+<p>Stage and commit your changes</p>
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>add<span class="w"> </span>.
+git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;Add feature: my awesome feature&quot;</span>
+</code></pre></div>
+<p>Push your branch to GitHub</p>
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>push<span class="w"> </span>origin<span class="w"> </span>feature/my-awesome-feature
+</code></pre></div>
+<h2 id="6-submit-a-pull-request">6: Submit a Pull Request<a class="headerlink" href="#6-submit-a-pull-request" title="Permanent link">&para;</a></h2>
+<p>Go to your fork on GitHub.
+Click the "New Pull Request" button.
+Select your branch and compare it with the main branch.
+Write a clear description of your changes.
+Click "Create Pull Request".</p>
+<p>Yewen will review your code and provide feedback if needed.</p>
+<h2 id="7-keep-your-fork-updated">7: Keep Your Fork Updated<a class="headerlink" href="#7-keep-your-fork-updated" title="Permanent link">&para;</a></h2>
+<p>To avoid merge conflicts, keep your local repository updated with the latest changes:</p>
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>checkout<span class="w"> </span>main
+git<span class="w"> </span>pull<span class="w"> </span>upstream<span class="w"> </span>main
+git<span class="w"> </span>checkout<span class="w"> </span>feature/my-awesome-feature
+git<span class="w"> </span>merge<span class="w"> </span>main
+</code></pre></div>
+<h2 id="contribution-guidelines">Contribution Guidelines<a class="headerlink" href="#contribution-guidelines" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Follow <a href="https://peps.python.org/pep-0008/">PEP 8</a> for Python code style.</li>
+<li>Write clear commit messages.</li>
+<li>Keep pull requests focused—one feature or bug fix per PR.</li>
+<li>Add comments and docstrings where necessary.</li>
+<li>If modifying behavior, update documentation and tests.</li>
+</ul>
+<p>Happy coding! Thank you for improving video-sync!</p>
               
             </div>
           </div><footer>
