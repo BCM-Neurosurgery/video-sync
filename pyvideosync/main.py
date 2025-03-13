@@ -29,7 +29,21 @@ from pyvideosync.nsx import Nsx
 import argparse
 
 
-def main(config_path):
+def main():
+    parser = argparse.ArgumentParser(
+        description="Video synchronization tool for neural data and camera recordings."
+    )
+    parser.add_argument(
+        "-c",
+        "--config",
+        required=True,
+        help="Path to YAML configuration file",
+        type=str,
+    )
+
+    args = parser.parse_args()
+    config_path = args.config
+
     timestamp = get_current_ts()
 
     pathutils = PathUtils(config_path, timestamp)
@@ -217,16 +231,4 @@ def main(config_path):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Video synchronization tool for neural data and camera recordings."
-    )
-    parser.add_argument(
-        "-c",
-        "--config",
-        required=True,
-        help="Path to YAML configuration file",
-        type=str,
-    )
-
-    args = parser.parse_args()
-    main(args.config)
+    main()
