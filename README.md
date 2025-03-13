@@ -1,6 +1,10 @@
 # 🎥 **video-sync**  
 *A Python tool to synchronize NSP data with camera recordings.*
 
+## 📖 Documentation
+
+For detailed documentation, please go to https://bcm-neurosurgery.github.io/video-sync/
+
 ## 📌 Introduction  
 `video-sync` is a Python-based tool designed to synchronize **Neural Signal Processing (NSP) data** with camera recordings. It processes **NEV, NS5 files, and camera JSON files**, slices videos based on valid frames, and aligns audio with video. This ensures precise synchronization of neural and video data for analysis.
 
