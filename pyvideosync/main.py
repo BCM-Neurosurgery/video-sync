@@ -233,7 +233,7 @@ def main():
         else:
             ffmpeg_concat_mp4s(subclip_paths, final_path)
 
-        logger.info(f"Saved {camera_serial} to {video_output_path}")
+        logger.info(f"Saved {camera_serial} to {final_path}")
 
 
 if __name__ == "__main__":
