@@ -14,9 +14,28 @@ class Videojson:
 
     def __init__(self, json_path) -> None:
         self.json_path = json_path
-        with open(json_path, "r", encoding="utf-8") as f:
-            self.dic = json.load(f)
+        self.dic = None
+
+        try:
+            with open(json_path, "r", encoding="utf-8") as f:
+                content = f.read().strip()
+                if not content:
+                    print(
+                        f"Warning: JSON file '{json_path}' is empty. Initializing empty dictionary."
+                    )
+                    return
+                self.dic = json.loads(content)
+        except json.JSONDecodeError:
+            print(
+                f"Warning: JSON file '{json_path}' is invalid. Initializing empty dictionary."
+            )
+            return
+
         self.init_vars()
+
+    def is_valid(self) -> bool:
+        """Checks if the JSON was loaded successfully."""
+        return self.dic is not None
 
     def init_vars(self):
         self.num_cameras = self.get_num_cameras()

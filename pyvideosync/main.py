@@ -27,6 +27,7 @@ from pyvideosync.videojson import Videojson
 from pyvideosync.nev import Nev
 from pyvideosync.nsx import Nsx
 import argparse
+import shutil
 
 
 def main():
@@ -63,7 +64,7 @@ def main():
         return
 
     # 1. Get NEV serial start and end
-    nsp1_nev_path = datapool.get_nsp1_nev_path()
+    nsp1_nev_path = datapool.get_nev_path()
     nev = Nev(nsp1_nev_path)
     nev_chunk_serial_df = nev.get_chunk_serial_df()
     logger.info(f"NEV dataframe\n: {nev_chunk_serial_df}")
@@ -95,7 +96,12 @@ def main():
             if json_path is None:
                 logger.error(f"No JSON file found in group {timestamp}")
                 continue
+
             videojson = Videojson(json_path)
+            if not videojson.is_valid():
+                logger.error(f"Invalid JSON file: {json_path}")
+                continue
+
             start_serial, end_serial = videojson.get_min_max_chunk_serial()
             if start_serial is None or end_serial is None:
                 logger.error(f"No chunk serials found in JSON file: {json_path}")
@@ -118,7 +124,7 @@ def main():
     sorted_timestamps = sort_timestamps(timestamps)
 
     # process NS5 channel data
-    ns5_path = datapool.get_nsp1_ns5_path()
+    ns5_path = datapool.get_ns5_path()
     ns5 = Nsx(ns5_path)
 
     # 5. Go through the timestamps and process the videos
@@ -217,14 +223,14 @@ def main():
             )
             subclip_paths.append(subclip)
 
+        final_path = os.path.join(
+            pathutils.output_dir, camera_serial, f"stitched_{camera_serial}.mp4"
+        )
         # Now 'subclip_paths' has each final MP4 subclip
         # If we have only one, just rename or copy it
         if len(subclip_paths) == 1:
-            final_path = subclip_paths[0]
+            shutil.move(subclip_paths[0], final_path)
         else:
-            final_path = os.path.join(
-                pathutils.output_dir, camera_serial, f"stitched_{camera_serial}.mp4"
-            )
             ffmpeg_concat_mp4s(subclip_paths, final_path)
 
         logger.info(f"Saved {camera_serial} to {video_output_path}")
