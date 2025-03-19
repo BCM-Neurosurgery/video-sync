@@ -2,7 +2,7 @@ import json
 import pandas as pd
 import numpy as np
 from datetime import datetime
-from pyvideosync.fixanomaly import fix_discontinuities
+from pyvideosync.fixanomaly import fix_discontinuities, fill_array_gaps
 
 
 class Videojson:
@@ -111,8 +111,27 @@ class Videojson:
             res.append(temp)
         df = pd.DataFrame.from_records(res)
         df = self.reconstruct_frame_id(df)
-        df["chunk_serial_data"] = fix_discontinuities(df["chunk_serial_data"].tolist())
-        return df
+
+        # First, fix discontinuities
+        chunk_serial_fixed = fix_discontinuities(df["chunk_serial_data"].tolist())
+        frame_id_fixed = fix_discontinuities(df["frame_ids_reconstructed"].tolist())
+
+        # Now explicitly interpolate (fill gaps) which will increase the DataFrame length
+        continuous_chunk_serial = fill_array_gaps(chunk_serial_fixed)
+        continuous_frame_ids = fill_array_gaps(frame_id_fixed)
+
+        # Create a new DataFrame from the continuous sequences
+        df_continuous = pd.DataFrame(
+            {
+                "chunk_serial_data": continuous_chunk_serial,
+                "frame_ids_reconstructed": continuous_frame_ids,
+            }
+        )
+
+        # Optional: align original timestamps or real_times by reindexing
+        # (This step depends on how I'd like to handle the original time information.)
+        # For instance, I could use a merge or interpolation on original timestamps.
+        return df_continuous
 
     def get_chunk_serial_list(self, cam_serial):
         """Return the list of chunk serial"""
