@@ -795,3 +795,36 @@ def get_mp4_file(files: list, camera_serial: str, pathutils) -> str:
     ]
 
     return mp4_files[0] if len(mp4_files) == 1 else None
+
+
+def is_incrementally_increasing(arr: np.ndarray) -> bool:
+    """Checks if a 1-D integer array is strictly incrementally increasing.
+
+    Determines if each element in the input array is exactly one greater than
+    the preceding element. Returns `True` only if this condition is met for every
+    consecutive pair of elements.
+
+    Args:
+        arr (Union[List[int], np.ndarray]): 1-D array of integers to check.
+
+    Returns:
+        bool: `True` if the array is strictly incrementally increasing by 1,
+            otherwise `False`.
+
+    Examples:
+        >>> is_incrementally_increasing([1, 2, 3, 4, 5])
+        True
+
+        >>> is_incrementally_increasing([1, 2, 4, 5])
+        False
+
+        >>> is_incrementally_increasing([1])
+        True
+
+        >>> is_incrementally_increasing([])
+        True
+    """
+    arr = np.asarray(arr)
+    if len(arr) <= 1:
+        return True
+    return np.all(np.diff(arr) == 1)
