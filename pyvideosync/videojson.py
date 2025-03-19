@@ -2,9 +2,7 @@ import json
 import pandas as pd
 import numpy as np
 from datetime import datetime
-from .utils import (
-    replace_zeros,
-)
+from pyvideosync.fixanomaly import fix_discontinuities
 
 
 class Videojson:
@@ -68,10 +66,31 @@ class Videojson:
         return list(self.dic["serials"])
 
     def get_camera_df(self, cam_serial: int):
-        """
-        Reader df with one camera
-        header
-        chunk_serial_data timestamp frame_id real_times
+        """Returns a DataFrame containing corrected data for a specified camera.
+
+        Extracts the camera-specific data from internal JSON records, reconstructs the
+        frame IDs, replaces zeros, and fixes discontinuities in the `chunk_serial_data`
+        column using the `fix_discontinuities` function.
+
+        The resulting DataFrame contains at least the following columns:
+
+            - `chunk_serial_data`: Corrected incremental chunk serial numbers.
+            - `frame_id`: Reconstructed frame IDs.
+
+        Args:
+            cam_serial (int): Serial number identifying the camera whose data is requested.
+
+        Returns:
+            pd.DataFrame: A DataFrame with corrected camera data, ensuring incremental
+                continuity in the `chunk_serial_data` column.
+
+        Raises:
+            AssertionError: If the provided camera serial number does not exist in the data.
+
+        Examples:
+            >>> videojson.get_camera_df(123456)
+            # Returns DataFrame with chunk_serial_data and frame_id columns for camera 123456
+
         """
         assert (
             cam_serial in self.get_camera_serials()
@@ -92,7 +111,7 @@ class Videojson:
             res.append(temp)
         df = pd.DataFrame.from_records(res)
         df = self.reconstruct_frame_id(df)
-        df = replace_zeros(df, "chunk_serial_data")
+        df["chunk_serial_data"] = fix_discontinuities(df["chunk_serial_data"].tolist())
         return df
 
     def get_chunk_serial_list(self, cam_serial):
