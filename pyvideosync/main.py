@@ -179,7 +179,6 @@ def main():
                     "TimeStamp",
                     "Amplitude",
                     "chunk_serial",
-                    "frame_id",
                     "frame_ids_reconstructed",
                     "frame_ids_relative",
                 ]
@@ -208,7 +207,6 @@ def main():
         # process the videos
         video_output_dir = os.path.join(pathutils.output_dir, camera_serial)
         os.makedirs(video_output_dir, exist_ok=True)
-        video_output_path = os.path.join(video_output_dir, "output.mp4")
 
         subclip_paths = []
         for mp4_path in all_merged_df["mp4_file"].unique():
