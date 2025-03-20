@@ -1,8 +1,7 @@
 from brpylib import NevFile
 import pandas as pd
-from pyvideosync import utils
 import matplotlib.pyplot as plt
-from .utils import fill_missing_serials_with_gap
+from pyvideosync.utils import fill_missing_serials_with_gap
 
 
 class Nev:

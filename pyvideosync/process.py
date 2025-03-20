@@ -1,7 +1,5 @@
-from pyvideosync.video import Video
 import os
 import subprocess
-import uuid
 from scipy.io.wavfile import write as wav_write
 import numpy as np
 
