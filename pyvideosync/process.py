@@ -47,7 +47,7 @@ def ffmpeg_concat_mp4s(mp4_paths, output_path):
     return output_path
 
 
-def make_synced_subclip_ffmpeg(df_sub, mp4_path, out_dir="/tmp"):
+def make_synced_subclip_ffmpeg(df_sub, mp4_path, out_dir, session_uuid):
     """
     Given:
         - df_sub: DataFrame that has columns ['frame_ids_relative', 'Amplitude'].
@@ -55,6 +55,7 @@ def make_synced_subclip_ffmpeg(df_sub, mp4_path, out_dir="/tmp"):
         - fps_video: Frame rate of the video (used to convert frames -> seconds).
         - fps_audio: Sampling rate for the exported WAV.
         - out_dir: Directory where intermediate and final files will be written.
+        - session_uuid: A shared UUID for all subclips in the session.
 
     Steps:
         1) Determine subclip time range (start_sec, end_sec).
@@ -65,10 +66,11 @@ def make_synced_subclip_ffmpeg(df_sub, mp4_path, out_dir="/tmp"):
     """
     # 1) Create output paths
     base_name = os.path.splitext(os.path.basename(mp4_path))[0]  # e.g. 'myvideo'
-    unique_id = str(uuid.uuid4())[:8]  # random suffix to avoid collisions
-    subclip_video_path = os.path.join(out_dir, f"{base_name}_subclip_{unique_id}.mp4")
-    audio_wav_path = os.path.join(out_dir, f"{base_name}_audio_{unique_id}.wav")
-    final_path = os.path.join(out_dir, f"{base_name}_final_{unique_id}.mp4")
+    subclip_video_path = os.path.join(
+        out_dir, f"{base_name}_subclip_{session_uuid}.mp4"
+    )
+    audio_wav_path = os.path.join(out_dir, f"{base_name}_audio_{session_uuid}.wav")
+    final_path = os.path.join(out_dir, f"{base_name}_final_{session_uuid}.mp4")
 
     # 2) Identify which frames we need
     # this frame_ids_reconstructed should not have -1s

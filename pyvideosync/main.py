@@ -28,6 +28,7 @@ from pyvideosync.nev import Nev
 from pyvideosync.nsx import Nsx
 import argparse
 import shutil
+import uuid
 
 
 def main():
@@ -208,6 +209,7 @@ def main():
         video_output_dir = os.path.join(pathutils.output_dir, camera_serial)
         os.makedirs(video_output_dir, exist_ok=True)
 
+        session_uuid = str(uuid.uuid4())[:8]
         subclip_paths = []
         for mp4_path in all_merged_df["mp4_file"].unique():
             df_sub = all_merged_df[all_merged_df["mp4_file"] == mp4_path]
@@ -216,7 +218,8 @@ def main():
             subclip = make_synced_subclip_ffmpeg(
                 df_sub,
                 mp4_path,
-                out_dir=os.path.join(pathutils.output_dir, camera_serial),
+                os.path.join(pathutils.output_dir, camera_serial),
+                session_uuid,
             )
             subclip_paths.append(subclip)
 
