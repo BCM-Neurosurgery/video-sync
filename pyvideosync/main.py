@@ -216,7 +216,6 @@ def main():
             subclip = make_synced_subclip_ffmpeg(
                 df_sub,
                 mp4_path,
-                fps_audio=30000,  # 30kHz
                 out_dir=os.path.join(pathutils.output_dir, camera_serial),
             )
             subclip_paths.append(subclip)

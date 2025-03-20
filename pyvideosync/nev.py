@@ -152,30 +152,63 @@ class Nev:
             results, columns=["TimeStamps", "chunk_serial", "UTCTimeStamp"]
         )
 
-    def get_chunk_serial_df(self):
-        """
-        From the cleaned digital_events_df, group by every 5 rows
-        and reconstruct
+    def get_chunk_serial_df(self, timestamp_byte: str = "first"):
+        """Reconstruct chunk serial numbers from grouped digital events.
+
+        Processes the cleaned digital events DataFrame by grouping every five consecutive rows,
+        reconstructing each chunk serial number from the grouped 7-bit encoded values, and
+        associating it with a corresponding timestamp. The timestamp used for each group
+        can be explicitly selected as either the first or last byte in the group.
+
+        Args:
+            timestamp_byte (str, optional): Which byte's timestamp to use ('first' or 'last').
+                Defaults to 'first'. Use 'last' if you want the timestamp representing
+                the full completion of the serial transmission (recommended for accurate synchronization).
 
         Returns:
-            TimeStamps 	    chunk_serial 	UTCTimeStamp
-        0 	1345819 	    583208 	        2024-04-16 21:48:17.194633
-        1 	1346821 	    583209 	        2024-04-16 21:48:17.228033
+            pd.DataFrame: A DataFrame containing:
+                - `TimeStamps`: Timestamp from the NEV data (based on selected byte).
+                - `chunk_serial`: Reconstructed chunk serial number.
+                - `UTCTimeStamp`: Human-readable UTC timestamp.
+
+        Raises:
+            AssertionError: If unparsed data is unavailable or timestamp_byte parameter is invalid.
+
+        Example:
+            >>> nev.get_chunk_serial_df(timestamp_byte='last')
+                    TimeStamps  chunk_serial              UTCTimeStamp
+            0         1345819       583208  2024-04-16 21:48:17.195433
+            1         1346821       583209  2024-04-16 21:48:17.228833
         """
-        assert self.has_unparsed_data()
+        assert self.has_unparsed_data(), "No unparsed data available."
+        assert timestamp_byte in [
+            "first",
+            "last",
+        ], "timestamp_byte must be either 'first' or 'last'"
+
         df = self.get_cleaned_digital_events_df()
         results = []
+
         for i in range(0, len(df), 5):
             group = df.iloc[i : i + 5]
             if len(group) == 5:
-                nums = [x for x in group["UnparsedData"]]
+                nums = group["UnparsedData"].tolist()
                 decimal_number = self.bits_to_decimal(nums)
-                timestamp = group["TimeStamps"].iloc[0]
-                unixTime = utils.ts2unix(
+
+                # explicitly choose which byte's timestamp to use
+                if timestamp_byte == "first":
+                    timestamp = group["TimeStamps"].iloc[0]
+                else:  # timestamp_byte == 'last'
+                    timestamp = group["TimeStamps"].iloc[-1]
+
+                unix_time = utils.ts2unix(
                     self.timeOrigin, self.timestampResolution, timestamp
                 )
-                results.append((timestamp, decimal_number, unixTime))
+                results.append((timestamp, decimal_number, unix_time))
+
+        # Explicitly fill missing serials if necessary
         results = fill_missing_serials_with_gap(results)
+
         return pd.DataFrame.from_records(
             results, columns=["TimeStamps", "chunk_serial", "UTCTimeStamp"]
         )
