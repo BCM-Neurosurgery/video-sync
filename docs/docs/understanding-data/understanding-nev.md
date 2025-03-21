@@ -4,42 +4,123 @@ This guide provides a detailed explanation of the NEV (Neural Event) file struct
 
 ## NEV File Structure
 
-NEV files store timestamped events including neural spikes and digital signals. For synchronization purposes, we are primarily concerned with the digital events, which include the following fields:
+The `.nev` file format, developed by BlackRock Microsystems, is designed to store timestamped neural events such as spikes, TTL pulses, and serial messages. It supports up to 10,000 electrodes and includes both metadata and raw event data, structured to balance flexibility, efficiency, and ease of parsing.
 
-- **TimeStamps**: High-resolution timestamps (typically 30,000 Hz resolution).
-- **InsertionReason**: An 8-bit flag describing why the digital event was logged.
-- **UnparsedData**: The raw binary data, either as 16-bit digital states or encoded serial messages.
+A NEV file consists of three main components:
 
-To read the digital events as a dataframe from a `.nev` file, we can use the `Nev` class in the package. 
+- Basic Header
+- Extended Headers
+- Data Packets
+
+### Basic Header
+
+The basic header contains global metadata about the recording session, including the timestamp resolution and the origin of time. You can inspect it using the following method. Key fields:
+
+- **TimeStampResolution**: Number of timestamp ticks per second (e.g., 30,000 means 1 tick = 33.3 μs).
+- **SampleTimeResolution**: Used for waveform sampling resolution, often the same as TimeStampResolution.
+- **TimeOrigin**: The UTC time when the recording started.
+
+```python
+>>> nev.get_basic_header()
+{'FileTypeID': 'BREVENTS',
+ 'FileSpec': '3.0',
+ 'AddFlags': 1,
+ 'BytesInHeader': 26512,
+ 'BytesInDataPackets': 108,
+ 'TimeStampResolution': 30000,
+ 'SampleTimeResolution': 30000,
+ 'TimeOrigin': datetime.datetime(2024, 7, 17, 11, 55, 38, 670000),
+ 'CreatingApplication': 'File Dialog v7.6.1',
+ 'Comment': '',
+ 'NumExtendedHeaders': 818}
+```
+
+### Extended Headers
+
+Extended headers contain channel-specific metadata, such as labeling, filtering, and electrode properties. They are stored as a list of dictionaries. Each PacketID identifies the type of metadata (e.g., waveform parameters, labels, filter settings).
+
+```python
+>>> nev.get_extended_headers()
+[{'PacketID': 'NEUEVWAV',
+  'ElectrodeID': 1,
+  'PhysicalConnector': 1,
+  'ConnectorPin': 1,
+  'DigitizationFactor': 250,
+  'EnergyThreshold': 0,
+  'HighThreshold': 0,
+  'LowThreshold': -255,
+  'NumSortedUnits': 0,
+  'BytesPerWaveform': 2,
+  'SpikeWidthSamples': 48,
+  'EmptyBytes': b'\x00\x00\x00\x00\x00\x00\x00\x00'},
+ {'PacketID': 'NEUEVLBL',
+  'ElectrodeID': 1,
+  'Label': 'LdPF-mPF01-001',
+  'EmptyBytes': b'\x00\x00\x00\x00\x00\x00'},
+ {'PacketID': 'NEUEVFLT',
+  'ElectrodeID': 1,
+  'HighFreqCorner': '250.0 Hz',
+  'HighFreqOrder': 4,
+  'HighFreqType': 'butterworth',
+  'LowFreqCorner': '7500.0 Hz',
+  'LowFreqOrder': 3,
+  'LowFreqType': 'butterworth',
+  'EmptyBytes': b'\x00\x00'},
+  ...,
+]
+```
+
+### Data Packets
+The `.nev` file also contains the actual timestamped events, such as TTL pulses or encoded serial data.
 
 ```python
 nev = Nev(nev_path)
 nev_digital_events_df = nev.get_digital_events_df()
 ```
 
-The digital events dataframe looks like
-
 {{ read_csv('understanding-nev/digital_events_df_first_20_rows.csv') }}
 
+Key columns:
+
+- **TimeStamps**: Integer-based timestamps with TimeStampResolution frequency (e.g., 30,000 Hz).
+- **InsertionReason**: An 8-bit flag indicating why the event was inserted (e.g., digital change, serial input).
+- **UnparsedData**: The raw 16-bit digital input or 7-bit serial payload (depending on the flag).
 
 ## Understanding `InsertionReason`
 
-The `InsertionReason` field is a bitwise flag. Relevant values include:
+The `InsertionReason` field in the NEV file is a **bitwise flag** that encodes the reason a particular event was recorded. Each bit represents a specific condition or source for the event. Multiple bits may be set simultaneously.
 
-| Value | Meaning |
-|-------|---------|
-| `1`   | A digital channel (e.g., camera trigger) changed |
-| `129` | A serial message was received (bit 7 and bit 0 set) |
+### Relevant Values
 
-## Interpreting `UnparsedData`
+| Value | Binary (8-bit) | Meaning |
+|-------|----------------|---------|
+| `1`   | `00000001`     | A **digital channel** changed state (e.g., camera trigger line toggled) |
+| `129` | `10000001`     | A **serial channel** changed, and a digital change occurred (i.e., a serial byte was received) |
 
-### Digital Channel Triggers
+### Bitwise Breakdown (from BlackRock NEV Specification)
 
-For `InsertionReason == 1`, `UnparsedData` is a 16-bit integer representing the state of all 16 digital channels. Each bit corresponds to a specific input channel (e.g., camera exposure line). These values are typically used to reconstruct square wave triggers.
+The `InsertionReason` byte is defined as follows:
 
-### Serial Data
+| Bit | Meaning |
+|-----|---------|
+| **0** | Digital channel changed (e.g., rising/falling edge on a trigger line) |
+| **1** | Event is from a strobed input |
+| **2–6** | Reserved (unused) |
+| **7** | Serial channel changed (must be set alongside Bit 0) |
 
-For `InsertionReason == 129`, `UnparsedData` represents 1 byte (7 bits of actual data). The Arduino sends serial data by splitting a 32-bit integer into five 7-bit chunks. Each group of 5 rows with `InsertionReason == 129` corresponds to a full serial message.
+### Interpretation
+
+- `0b00000001` (decimal `1`) → Digital event only  
+- `0b10000001` (decimal `129`) → Serial event (with digital change)
+
+### Usage
+
+- Use rows where `InsertionReason == 1` to extract **digital trigger events** (e.g., camera exposure).
+- Use rows where `InsertionReason == 129` to reconstruct **serial counter values** sent from Arduino in 5-byte chunks.
+
+This distinction is crucial for synchronizing camera frames with external signals such as triggers or Arduino-based serial counters.
+
+## Understanding `UnparsedData`
 
 ### How Trigger and Serial are sent from Arduino
 
@@ -80,6 +161,32 @@ bool send_trigger_sync_to_pcb(void *) {
   return true;
 }
 ```
+
+### How Trigger and Serial are encoded in `UnparsedData`
+
+The UnparsedData field in the NEV digital events dataframe holds different meanings depending on the value of the InsertionReason flag.
+
+For `InsertionReason == 1`, the `UnparsedData` value represents a 16-bit unsigned integer encoding the state of all 16 digital input lines. Each bit corresponds to a specific digital channel—commonly used for camera exposure signals or TTL triggers. Since the NEV file only records changes in digital line state (i.e., rising or falling edges), the data is **sparse** in time. To reconstruct the square waveforms of digital signals (such as camera exposure or external triggers), the following steps are required:
+
+- Filter digital events where `InsertionReason == 1`.
+- Convert UnparsedData into a 16-bit binary representation.
+- Fill in gaps between timestamps to create a continuous time axis, since intermediate bit states are not recorded.
+- Extract the state of the specific bit corresponding to the channel of interest.
+- Plot the decoded signal as a square wave.
+
+This process is encapsulated in the `nev.plot_cam_exposure_all` function, which generates clear, continuous exposure traces:
+
+![Trigger Square Pulses](understanding-nev/cam_expo.png)
+
+When `InsertionReason` is `129`, the UnparsedData value represents a 7-bit payload from serial communication. The Arduino transmits a 32-bit integer over serial by encoding it into five 7-bit bytes, each stored as a separate event with `InsertionReason == 129`.
+
+To decode the full serial message:
+
+- Group every 5 consecutive rows with `InsertionReason == 129`.
+- Extract the 7-bit data values from UnparsedData.
+- Reconstruct the original 32-bit integer by reversing the bit-shifting process.
+
+Each such 5-row group represents a complete serial counter value synchronized with a trigger pulse. This data can then be used for precise alignment between camera frames and neural events.
 
 ### How Serial Number is reconstructed from 5 Bytes
 
