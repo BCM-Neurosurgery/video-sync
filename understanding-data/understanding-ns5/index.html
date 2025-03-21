@@ -61,6 +61,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#understanding-ns5" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -1123,6 +1128,20 @@
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Understanding Ns5
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
       
       <a href="./" class="md-nav__link md-nav__link--active">
         
@@ -1134,6 +1153,85 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#ns5-file-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      NS5 File Structure
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="NS5 File Structure">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#basic-header" class="md-nav__link">
+    <span class="md-ellipsis">
+      Basic Header
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#extended-headers" class="md-nav__link">
+    <span class="md-ellipsis">
+      Extended Headers
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data-packets" class="md-nav__link">
+    <span class="md-ellipsis">
+      Data Packets
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-audioneuro-data-is-encoded" class="md-nav__link">
+    <span class="md-ellipsis">
+      How Audio/Neuro Data is Encoded
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-to-decode-audio" class="md-nav__link">
+    <span class="md-ellipsis">
+      How to Decode Audio
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -1164,6 +1262,76 @@
   
   
   
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#ns5-file-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      NS5 File Structure
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="NS5 File Structure">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#basic-header" class="md-nav__link">
+    <span class="md-ellipsis">
+      Basic Header
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#extended-headers" class="md-nav__link">
+    <span class="md-ellipsis">
+      Extended Headers
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data-packets" class="md-nav__link">
+    <span class="md-ellipsis">
+      Data Packets
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-audioneuro-data-is-encoded" class="md-nav__link">
+    <span class="md-ellipsis">
+      How Audio/Neuro Data is Encoded
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-to-decode-audio" class="md-nav__link">
+    <span class="md-ellipsis">
+      How to Decode Audio
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -1182,9 +1350,443 @@
   
 
 
-  <h1>Understanding Ns5</h1>
+<h1 id="understanding-ns5">Understanding NS5<a class="headerlink" href="#understanding-ns5" title="Permanent link">&para;</a></h1>
+<p>BlackRock NSx files (<code>.ns1</code> through <code>.ns9</code>) contain <strong>continuously sampled data</strong> from electrophysiological recordings, such as raw voltage traces, local field potentials (LFP), or EMG signals. The number <code>x</code> in the file extension corresponds to the sampling rate tier — for example, <code>.ns1</code> might store lower-rate LFP data (e.g., 500 Hz), while <code>.ns5</code> typically stores high-resolution raw data sampled at 30,000 Hz.</p>
+<p>These files are <strong>written in a time non-decreasing manner</strong> and are typically paired with a <code>.nev</code> file that contains spike events and digital triggers. For instance, the files <code>experiment.nev</code> and <code>experiment.ns5</code> together represent the full set of spike events and high-resolution continuous signals for a recording session.</p>
+<p>It is important to note that:
+- An NSx file can exist independently of a NEV file, and vice versa.
+- Multiple NSx files (e.g., <code>.ns2</code>, <code>.ns6</code>) may exist in the same recording session if continuous sampling was performed at multiple rates.
+- The <code>.ns5</code> file is most commonly used when raw neural data is acquired at the <strong>highest available sampling rate (30 kHz)</strong>.</p>
+<p>This section provides guidance on how to interpret and process <code>.ns5</code> files, including reading the header structure, decoding the data blocks, and aligning NS5 signals with NEV-based events like triggers or serial pulses.</p>
+<h2 id="ns5-file-structure">NS5 File Structure<a class="headerlink" href="#ns5-file-structure" title="Permanent link">&para;</a></h2>
+<p>Ns5 is...</p>
+<p>A Ns5 file consists of three main components:</p>
+<ul>
+<li>Basic Header</li>
+<li>Extended Headers</li>
+<li>Data Packets</li>
+</ul>
+<p>You can load a <code>.ns5</code> file by</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">pyvideosync.nsx</span><span class="w"> </span><span class="kn">import</span> <span class="n">Nsx</span>
+<span class="n">ns5_path</span> <span class="o">=</span> <span class="s2">&quot;/path/to/ns5&quot;</span>
+<span class="n">ns5</span> <span class="o">=</span> <span class="n">Nsx</span><span class="p">(</span><span class="n">ns5_path</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="basic-header">Basic Header<a class="headerlink" href="#basic-header" title="Permanent link">&para;</a></h3>
+<p>The <strong>Basic Header</strong> provides essential metadata about the <code>.ns5</code> file and its structure. It is always located at the beginning of the file and defines how to interpret the rest of the data. All multi-byte values are stored in <strong>little-endian format</strong>, and character arrays may not be null-terminated unless they are shorter than the maximum allowed length.</p>
+<p>Below is an example output of the parsed NS5 basic header using the <code>get_basic_header()</code> method:</p>
+<div class="highlight"><pre><span></span><code><span class="o">&gt;&gt;&gt;</span> <span class="n">ns5</span><span class="o">.</span><span class="n">get_basic_header</span><span class="p">()</span>
+<span class="p">{</span><span class="s1">&#39;FileTypeID&#39;</span><span class="p">:</span> <span class="s1">&#39;BRSMPGRP&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;SampleResolution&#39;</span><span class="p">:</span> <span class="mi">30000</span><span class="p">,</span>
+ <span class="s1">&#39;FileSpec&#39;</span><span class="p">:</span> <span class="s1">&#39;3.0&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;BytesInHeader&#39;</span><span class="p">:</span> <span class="mi">710</span><span class="p">,</span>
+ <span class="s1">&#39;Label&#39;</span><span class="p">:</span> <span class="s1">&#39;30 kS/s&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;Comment&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;Period&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+ <span class="s1">&#39;TimeStampResolution&#39;</span><span class="p">:</span> <span class="mi">30000</span><span class="p">,</span>
+ <span class="s1">&#39;TimeOrigin&#39;</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">(</span><span class="mi">2024</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">17</span><span class="p">,</span> <span class="mi">13</span><span class="p">,</span> <span class="mi">35</span><span class="p">,</span> <span class="mi">39</span><span class="p">,</span> <span class="mi">30000</span><span class="p">),</span>
+ <span class="s1">&#39;ChannelCount&#39;</span><span class="p">:</span> <span class="mi">6</span><span class="p">}</span>
+</code></pre></div>
+<p>Explanation of fields</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>FileTypeID</code></td>
+<td>Always set to <code>"BRSMPGRP"</code>, indicating a Neural Continuous Data file. Earlier versions may use <code>"NEURALSG"</code> or <code>"NEURALCD"</code>.</td>
+</tr>
+<tr>
+<td><code>FileSpec</code></td>
+<td>File specification version, represented as major and minor (e.g., <code>'3.0'</code> corresponds to version 3.0).</td>
+</tr>
+<tr>
+<td><code>BytesInHeader</code></td>
+<td>Total number of bytes in the combined standard and extended headers. Also serves as the byte offset to the first data packet.</td>
+</tr>
+<tr>
+<td><code>Label</code></td>
+<td>A human-readable label for the sampling group (e.g., <code>"30 kS/s"</code> or <code>"LFP Low"</code>).</td>
+</tr>
+<tr>
+<td><code>Comment</code></td>
+<td>Optional descriptive comment about the file or recording session.</td>
+</tr>
+<tr>
+<td><code>Period</code></td>
+<td>Number of 1/30,000 second intervals between data points. A value of <code>1</code> implies a 30,000 Hz sampling rate. A value of <code>3</code> would indicate 10,000 Hz.</td>
+</tr>
+<tr>
+<td><code>TimeStampResolution</code></td>
+<td>Frequency of the global time base (in counts per second). Typically <code>30,000</code>, indicating that each timestamp unit equals 1/30,000 seconds.</td>
+</tr>
+<tr>
+<td><code>TimeOrigin</code></td>
+<td>The UTC time at which the recording began. This is considered time zero for the timestamp values.</td>
+</tr>
+<tr>
+<td><code>ChannelCount</code></td>
+<td>Total number of continuously sampled channels in this file. This should match the number of extended headers that follow.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="extended-headers">Extended Headers<a class="headerlink" href="#extended-headers" title="Permanent link">&para;</a></h3>
+<p>The NS5 file includes one extended header per continuously sampled channel. These headers describe how each electrode channel was configured during acquisition. The number of extended headers corresponds to the ChannelCount specified in the basic header.</p>
+<p>The standard format for each extended header includes:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Type</code></td>
+<td>Always set to "CC" (Continuous Channel), indicating this is an extended header for continuous data.</td>
+</tr>
+<tr>
+<td><code>ElectrodeID</code></td>
+<td>Unique identifier for the electrode. This ID matches the electrode numbers in the corresponding NEV file.</td>
+</tr>
+<tr>
+<td><code>ElectrodeLabel</code></td>
+<td>A human-readable label or name for the electrode (e.g., "elec1").</td>
+</tr>
+<tr>
+<td><code>PhysicalConnector</code></td>
+<td>The physical bank or system connector to which the electrode is attached. For example: 1 = Bank A, 2 = Bank B, etc.</td>
+</tr>
+<tr>
+<td><code>ConnectorPin</code></td>
+<td>The specific pin number on the connector where the electrode is connected (typically 1–37).</td>
+</tr>
+<tr>
+<td><code>MinDigitalValue</code></td>
+<td>Minimum digital value of the signal (e.g., -8192).</td>
+</tr>
+<tr>
+<td><code>MaxDigitalValue</code></td>
+<td>Maximum digital value of the signal (e.g., 8192).</td>
+</tr>
+<tr>
+<td><code>MinAnalogValue</code></td>
+<td>Minimum analog value after scaling, typically in microvolts or millivolts (e.g., -5000).</td>
+</tr>
+<tr>
+<td><code>MaxAnalogValue</code></td>
+<td>Maximum analog value after scaling (e.g., 5000).</td>
+</tr>
+<tr>
+<td><code>Units</code></td>
+<td>Unit of measurement for the analog values (e.g., "μV" or "mV").</td>
+</tr>
+<tr>
+<td><code>HighFreqCorner</code></td>
+<td>The upper cutoff frequency of the signal filter in millihertz.</td>
+</tr>
+<tr>
+<td><code>HighFreqOrder</code></td>
+<td>Order of the high-pass filter applied (e.g., 4 for a 4th-order filter).</td>
+</tr>
+<tr>
+<td><code>HighFilterType</code></td>
+<td>Type of high-pass filter used. 0 = NONE, 1 = Butterworth.</td>
+</tr>
+<tr>
+<td><code>LowFreqCorner</code></td>
+<td>The lower cutoff frequency of the signal filter in millihertz.</td>
+</tr>
+<tr>
+<td><code>LowFreqOrder</code></td>
+<td>Order of the low-pass filter applied.</td>
+</tr>
+<tr>
+<td><code>LowFilterType</code></td>
+<td>Type of low-pass filter used. 0 = NONE, 1 = Butterworth.</td>
+</tr>
+</tbody>
+</table>
+<p>Each of these entries helps interpret the scale and filtering applied to the raw neural signals stored in the NS5 file.</p>
+<p>You can also render the extended headers using:</p>
+<div class="highlight"><pre><span></span><code><span class="o">&gt;&gt;&gt;</span> <span class="n">ns5</span><span class="o">.</span><span class="n">get_extended_headers_df</span><span class="p">()</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Type</th>
+<th style="text-align: right;">ElectrodeID</th>
+<th style="text-align: left;">ElectrodeLabel</th>
+<th style="text-align: right;">PhysicalConnector</th>
+<th style="text-align: right;">ConnectorPin</th>
+<th style="text-align: right;">MinDigitalValue</th>
+<th style="text-align: right;">MaxDigitalValue</th>
+<th style="text-align: right;">MinAnalogValue</th>
+<th style="text-align: right;">MaxAnalogValue</th>
+<th style="text-align: left;">Units</th>
+<th style="text-align: left;">HighFreqCorner</th>
+<th style="text-align: right;">HighFreqOrder</th>
+<th style="text-align: left;">HighFreqType</th>
+<th style="text-align: left;">LowFreqCorner</th>
+<th style="text-align: right;">LowFreqOrder</th>
+<th style="text-align: left;">LowFreqType</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">CC</td>
+<td style="text-align: right;">257</td>
+<td style="text-align: left;">Photodiode</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">-32767</td>
+<td style="text-align: right;">32767</td>
+<td style="text-align: right;">-5000</td>
+<td style="text-align: right;">5000</td>
+<td style="text-align: left;">mV</td>
+<td style="text-align: left;">0.0 Hz</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">none</td>
+<td style="text-align: left;">0.0 Hz</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">none</td>
+</tr>
+<tr>
+<td style="text-align: left;">CC</td>
+<td style="text-align: right;">258</td>
+<td style="text-align: left;">Audio</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">-32767</td>
+<td style="text-align: right;">32767</td>
+<td style="text-align: right;">-5000</td>
+<td style="text-align: right;">5000</td>
+<td style="text-align: left;">mV</td>
+<td style="text-align: left;">0.0 Hz</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">none</td>
+<td style="text-align: left;">0.0 Hz</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">none</td>
+</tr>
+<tr>
+<td style="text-align: left;">CC</td>
+<td style="text-align: right;">259</td>
+<td style="text-align: left;">RoomMic1</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">-32767</td>
+<td style="text-align: right;">32767</td>
+<td style="text-align: right;">-5000</td>
+<td style="text-align: right;">5000</td>
+<td style="text-align: left;">mV</td>
+<td style="text-align: left;">0.0 Hz</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">none</td>
+<td style="text-align: left;">0.0 Hz</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">none</td>
+</tr>
+<tr>
+<td style="text-align: left;">CC</td>
+<td style="text-align: right;">260</td>
+<td style="text-align: left;">StimSync</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">-32767</td>
+<td style="text-align: right;">32767</td>
+<td style="text-align: right;">-5000</td>
+<td style="text-align: right;">5000</td>
+<td style="text-align: left;">mV</td>
+<td style="text-align: left;">0.0 Hz</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">none</td>
+<td style="text-align: left;">0.0 Hz</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">none</td>
+</tr>
+<tr>
+<td style="text-align: left;">CC</td>
+<td style="text-align: right;">261</td>
+<td style="text-align: left;">GSR</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">-32767</td>
+<td style="text-align: right;">32767</td>
+<td style="text-align: right;">-5000</td>
+<td style="text-align: right;">5000</td>
+<td style="text-align: left;">mV</td>
+<td style="text-align: left;">0.0 Hz</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">none</td>
+<td style="text-align: left;">0.0 Hz</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">none</td>
+</tr>
+<tr>
+<td style="text-align: left;">CC</td>
+<td style="text-align: right;">262</td>
+<td style="text-align: left;">LegaMemorySync</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">-32767</td>
+<td style="text-align: right;">32767</td>
+<td style="text-align: right;">-5000</td>
+<td style="text-align: right;">5000</td>
+<td style="text-align: left;">mV</td>
+<td style="text-align: left;">0.0 Hz</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">none</td>
+<td style="text-align: left;">0.0 Hz</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">none</td>
+</tr>
+</tbody>
+</table>
+<h3 id="data-packets">Data Packets<a class="headerlink" href="#data-packets" title="Permanent link">&para;</a></h3>
+<p>The third section of an NS5 file contains the actual recorded data: time-stamped packets of continuously sampled neural signals. Each <strong>data packet</strong> begins with a small header, followed by a timestamp, the number of data points, and the data values themselves.</p>
+<p>According to Blackrock’s NSx file specification (Rev 7.00, Page 18):</p>
+<table>
+<thead>
+<tr>
+<th><strong>Field</strong></th>
+<th><strong>Type</strong></th>
+<th><strong>Length (Bytes)</strong></th>
+<th><strong>Description</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Header</code></td>
+<td><code>Byte</code></td>
+<td>1</td>
+<td>Always set to <code>0x01</code> to indicate the start of a data packet.</td>
+</tr>
+<tr>
+<td><code>Timestamp</code></td>
+<td><code>Unsigned int64</code></td>
+<td>8</td>
+<td>The global timestamp for when this block of data begins. The unit is determined by <code>TimeStampResolution</code> in the basic header.</td>
+</tr>
+<tr>
+<td><code>NumDataPoints</code></td>
+<td><code>Unsigned int32</code></td>
+<td>4</td>
+<td>The number of data points that follow this header.</td>
+</tr>
+<tr>
+<td><code>DataPoints</code></td>
+<td><code>Array of int16</code></td>
+<td>Variable</td>
+<td>The sampled voltage values. There are <code>ChannelCount</code> values for each time point, one per channel, repeated for <code>NumDataPoints</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>All data points are stored in <strong>channel-major</strong> order (i.e., samples from all channels at the same time step are grouped together), and the timestamps always <strong>increase monotonically</strong>.</p>
+<p>These packets can also be used to <strong>indicate acquisition gaps</strong> or pauses in recording — if multiple packets appear, it's usually because the file was paused or segmented.</p>
+<p>You can access the continuous data using the <code>get_data()</code> method:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="err">&#39;s</span><span class="kc">tart</span><span class="err">_</span><span class="kc">t</span><span class="err">ime_s&#39;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">  </span><span class="err">&#39;da</span><span class="kc">ta</span><span class="err">_</span><span class="kc">t</span><span class="err">ime_s&#39;</span><span class="p">:</span><span class="w"> </span><span class="err">&#39;all&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="err">&#39;dow</span><span class="kc">nsa</span><span class="err">mple&#39;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">  </span><span class="err">&#39;elec_ids&#39;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mi">257</span><span class="p">,</span><span class="w"> </span><span class="mi">258</span><span class="p">,</span><span class="w"> </span><span class="mi">259</span><span class="p">,</span><span class="w"> </span><span class="mi">260</span><span class="p">,</span><span class="w"> </span><span class="mi">261</span><span class="p">,</span><span class="w"> </span><span class="mi">262</span><span class="p">],</span>
+<span class="w">  </span><span class="err">&#39;da</span><span class="kc">ta</span><span class="err">_headers&#39;</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span>
+<span class="w">      </span><span class="err">&#39;Times</span><span class="kc">ta</span><span class="err">mp&#39;</span><span class="p">:</span><span class="w"> </span><span class="mi">4057455182</span><span class="p">,</span>
+<span class="w">      </span><span class="err">&#39;NumDa</span><span class="kc">ta</span><span class="err">Poi</span><span class="kc">nts</span><span class="err">&#39;</span><span class="p">:</span><span class="w"> </span><span class="mi">38332687</span><span class="p">,</span>
+<span class="w">      </span><span class="err">&#39;da</span><span class="kc">ta</span><span class="err">_</span><span class="kc">t</span><span class="err">ime_s&#39;</span><span class="p">:</span><span class="w"> </span><span class="mf">1277.756</span>
+<span class="w">  </span><span class="p">}],</span>
+<span class="w">  </span><span class="err">&#39;da</span><span class="kc">ta</span><span class="err">&#39;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="err">memmap(...</span><span class="p">,</span><span class="w"> </span><span class="err">d</span><span class="kc">t</span><span class="err">ype=i</span><span class="kc">nt</span><span class="mi">16</span><span class="err">)</span><span class="p">],</span>
+<span class="w">  </span><span class="err">&#39;samp_per_s&#39;</span><span class="p">:</span><span class="w"> </span><span class="mf">30000.0</span>
+<span class="p">}</span>
+</code></pre></div>
+<ul>
+<li><strong>start_time_s</strong>: Time in seconds corresponding to the first timestamp (usually 0).</li>
+<li><strong>elec_ids</strong>: List of electrode (channel) IDs in the order of the data.</li>
+<li><strong>data_headers</strong>: Contains metadata like the starting timestamp and the number of data points in each segment.</li>
+<li><strong>data</strong>: A NumPy <code>memmap</code> array representing the signal data. Each row corresponds to a different channel.</li>
+<li><strong>samp_per_s</strong>: The sampling rate, typically 30,000 Hz.</li>
+</ul>
+<h2 id="how-audioneuro-data-is-encoded">How Audio/Neuro Data is Encoded<a class="headerlink" href="#how-audioneuro-data-is-encoded" title="Permanent link">&para;</a></h2>
+<p>In the NS5 file format, audio and neural data are stored as <strong>continuous analog signals</strong> recorded from multiple channels at high sampling rates (e.g., 30,000 Hz). These signals are organized in <strong>data packets</strong>, each containing:</p>
+<ul>
+<li>A global timestamp indicating when the data block begins.</li>
+<li>A fixed number of data points sampled uniformly over time.</li>
+<li>One sample per channel per timestamp, stored as 16-bit signed integers.</li>
+</ul>
+<p>This layout ensures accurate alignment between channels and enables consistent decoding of the analog waveform over time.</p>
+<p>Each <strong>channel</strong> (e.g., a microphone or electrode) has metadata stored in the <strong>extended headers</strong>, such as the channel label, pin number, analog range, and filter settings.</p>
+<p>To access the raw signal from a particular channel, the following function retrieves the corresponding row in the <code>memmap</code> array:</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_channel_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">channel</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Retrieve the raw analog signal array from a specific channel.</span>
 
+<span class="sd">    Args:</span>
+<span class="sd">        channel (str): The electrode or microphone label (e.g., &quot;RoomMic2&quot;).</span>
 
+<span class="sd">    Returns:</span>
+<span class="sd">        np.ndarray: 1D array of raw amplitude values.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">row_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extended_headers_df</span><span class="p">[</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">extended_headers_df</span><span class="p">[</span><span class="s2">&quot;ElectrodeLabel&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">channel</span>
+    <span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">memmapData</span><span class="p">[</span><span class="n">row_index</span><span class="p">]</span>
+</code></pre></div>
+<p>To convert the raw array into a time-aligned DataFrame:</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_channel_df</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">channel</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Construct a DataFrame for a specific channel with timestamp and amplitude.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        pd.DataFrame: DataFrame containing:</span>
+<span class="sd">            - TimeStamp: Sample index based on global timestamp.</span>
+<span class="sd">            - Amplitude: Raw signal values (int16).</span>
+<span class="sd">            - UTCTimeStamp: Human-readable UTC timestamp.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">channel_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_channel_array</span><span class="p">(</span><span class="n">channel</span><span class="p">)</span>
+    <span class="n">num_samples</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">channel_data</span><span class="p">)</span>
+    <span class="n">channel_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">channel_data</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Amplitude&quot;</span><span class="p">])</span>
+    <span class="n">channel_df</span><span class="p">[</span><span class="s2">&quot;TimeStamp&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">timeStamp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">timeStamp</span> <span class="o">+</span> <span class="n">num_samples</span>
+    <span class="p">)</span>
+    <span class="n">channel_df</span><span class="p">[</span><span class="s2">&quot;UTCTimeStamp&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">channel_df</span><span class="p">[</span><span class="s2">&quot;TimeStamp&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
+        <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">utils</span><span class="o">.</span><span class="n">ts2unix</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">timeOrigin</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">timestampResolution</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">channel_df</span><span class="p">[[</span><span class="s2">&quot;TimeStamp&quot;</span><span class="p">,</span> <span class="s2">&quot;Amplitude&quot;</span><span class="p">,</span> <span class="s2">&quot;UTCTimeStamp&quot;</span><span class="p">]]</span>
+</code></pre></div>
+<p>Each sample in the array is aligned using:</p>
+<ul>
+<li><strong><code>self.timeStamp</code></strong>: The timestamp of the first recorded data point.</li>
+<li><strong><code>self.timeOrigin</code></strong>: The actual UTC time corresponding to timestamp 0.</li>
+<li><strong><code>self.timestampResolution</code></strong>: The number of counts per second (usually 30,000).</li>
+</ul>
+<p>This ensures that the amplitude at each point is properly aligned in real time, allowing precise synchronization with other data streams such as video or triggers.</p>
+<h2 id="how-to-decode-audio">How to Decode Audio<a class="headerlink" href="#how-to-decode-audio" title="Permanent link">&para;</a></h2>
+<p>To export microphone data from NS5 to a <code>.wav</code> file:</p>
+<ol>
+<li>
+<p><strong>Extract the audio channel</strong>:
+<div class="highlight"><pre><span></span><code><span class="n">df_sub</span> <span class="o">=</span> <span class="n">ns5</span><span class="o">.</span><span class="n">get_channel_df</span><span class="p">(</span><span class="s2">&quot;RoomMic2&quot;</span><span class="p">)</span>
+<span class="n">audio_samples</span> <span class="o">=</span> <span class="n">df_sub</span><span class="p">[</span><span class="s2">&quot;Amplitude&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int16</span><span class="p">)</span>
+</code></pre></div></p>
+</li>
+<li>
+<p><strong>Compute dynamic sample rate</strong>:<br />
+Although the NS5 file uses a nominal timestamp resolution of 30,000 Hz, the actual spacing between video frames (based on <code>frame_id</code> vs. <code>TimeStamp</code>) is not exactly 1000 ticks per frame. This small variation (e.g., 998, 1001) accumulates over time and can lead to noticeable drift. To ensure audio and video remain aligned, we compute the true sample rate dynamically:
+<div class="highlight"><pre><span></span><code><span class="n">exported_video_duration_s</span> <span class="o">=</span> <span class="p">(</span><span class="n">max_frame</span> <span class="o">-</span> <span class="n">min_frame</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">30</span>  <span class="c1"># 30 fps</span>
+<span class="n">fps_audio</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">audio_samples</span><span class="p">)</span> <span class="o">/</span> <span class="n">exported_video_duration_s</span><span class="p">)</span>
+</code></pre></div></p>
+</li>
+<li>
+<p><strong>Export to WAV</strong>:
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">scipy.io.wavfile</span><span class="w"> </span><span class="kn">import</span> <span class="n">write</span> <span class="k">as</span> <span class="n">wav_write</span>
+<span class="n">wav_write</span><span class="p">(</span><span class="n">audio_wav_path</span><span class="p">,</span> <span class="n">fps_audio</span><span class="p">,</span> <span class="n">audio_samples</span><span class="p">)</span>
+</code></pre></div></p>
+</li>
+</ol>
+<p>This ensures the audio duration matches the actual video length, avoiding sync issues due to small timing deviations in frame acquisition.</p>
 
 
 
