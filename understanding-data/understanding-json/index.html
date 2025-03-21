@@ -1,0 +1,1546 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../understanding-ns5/">
+      
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.9">
+    
+    
+      
+        <title>Understanding JSON - Video Sync</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.4af4bdda.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#understanding-json" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Video Sync" class="md-header__button md-logo" aria-label="Video Sync" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Video Sync
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Understanding JSON
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/BCM-Neurosurgery/video-sync" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    BCM-Neurosurgery/video-sync
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../installation/" class="md-tabs__link">
+        
+  
+    
+  
+  Installation
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../configuration/" class="md-tabs__link">
+        
+  
+    
+  
+  Configuration
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../usage/" class="md-tabs__link">
+        
+  
+    
+  
+  Usage
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../features/" class="md-tabs__link">
+        
+  
+    
+  
+  Features
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../emu-cameras/" class="md-tabs__link">
+        
+  
+    
+  
+  EMU Camera Serials
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../license/" class="md-tabs__link">
+        
+  
+    
+  
+  License
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../developer-guide/" class="md-tabs__link">
+          
+  
+  Developer Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../api/" class="md-tabs__link">
+          
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../edge-cases/" class="md-tabs__link">
+          
+  
+  Edge Cases
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../understanding-nev/" class="md-tabs__link">
+          
+  
+  Understanding Data
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Video Sync" class="md-nav__button md-logo" aria-label="Video Sync" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Video Sync
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/BCM-Neurosurgery/video-sync" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    BCM-Neurosurgery/video-sync
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Installation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuration
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Usage
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Features
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../emu-cameras/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    EMU Camera Serials
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../license/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    License
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Developer Guide
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            Developer Guide
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer-guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer-guide/program-flow/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Program Flow
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer-guide/contributing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contributing
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    API Reference
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            API Reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/datapool/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    DataPool
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/nev/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Nev
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/nsx/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Nsx
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/video/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Video
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/videojson/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Videojson
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/pathutils/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Pathutils
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/utils/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Utils
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Edge Cases
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            Edge Cases
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../edge-cases/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../edge-cases/frame_counter_anomalies/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Frame Counter Anomalies
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../edge-cases/chunk_serial_json_discontinuity/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Chunk Serial Discontinuities in JSON
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../edge-cases/frame_json_discontinuity/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Frame ID Discontinuities in JSON
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../edge-cases/json_anomalies/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    JSON Anomalies
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_11" id="__nav_11_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Understanding Data
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_11_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_11">
+            <span class="md-nav__icon md-icon"></span>
+            Understanding Data
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../understanding-nev/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Understanding Nev
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../understanding-ns5/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Understanding Ns5
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Understanding JSON
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Understanding JSON
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#how-json-is-saved" class="md-nav__link">
+    <span class="md-ellipsis">
+      How JSON is Saved
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-json-is-grouped-with-mp4-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      How JSON is Grouped with MP4 Files
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="How JSON is Grouped with MP4 Files">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#filename-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      Filename Format
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#chunking-mechanism" class="md-nav__link">
+    <span class="md-ellipsis">
+      Chunking Mechanism
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-json-is-structured" class="md-nav__link">
+    <span class="md-ellipsis">
+      How JSON is Structured
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#how-json-is-saved" class="md-nav__link">
+    <span class="md-ellipsis">
+      How JSON is Saved
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-json-is-grouped-with-mp4-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      How JSON is Grouped with MP4 Files
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="How JSON is Grouped with MP4 Files">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#filename-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      Filename Format
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#chunking-mechanism" class="md-nav__link">
+    <span class="md-ellipsis">
+      Chunking Mechanism
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-json-is-structured" class="md-nav__link">
+    <span class="md-ellipsis">
+      How JSON is Structured
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="understanding-json">Understanding JSON<a class="headerlink" href="#understanding-json" title="Permanent link">&para;</a></h1>
+<p>This section explains how JSON metadata is generated and saved during acquisition using the multi-camera recording system.</p>
+<h2 id="how-json-is-saved">How JSON is Saved<a class="headerlink" href="#how-json-is-saved" title="Permanent link">&para;</a></h2>
+<p>The JSON metadata is assembled during each recording loop iteration and written asynchronously to disk via a dedicated thread. This ensures that JSON saving does not block the main acquisition loop.</p>
+<p>Relevant code:</p>
+<div class="highlight"><pre><span></span><code><span class="n">frame_metadata</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;real_times&quot;</span><span class="p">:</span> <span class="n">real_time</span><span class="p">,</span> <span class="s2">&quot;local_times&quot;</span><span class="p">:</span> <span class="n">local_time</span><span class="p">,</span> <span class="s2">&quot;base_filename&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">video_base_file</span><span class="p">}</span>
+
+<span class="n">frame_metadata</span><span class="p">[</span><span class="s2">&quot;timestamps&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">frame_metadata</span><span class="p">[</span><span class="s2">&quot;frame_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">frame_metadata</span><span class="p">[</span><span class="s2">&quot;frame_id_abs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">frame_metadata</span><span class="p">[</span><span class="s2">&quot;chunk_serial_data&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">frame_metadata</span><span class="p">[</span><span class="s2">&quot;serial_msg&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">frame_metadata</span><span class="p">[</span><span class="s2">&quot;camera_serials&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">frame_metadata</span><span class="p">[</span><span class="s2">&quot;exposure_times&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">frame_metadata</span><span class="p">[</span><span class="s2">&quot;frame_rates_requested&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">frame_metadata</span><span class="p">[</span><span class="s2">&quot;frame_rates_binning&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+</code></pre></div>
+<p>Each frame's metadata is appended to this dictionary. After all cameras are processed for a single frame, the following call queues the metadata to be written:</p>
+<div class="highlight"><pre><span></span><code><span class="bp">self</span><span class="o">.</span><span class="n">json_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">frame_metadata</span><span class="p">)</span>
+</code></pre></div>
+<p>Later, a thread runs <code>write_metadata_queue(...)</code> to write this metadata to JSON file(s).</p>
+<h2 id="how-json-is-grouped-with-mp4-files">How JSON is Grouped with MP4 Files<a class="headerlink" href="#how-json-is-grouped-with-mp4-files" title="Permanent link">&para;</a></h2>
+<p>During recording, both video and JSON metadata files are saved in <strong>segments</strong> (or chunks) to prevent excessive memory usage and to maintain system stability over long recordings.</p>
+<p>For example, a 10-minute recording may result in multiple <code>.mp4</code> files per each camera and a corresponding <code>.json</code> metadata file:</p>
+<div class="highlight"><pre><span></span><code>-r--r-----+<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>datalake<span class="w"> </span>441M<span class="w"> </span>Mar<span class="w"> </span><span class="m">18</span><span class="w"> </span><span class="m">11</span>:30<span class="w"> </span>YFMDatafile_20250318_110436.18486638.mp4
+-r--r-----+<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>datalake<span class="w"> </span>323M<span class="w"> </span>Mar<span class="w"> </span><span class="m">18</span><span class="w"> </span><span class="m">11</span>:30<span class="w"> </span>YFMDatafile_20250318_110436.18486644.mp4
+-r--r-----+<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>datalake<span class="w"> </span>216M<span class="w"> </span>Mar<span class="w"> </span><span class="m">18</span><span class="w"> </span><span class="m">11</span>:30<span class="w"> </span>YFMDatafile_20250318_110436.23505577.mp4
+-r--r-----+<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>datalake<span class="w"> </span>717M<span class="w"> </span>Mar<span class="w"> </span><span class="m">18</span><span class="w"> </span><span class="m">11</span>:30<span class="w"> </span>YFMDatafile_20250318_110436.23512012.mp4
+-r--r-----+<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>datalake<span class="w"> </span>233M<span class="w"> </span>Mar<span class="w"> </span><span class="m">18</span><span class="w"> </span><span class="m">11</span>:30<span class="w"> </span>YFMDatafile_20250318_110436.23512013.mp4
+-r--r-----+<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>datalake<span class="w"> </span>232M<span class="w"> </span>Mar<span class="w"> </span><span class="m">18</span><span class="w"> </span><span class="m">11</span>:30<span class="w"> </span>YFMDatafile_20250318_110436.23512014.mp4
+-r--r-----+<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>datalake<span class="w"> </span>362M<span class="w"> </span>Mar<span class="w"> </span><span class="m">18</span><span class="w"> </span><span class="m">11</span>:30<span class="w"> </span>YFMDatafile_20250318_110436.23512906.mp4
+-r--r-----+<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>datalake<span class="w"> </span>623M<span class="w"> </span>Mar<span class="w"> </span><span class="m">18</span><span class="w"> </span><span class="m">11</span>:30<span class="w"> </span>YFMDatafile_20250318_110436.23512908.mp4
+-r--r-----+<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>datalake<span class="w"> </span><span class="m">9</span>.4M<span class="w"> </span>Mar<span class="w"> </span><span class="m">18</span><span class="w"> </span><span class="m">11</span>:30<span class="w"> </span>YFMDatafile_20250318_110436.json
+</code></pre></div>
+<h3 id="filename-format">Filename Format<a class="headerlink" href="#filename-format" title="Permanent link">&para;</a></h3>
+<p>The filenames follow the pattern:</p>
+<div class="highlight"><pre><span></span><code>&lt;base_name&gt;_&lt;YYYYMMDD_HHMMSS&gt;.&lt;camera_serial&gt;.mp4
+</code></pre></div>
+<ul>
+<li><code>base_name</code> is derived from the <code>recording_path</code> set at the beginning of acquisition.</li>
+<li><code>YYYYMMDD_HHMMSS</code> represents the date and time at which the segment began recording.</li>
+<li>Each camera serial is appended as a suffix to distinguish between files from multiple cameras.</li>
+<li>A single <code>.json</code> file is generated for each chunk and contains metadata for <strong>all cameras</strong> in that segment.</li>
+</ul>
+<p>The JSON filename does <strong>not</strong> have a camera serial suffix because it aggregates metadata across all cameras.</p>
+<h3 id="chunking-mechanism">Chunking Mechanism<a class="headerlink" href="#chunking-mechanism" title="Permanent link">&para;</a></h3>
+<p>The system is configured to split files every <em>N</em> frames using the <code>video_segment_len</code> field from the camera config:</p>
+<div class="highlight"><pre><span></span><code><span class="n">video_segment_len</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">camera_config</span><span class="p">[</span><span class="s2">&quot;acquisition-settings&quot;</span><span class="p">][</span><span class="s2">&quot;video_segment_len&quot;</span><span class="p">]</span>
+</code></pre></div>
+<p>When this number of frames is reached:</p>
+<ul>
+<li>A new filename is generated using the current timestamp.</li>
+<li>New threads continue writing to the newly created files.</li>
+<li>JSON and video saving continue uninterrupted.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="k">if</span> <span class="n">frame_idx</span> <span class="o">%</span> <span class="n">total_frames</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="n">prog</span> <span class="o">=</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">total</span><span class="o">=</span><span class="n">total_frames</span><span class="p">)</span>
+    <span class="n">frame_idx</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">video_base_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Create a new video_base_filename for the new video segment</span>
+        <span class="n">now</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+        <span class="n">time_str</span> <span class="o">=</span> <span class="n">now</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">_%H%M%S&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Update base name and file path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">video_base_name</span> <span class="o">=</span> <span class="s2">&quot;_&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">video_root</span><span class="p">,</span> <span class="n">time_str</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">video_base_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">video_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">video_base_name</span><span class="p">)</span>
+</code></pre></div>
+<h2 id="how-json-is-structured">How JSON is Structured<a class="headerlink" href="#how-json-is-structured" title="Permanent link">&para;</a></h2>
+<p>For each recorded frame (per camera), the following fields are recorded:</p>
+<ul>
+<li><code>timestamps</code>: Hardware timestamps from the camera.</li>
+<li><code>frame_id</code>: The local frame number (may reset per segment).</li>
+<li><code>frame_id_abs</code>: The absolute frame ID from chunk metadata.</li>
+<li><code>chunk_serial_data</code>: Frame counter reconstructed from 5-byte serial message (if <code>SerialOn</code> is enabled).</li>
+<li><code>serial_msg</code>: The raw 5-byte message received over serial.</li>
+<li><code>camera_serials</code>: Camera serial number (device ID).</li>
+<li><code>exposure_times</code>: Exposure time for each frame.</li>
+<li><code>frame_rates_requested</code>: The requested acquisition frame rate.</li>
+<li><code>frame_rates_binning</code>: The effective frame rate after binning.</li>
+</ul>
+<p>These fields are updated per camera inside a loop:</p>
+<div class="highlight"><pre><span></span><code><span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cams</span><span class="p">:</span>
+    <span class="n">im_ref</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">get_image</span><span class="p">()</span>
+    <span class="n">timestamp</span> <span class="o">=</span> <span class="n">im_ref</span><span class="o">.</span><span class="n">GetTimeStamp</span><span class="p">()</span>
+    <span class="n">chunk_data</span> <span class="o">=</span> <span class="n">im_ref</span><span class="o">.</span><span class="n">GetChunkData</span><span class="p">()</span>
+    <span class="n">frame_id</span> <span class="o">=</span> <span class="n">im_ref</span><span class="o">.</span><span class="n">GetFrameID</span><span class="p">()</span>
+    <span class="n">frame_id_abs</span> <span class="o">=</span> <span class="n">chunk_data</span><span class="o">.</span><span class="n">GetFrameID</span><span class="p">()</span>
+
+    <span class="c1"># Serial decoding</span>
+    <span class="n">serial_msg</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">frame_count</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">gpio_settings</span><span class="p">[</span><span class="s1">&#39;line3&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;SerialOn&#39;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">ChunkSerialDataLength</span> <span class="o">==</span> <span class="mi">5</span><span class="p">:</span>
+            <span class="n">chunk_serial_data</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">ChunkSerialData</span>
+            <span class="n">serial_msg</span> <span class="o">=</span> <span class="n">chunk_serial_data</span>
+            <span class="n">split_chunk</span> <span class="o">=</span> <span class="p">[</span><span class="nb">ord</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">chunk_serial_data</span><span class="p">]</span>
+
+            <span class="n">frame_count</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">split_chunk</span><span class="p">):</span>
+                <span class="n">frame_count</span> <span class="o">|=</span> <span class="p">(</span><span class="n">b</span> <span class="o">&amp;</span> <span class="mh">0x7F</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="mi">7</span> <span class="o">*</span> <span class="n">i</span><span class="p">)</span>
+
+    <span class="n">frame_metadata</span><span class="p">[</span><span class="s2">&quot;timestamps&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">timestamp</span><span class="p">)</span>
+    <span class="n">frame_metadata</span><span class="p">[</span><span class="s2">&quot;frame_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">frame_id</span><span class="p">)</span>
+    <span class="n">frame_metadata</span><span class="p">[</span><span class="s2">&quot;frame_id_abs&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">frame_id_abs</span><span class="p">)</span>
+    <span class="n">frame_metadata</span><span class="p">[</span><span class="s2">&quot;chunk_serial_data&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">frame_count</span><span class="p">)</span>
+    <span class="n">frame_metadata</span><span class="p">[</span><span class="s2">&quot;serial_msg&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">serial_msg</span><span class="p">)</span>
+    <span class="n">frame_metadata</span><span class="p">[</span><span class="s2">&quot;camera_serials&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">DeviceSerialNumber</span><span class="p">)</span>
+    <span class="n">frame_metadata</span><span class="p">[</span><span class="s2">&quot;exposure_times&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">ExposureTime</span><span class="p">)</span>
+    <span class="n">frame_metadata</span><span class="p">[</span><span class="s2">&quot;frame_rates_binning&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">BinningHorizontal</span> <span class="o">*</span> <span class="mi">30</span><span class="p">)</span>
+    <span class="n">frame_metadata</span><span class="p">[</span><span class="s2">&quot;frame_rates_requested&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">AcquisitionFrameRate</span><span class="p">)</span>
+</code></pre></div>
+<p>This loop ensures that the metadata per frame and per camera is stored in a synchronized fashion and saved with high fidelity.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        <div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/BCM-Neurosurgery/video-sync" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8M97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": ["content.code.copy", "navigation.tabs", "navigation.top", "search.highlight", "search.suggest", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.f8cc74c7.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.c8b220af.min.js"></script>
+      
+    
+  </body>
+</html>
