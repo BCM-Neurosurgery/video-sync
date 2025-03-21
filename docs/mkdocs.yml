@@ -4,9 +4,14 @@ repo_name: BCM-Neurosurgery/video-sync
 
 
 theme:
-  name: readthedocs
+  name: material
   features:
     - content.code.copy
+    - navigation.tabs
+    - navigation.top
+    - search.highlight
+    - search.suggest
+    - content.tabs.link
 
 
 nav:
@@ -20,7 +25,6 @@ nav:
   - Developer Guide:
       - Overview: developer-guide/index.md
       - Program Flow: developer-guide/program-flow.md
-      - Edge Cases: developer-guide/edge-cases.md
       - Contributing: developer-guide/contributing.md
   - API Reference:
       - Overview: api/index.md
@@ -31,9 +35,19 @@ nav:
       - Videojson: api/videojson.md
       - Pathutils: api/pathutils.md
       - Utils: api/utils.md
+  - Edge Cases:
+      - Overview: edge-cases/index.md
+      - Frame Counter Anomalies: edge-cases/frame_counter_anomalies.md
+      - Chunk Serial Discontinuities in JSON: edge-cases/chunk_serial_json_discontinuity.md
+      - Frame ID Discontinuities in JSON: edge-cases/frame_json_discontinuity.md
+      - JSON Anomalies: edge-cases/json_anomalies.md
+  - Understanding Data:
+      - Understanding Nev: understanding-data/understanding-nev.md
+      - Understanding Ns5: understanding-data/understanding-ns5.md
 
 plugins:
   - search
+  - table-reader
   - mkdocstrings:
       handlers:
         python:
