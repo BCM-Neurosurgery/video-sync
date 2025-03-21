@@ -1,7 +1,13 @@
 from brpylib import NevFile
 import pandas as pd
 import matplotlib.pyplot as plt
-from pyvideosync.utils import fill_missing_serials_with_gap
+from pyvideosync.utils import (
+    fill_missing_serials_with_gap,
+    ts2min,
+    ts2unix,
+    to_16bit_binary,
+    fill_missing_data,
+)
 
 
 class Nev:
@@ -43,7 +49,7 @@ class Nev:
         return self.duration_s
 
     def get_duration_readable(self):
-        return utils.ts2min(self.get_duration_s(), self.get_timestampResolution())
+        return ts2min(self.get_duration_s(), self.get_timestampResolution())
 
     def get_basic_header(self) -> dict:
         return self.basic_header
@@ -143,9 +149,7 @@ class Nev:
                 nums = [x for x in group["UnparsedData"]]
                 decimal_number = self.bits_to_decimal(nums)
                 timestamp = group["TimeStamps"].iloc[0]
-                unixTime = utils.ts2unix(
-                    self.timeOrigin, self.timestampResolution, timestamp
-                )
+                unixTime = ts2unix(self.timeOrigin, self.timestampResolution, timestamp)
                 results.append((timestamp, decimal_number, unixTime))
         return pd.DataFrame.from_records(
             results, columns=["TimeStamps", "chunk_serial", "UTCTimeStamp"]
@@ -200,7 +204,7 @@ class Nev:
                 else:  # timestamp_byte == 'last'
                     timestamp = group["TimeStamps"].iloc[-1]
 
-                unix_time = utils.ts2unix(
+                unix_time = ts2unix(
                     self.timeOrigin, self.timestampResolution, timestamp
                 )
                 results.append((timestamp, decimal_number, unix_time))
@@ -254,14 +258,14 @@ class Nev:
         # Format UnparsedData to 16-bit
         digital_events_df_small.loc[:, "UnparsedDataBin"] = digital_events_df_small[
             "UnparsedData"
-        ].apply(lambda x: utils.to_16bit_binary(x))
+        ].apply(lambda x: to_16bit_binary(x))
 
         # plot
         if ax is None:
             fig, ax = plt.subplots(figsize=(15, 10))
 
         for i in range(16):
-            filled_df = utils.fill_missing_data(digital_events_df_small, bit_number=i)
+            filled_df = fill_missing_data(digital_events_df_small, bit_number=i)
             ax.plot(
                 filled_df["TimeStamps"], filled_df[f"Bit{i}"] + i, label=f"Bit{i}"
             )  # Offset each bit for stacking
