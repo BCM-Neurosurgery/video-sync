@@ -1576,8 +1576,25 @@
  <span class="s1">&#39;Comment&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
  <span class="s1">&#39;NumExtendedHeaders&#39;</span><span class="p">:</span> <span class="mi">818</span><span class="p">}</span>
 </code></pre></div>
+<p>MATLAB users can utilize the <a href="https://github.com/BlackrockNeurotech/NPMK/tree/master">NPMK package</a> from Blackrock Neurotech to read <code>.nev</code> files. The primary function for this is <code>openNEV</code>, which loads metadata, spike data, and digital events into a structured object.</p>
+<p>To load a NEV file and access its metadata:</p>
+<div class="highlight"><pre><span></span><code><span class="n">openNEV</span><span class="p">(</span><span class="s">&#39;filename.nev&#39;</span><span class="p">,</span><span class="w"> </span><span class="s">&#39;read&#39;</span><span class="p">);</span>
+</code></pre></div>
+<p>This will return a <code>NEV</code> struct. The metadata fields are accessible via:</p>
+<div class="highlight"><pre><span></span><code><span class="n">NEV</span><span class="p">.</span><span class="n">MetaTags</span>
+</code></pre></div>
+<p>This is functionally equivalent to calling <code>get_basic_header()</code> in the Python API.</p>
+<p>Below is an example view of the <code>MetaTags</code> structure in MATLAB:</p>
+<p><img alt="NEV Meta Tags" src="nevMetaTags.png" /></p>
 <h3 id="extended-headers">Extended Headers<a class="headerlink" href="#extended-headers" title="Permanent link">&para;</a></h3>
-<p>Extended headers contain channel-specific metadata, such as labeling, filtering, and electrode properties. They are stored as a list of dictionaries. Each PacketID identifies the type of metadata (e.g., waveform parameters, labels, filter settings).</p>
+<p>Extended headers in the NEV file contain channel-specific metadata, such as electrode labeling, waveform configuration, and filter settings. These entries provide essential information for interpreting neural data and are stored as a list of dictionaries in the Python API. Each entry is identified by a <code>PacketID</code>, which indicates the type of metadata.</p>
+<p>Common <code>PacketID</code> types include:</p>
+<ul>
+<li><code>NEUEVWAV</code>: Waveform extraction settings</li>
+<li><code>NEUEVLBL</code>: Electrode label</li>
+<li><code>NEUEVFLT</code>: Filter parameters</li>
+</ul>
+<p>Example:</p>
 <div class="highlight"><pre><span></span><code><span class="o">&gt;&gt;&gt;</span> <span class="n">nev</span><span class="o">.</span><span class="n">get_extended_headers</span><span class="p">()</span>
 <span class="p">[{</span><span class="s1">&#39;PacketID&#39;</span><span class="p">:</span> <span class="s1">&#39;NEUEVWAV&#39;</span><span class="p">,</span>
   <span class="s1">&#39;ElectrodeID&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
@@ -1604,9 +1621,15 @@
   <span class="s1">&#39;LowFreqOrder&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
   <span class="s1">&#39;LowFreqType&#39;</span><span class="p">:</span> <span class="s1">&#39;butterworth&#39;</span><span class="p">,</span>
   <span class="s1">&#39;EmptyBytes&#39;</span><span class="p">:</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x00\x00</span><span class="s1">&#39;</span><span class="p">},</span>
-  <span class="o">...</span><span class="p">,</span>
+  <span class="o">...</span>
 <span class="p">]</span>
 </code></pre></div>
+<p>In MATLAB, this information is available through the <code>NEV.ElectrodesInfo</code> structure when using the <a href="https://github.com/BlackrockNeurotech/NPMK">NPMK</a> package:</p>
+<div class="highlight"><pre><span></span><code><span class="n">NEV</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">openNEV</span><span class="p">(</span><span class="s">&#39;filename.nev&#39;</span><span class="p">,</span><span class="w"> </span><span class="s">&#39;read&#39;</span><span class="p">);</span>
+<span class="n">NEV</span><span class="p">.</span><span class="n">ElectrodesInfo</span>
+</code></pre></div>
+<p>This structure contains similar metadata, such as channel labels, thresholds, and filter settings.</p>
+<p><img alt="NEV Electrodes Info" src="NEV-electrodes-info.png" /></p>
 <h3 id="data-packets">Data Packets<a class="headerlink" href="#data-packets" title="Permanent link">&para;</a></h3>
 <p>The <code>.nev</code> file also contains the actual timestamped events, such as TTL pulses or encoded serial data.</p>
 <div class="highlight"><pre><span></span><code><span class="n">nev</span> <span class="o">=</span> <span class="n">Nev</span><span class="p">(</span><span class="n">nev_path</span><span class="p">)</span>
@@ -1729,6 +1752,11 @@
 <li><strong>InsertionReason</strong>: An 8-bit flag indicating why the event was inserted (e.g., digital change, serial input).</li>
 <li><strong>UnparsedData</strong>: The raw 16-bit digital input or 7-bit serial payload (depending on the flag).</li>
 </ul>
+<p>In MATLAB, the same data can be accessed using the <a href="https://github.com/BlackrockNeurotech/NPMK">NPMK package</a>. After loading the NEV file with <code>openNEV</code>, digital events are available in:</p>
+<div class="highlight"><pre><span></span><code><span class="n">NEV</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">openNEV</span><span class="p">(</span><span class="s">&#39;filename.nev&#39;</span><span class="p">,</span><span class="w"> </span><span class="s">&#39;read&#39;</span><span class="p">);</span>
+<span class="n">NEV</span><span class="p">.</span><span class="n">Data</span><span class="p">.</span><span class="n">SerialDigitalIO</span>
+</code></pre></div>
+<p><img alt="Serial Digital IO" src="serial-digital-io.png" /></p>
 <h2 id="understanding-insertionreason">Understanding <code>InsertionReason</code><a class="headerlink" href="#understanding-insertionreason" title="Permanent link">&para;</a></h2>
 <p>The <code>InsertionReason</code> field in the NEV file is a <strong>bitwise flag</strong> that encodes the reason a particular event was recorded. Each bit represents a specific condition or source for the event. Multiple bits may be set simultaneously.</p>
 <h3 id="relevant-values">Relevant Values<a class="headerlink" href="#relevant-values" title="Permanent link">&para;</a></h3>
