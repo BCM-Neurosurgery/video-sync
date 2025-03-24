@@ -35,9 +35,38 @@ The basic header contains global metadata about the recording session, including
  'NumExtendedHeaders': 818}
 ```
 
+MATLAB users can utilize the [NPMK package](https://github.com/BlackrockNeurotech/NPMK/tree/master) from Blackrock Neurotech to read `.nev` files. The primary function for this is `openNEV`, which loads metadata, spike data, and digital events into a structured object.
+
+To load a NEV file and access its metadata:
+
+```matlab
+openNEV('filename.nev', 'read');
+```
+
+This will return a `NEV` struct. The metadata fields are accessible via:
+
+```matlab
+NEV.MetaTags
+```
+
+This is functionally equivalent to calling `get_basic_header()` in the Python API.
+
+Below is an example view of the `MetaTags` structure in MATLAB:
+
+![NEV Meta Tags](understanding-nev/nevMetaTags.png)
+
+
 ### Extended Headers
 
-Extended headers contain channel-specific metadata, such as labeling, filtering, and electrode properties. They are stored as a list of dictionaries. Each PacketID identifies the type of metadata (e.g., waveform parameters, labels, filter settings).
+Extended headers in the NEV file contain channel-specific metadata, such as electrode labeling, waveform configuration, and filter settings. These entries provide essential information for interpreting neural data and are stored as a list of dictionaries in the Python API. Each entry is identified by a `PacketID`, which indicates the type of metadata.
+
+Common `PacketID` types include:
+
+- `NEUEVWAV`: Waveform extraction settings
+- `NEUEVLBL`: Electrode label
+- `NEUEVFLT`: Filter parameters
+
+Example:
 
 ```python
 >>> nev.get_extended_headers()
@@ -66,9 +95,21 @@ Extended headers contain channel-specific metadata, such as labeling, filtering,
   'LowFreqOrder': 3,
   'LowFreqType': 'butterworth',
   'EmptyBytes': b'\x00\x00'},
-  ...,
+  ...
 ]
 ```
+
+In MATLAB, this information is available through the `NEV.ElectrodesInfo` structure when using the [NPMK](https://github.com/BlackrockNeurotech/NPMK) package:
+
+```matlab
+NEV = openNEV('filename.nev', 'read');
+NEV.ElectrodesInfo
+```
+
+This structure contains similar metadata, such as channel labels, thresholds, and filter settings.
+
+![NEV Electrodes Info](understanding-nev/NEV-electrodes-info.png)
+
 
 ### Data Packets
 The `.nev` file also contains the actual timestamped events, such as TTL pulses or encoded serial data.
@@ -85,6 +126,15 @@ Key columns:
 - **TimeStamps**: Integer-based timestamps with TimeStampResolution frequency (e.g., 30,000 Hz).
 - **InsertionReason**: An 8-bit flag indicating why the event was inserted (e.g., digital change, serial input).
 - **UnparsedData**: The raw 16-bit digital input or 7-bit serial payload (depending on the flag).
+
+In MATLAB, the same data can be accessed using the [NPMK package](https://github.com/BlackrockNeurotech/NPMK). After loading the NEV file with `openNEV`, digital events are available in:
+
+```matlab
+NEV = openNEV('filename.nev', 'read');
+NEV.Data.SerialDigitalIO
+```
+
+![Serial Digital IO](understanding-nev/serial-digital-io.png)
 
 ## Understanding `InsertionReason`
 
