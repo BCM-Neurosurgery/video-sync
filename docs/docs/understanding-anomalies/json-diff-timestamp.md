@@ -1,5 +1,3 @@
-# Discontinuity in Json
-
 ### **The Problem**
 
 In some cases, JSON files within a group of camera recordings may have a slightly different timestamp than the corresponding MP4 files. In other cases, the JSON file may be missing entirely. This inconsistency can create issues when synchronizing video and metadata.

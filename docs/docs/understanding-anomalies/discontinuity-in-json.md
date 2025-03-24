@@ -1,5 +1,3 @@
-# **Discontinuity in Json**
-
 ## **Discontinuity of Serial**
 
 ### **The Problem**
