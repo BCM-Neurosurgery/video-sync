@@ -1,7 +1,3 @@
-# Understanding JSON
-
-This section explains how JSON metadata is generated and saved during acquisition using the multi-camera recording system.
-
 ## How JSON is Saved
 
 The JSON metadata is assembled during each recording loop iteration and written asynchronously to disk via a dedicated thread. This ensures that JSON saving does not block the main acquisition loop.
@@ -139,5 +135,3 @@ for c in self.cams:
     frame_metadata["frame_rates_binning"].append(c.BinningHorizontal * 30)
     frame_metadata["frame_rates_requested"].append(c.AcquisitionFrameRate)
 ```
-
-This loop ensures that the metadata per frame and per camera is stored in a synchronized fashion and saved with high fidelity.

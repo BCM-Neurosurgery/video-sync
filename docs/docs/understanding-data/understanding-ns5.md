@@ -13,8 +13,6 @@ This section provides guidance on how to interpret and process `.ns5` files, inc
 
 ## NS5 File Structure
 
-Ns5 is...
-
 A Ns5 file consists of three main components:
 
 - Basic Header
@@ -214,17 +212,14 @@ df_sub = ns5.get_channel_df("RoomMic2")
 audio_samples = df_sub["Amplitude"].values.astype(np.int16)
 ```
 
-2. **Compute dynamic sample rate**:  
-Although the NS5 file uses a nominal timestamp resolution of 30,000 Hz, the actual spacing between video frames (based on `frame_id` vs. `TimeStamp`) is not exactly 1000 ticks per frame. This small variation (e.g., 998, 1001) accumulates over time and can lead to noticeable drift. To ensure audio and video remain aligned, we compute the true sample rate dynamically:
+2. **Export to WAV**:
+```python
+from scipy.io.wavfile import write as wav_write
+wav_write(audio_wav_path, fps_audio=30000, audio_samples)
+```
+
+> Although the NS5 file uses a nominal timestamp resolution of 30,000 Hz, in the merged file with `.ns5`, `.json`, and `.nev`, the actual spacing between video frames (based on `frame_id` vs. `TimeStamp`) is not exactly 1000 ticks per frame. This small variation (e.g., 998, 1001) accumulates over time and can lead to noticeable drift. To ensure audio and video remain aligned, we compute the true sample rate dynamically. Refer to `pyvideosync.process.make_synced_subclip_ffmpeg` for more detail:
 ```python
 exported_video_duration_s = (max_frame - min_frame + 1) / 30  # 30 fps
 fps_audio = int(len(audio_samples) / exported_video_duration_s)
 ```
-
-3. **Export to WAV**:
-```python
-from scipy.io.wavfile import write as wav_write
-wav_write(audio_wav_path, fps_audio, audio_samples)
-```
-
-This ensures the audio duration matches the actual video length, avoiding sync issues due to small timing deviations in frame acquisition.

@@ -1,7 +1,3 @@
-# Understanding NEV
-
-This guide provides a detailed explanation of the NEV (Neural Event) file structure, focusing on decoding digital event streams (`UnparsedData`) and aligning them with external triggers such as camera recordings. It is intended for researchers and engineers using Blackrock systems in multimodal experimental setups.
-
 ## NEV File Structure
 
 The `.nev` file format, developed by BlackRock Microsystems, is designed to store timestamped neural events such as spikes, TTL pulses, and serial messages. It supports up to 10,000 electrodes and includes both metadata and raw event data, structured to balance flexibility, efficiency, and ease of parsing.
@@ -14,7 +10,7 @@ A NEV file consists of three main components:
 
 ### Basic Header
 
-The basic header contains global metadata about the recording session, including the timestamp resolution and the origin of time. You can inspect it using the following method. Key fields:
+The basic header contains global metadata about the recording session, including the timestamp resolution and the origin of time. You can inspect it using `pyvideosync.nev.get_basic_header`. Key fields:
 
 - **TimeStampResolution**: Number of timestamp ticks per second (e.g., 30,000 means 1 tick = 33.3 μs).
 - **SampleTimeResolution**: Used for waveform sampling resolution, often the same as TimeStampResolution.
