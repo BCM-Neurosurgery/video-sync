@@ -63,6 +63,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#the-problem" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -970,6 +975,18 @@
       
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Discontinuity in Nev
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
@@ -980,6 +997,68 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-problem" class="md-nav__link">
+    <span class="md-ellipsis">
+      The Problem
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      Examples
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#observations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Observations
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#solution" class="md-nav__link">
+    <span class="md-ellipsis">
+      Solution
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#download" class="md-nav__link">
+    <span class="md-ellipsis">
+      Download
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -1145,6 +1224,59 @@
   
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-problem" class="md-nav__link">
+    <span class="md-ellipsis">
+      The Problem
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      Examples
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#observations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Observations
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#solution" class="md-nav__link">
+    <span class="md-ellipsis">
+      Solution
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#download" class="md-nav__link">
+    <span class="md-ellipsis">
+      Download
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -1164,7 +1296,237 @@
 
   <h1>Discontinuity in Nev</h1>
 
-
+<h3 id="the-problem"><strong>The Problem</strong><a class="headerlink" href="#the-problem" title="Permanent link">&para;</a></h3>
+<p>In NEV files, our primary focus is on decoding the <strong>serial number</strong> from digital events. This serial is reconstructed from groups of 5 bytes (<code>UnparsedData</code> values), each encoding 7 bits of data.</p>
+<p>However, <strong>discontinuities</strong> can occur when these groups are incomplete—i.e., a group contains fewer than 5 bytes, breaking the encoding logic.</p>
+<hr />
+<h3 id="examples"><strong>Examples</strong><a class="headerlink" href="#examples" title="Permanent link">&para;</a></h3>
+<p>Below is a snippet from a NEV digital events dataframe:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">InsertionReason</th>
+<th style="text-align: right;">TimeStamps</th>
+<th style="text-align: right;">UnparsedData</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">129</td>
+<td style="text-align: right;">1.34882e+06</td>
+<td style="text-align: right;">43</td>
+</tr>
+<tr>
+<td style="text-align: right;">129</td>
+<td style="text-align: right;">1.34883e+06</td>
+<td style="text-align: right;">76</td>
+</tr>
+<tr>
+<td style="text-align: right;">129</td>
+<td style="text-align: right;">1.34883e+06</td>
+<td style="text-align: right;">35</td>
+</tr>
+<tr>
+<td style="text-align: right;">129</td>
+<td style="text-align: right;">1.34883e+06</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td style="text-align: right;">129</td>
+<td style="text-align: right;">1.34884e+06</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.34927e+06</td>
+<td style="text-align: right;">65533</td>
+</tr>
+<tr>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.34927e+06</td>
+<td style="text-align: right;">65280</td>
+</tr>
+<tr>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.34982e+06</td>
+<td style="text-align: right;">65535</td>
+</tr>
+<tr>
+<td style="text-align: right;">129</td>
+<td style="text-align: right;">1.34983e+06</td>
+<td style="text-align: right;">76</td>
+</tr>
+<tr>
+<td style="text-align: right;">129</td>
+<td style="text-align: right;">1.34984e+06</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.35027e+06</td>
+<td style="text-align: right;">65280</td>
+</tr>
+<tr>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.35082e+06</td>
+<td style="text-align: right;">65519</td>
+</tr>
+<tr>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.35083e+06</td>
+<td style="text-align: right;">65535</td>
+</tr>
+<tr>
+<td style="text-align: right;">129</td>
+<td style="text-align: right;">1.35083e+06</td>
+<td style="text-align: right;">45</td>
+</tr>
+<tr>
+<td style="text-align: right;">129</td>
+<td style="text-align: right;">1.35083e+06</td>
+<td style="text-align: right;">76</td>
+</tr>
+<tr>
+<td style="text-align: right;">129</td>
+<td style="text-align: right;">1.35083e+06</td>
+<td style="text-align: right;">35</td>
+</tr>
+<tr>
+<td style="text-align: right;">129</td>
+<td style="text-align: right;">1.35084e+06</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td style="text-align: right;">129</td>
+<td style="text-align: right;">1.35084e+06</td>
+<td style="text-align: right;">0</td>
+</tr>
+</tbody>
+</table>
+<p>In this example, a valid group of 5 bytes appears:</p>
+<div class="highlight"><pre><span></span><code>43, 76, 35, 0, 0
+</code></pre></div>
+<p>Then suddenly, only 2 values are available:</p>
+<div class="highlight"><pre><span></span><code>76, 0
+</code></pre></div>
+<p>which suggests we were expecting:</p>
+<div class="highlight"><pre><span></span><code>44, 76, 35, 0, 0
+</code></pre></div>
+<p>In the next group, the structure resumes normally:</p>
+<div class="highlight"><pre><span></span><code>45, 76, 35, 0, 0
+</code></pre></div>
+<p>Another example:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">InsertionReason</th>
+<th style="text-align: right;">TimeStamps</th>
+<th style="text-align: right;">UnparsedData</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">129</td>
+<td style="text-align: right;">4.60671e+06</td>
+<td style="text-align: right;">96</td>
+</tr>
+<tr>
+<td style="text-align: right;">129</td>
+<td style="text-align: right;">4.60672e+06</td>
+<td style="text-align: right;">101</td>
+</tr>
+<tr>
+<td style="text-align: right;">129</td>
+<td style="text-align: right;">4.60672e+06</td>
+<td style="text-align: right;">35</td>
+</tr>
+<tr>
+<td style="text-align: right;">129</td>
+<td style="text-align: right;">4.60672e+06</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td style="text-align: right;">129</td>
+<td style="text-align: right;">4.60673e+06</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td style="text-align: right;">129</td>
+<td style="text-align: right;">4.60772e+06</td>
+<td style="text-align: right;">97</td>
+</tr>
+<tr>
+<td style="text-align: right;">129</td>
+<td style="text-align: right;">4.60772e+06</td>
+<td style="text-align: right;">101</td>
+</tr>
+<tr>
+<td style="text-align: right;">129</td>
+<td style="text-align: right;">4.60772e+06</td>
+<td style="text-align: right;">35</td>
+</tr>
+<tr>
+<td style="text-align: right;">129</td>
+<td style="text-align: right;">4.60772e+06</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td style="text-align: right;">129</td>
+<td style="text-align: right;">4.60773e+06</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td style="text-align: right;">129</td>
+<td style="text-align: right;">4.60872e+06</td>
+<td style="text-align: right;">101</td>
+</tr>
+<tr>
+<td style="text-align: right;">129</td>
+<td style="text-align: right;">4.60872e+06</td>
+<td style="text-align: right;">35</td>
+</tr>
+<tr>
+<td style="text-align: right;">129</td>
+<td style="text-align: right;">4.60873e+06</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td style="text-align: right;">129</td>
+<td style="text-align: right;">4.60873e+06</td>
+<td style="text-align: right;">0</td>
+</tr>
+</tbody>
+</table>
+<p>Here, we observe valid serial byte groups:</p>
+<div class="highlight"><pre><span></span><code>96, 101, 35, 0, 0
+97, 101, 35, 0, 0
+</code></pre></div>
+<p>Then we lose one byte (98 is missing):</p>
+<div class="highlight"><pre><span></span><code>101, 35, 0, 0
+</code></pre></div>
+<hr />
+<h3 id="observations"><strong>Observations</strong><a class="headerlink" href="#observations" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Missing values can occur <strong>at any byte position</strong> within the expected 5-byte group.</li>
+<li>The NEV file logs digital events only on <strong>bit changes</strong>, so dropped or missing bytes <strong>cannot be recovered</strong> based solely on timing.</li>
+</ul>
+<hr />
+<h3 id="solution"><strong>Solution</strong><a class="headerlink" href="#solution" title="Permanent link">&para;</a></h3>
+<p>Since it's not possible to recover partial serial groups, we:</p>
+<ol>
+<li>Extract only the <strong>valid 5-byte groups</strong> using <code>pyvideosync.nev.get_cleaned_digital_events_df</code>.</li>
+<li>Reconstruct serial values from these clean groups using <code>bits_to_decimal</code>.</li>
+<li>Apply <strong>gap-filling logic</strong> to infer missing serial numbers using:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">pyvideosync.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">fill_missing_serials_with_gap</span>
+</code></pre></div>
+<p>Refer to the function <code>get_chunk_serial_df()</code> in <code>pyvideosync.nev</code> for the full reconstruction pipeline.</p>
+<hr />
+<h3 id="download"><strong>Download</strong><a class="headerlink" href="#download" title="Permanent link">&para;</a></h3>
+<ul>
+<li><a href="digital_events_df.csv"><code>digital_events_df.csv</code></a></li>
+<li><a href="NSP1-20240416-164732-001.nev"><code>NSP1-20240416-164732-001.nev</code></a></li>
+</ul>
 
 
 
