@@ -64,7 +64,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#understanding-nev" class="md-skip">
+        <a href="#nev-file-structure" class="md-skip">
           Skip to content
         </a>
       
@@ -1064,8 +1064,6 @@
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
-        
-      
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
           
@@ -1095,8 +1093,6 @@
 <nav class="md-nav md-nav--secondary" aria-label="Table of contents">
   
   
-  
-    
   
   
     <label class="md-nav__title" for="__toc">
@@ -1350,8 +1346,6 @@
   
   
   
-    
-  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -1546,8 +1540,8 @@
   
 
 
-<h1 id="understanding-nev">Understanding NEV<a class="headerlink" href="#understanding-nev" title="Permanent link">&para;</a></h1>
-<p>This guide provides a detailed explanation of the NEV (Neural Event) file structure, focusing on decoding digital event streams (<code>UnparsedData</code>) and aligning them with external triggers such as camera recordings. It is intended for researchers and engineers using Blackrock systems in multimodal experimental setups.</p>
+  <h1>Understanding Nev</h1>
+
 <h2 id="nev-file-structure">NEV File Structure<a class="headerlink" href="#nev-file-structure" title="Permanent link">&para;</a></h2>
 <p>The <code>.nev</code> file format, developed by BlackRock Microsystems, is designed to store timestamped neural events such as spikes, TTL pulses, and serial messages. It supports up to 10,000 electrodes and includes both metadata and raw event data, structured to balance flexibility, efficiency, and ease of parsing.</p>
 <p>A NEV file consists of three main components:</p>
@@ -1557,7 +1551,7 @@
 <li>Data Packets</li>
 </ul>
 <h3 id="basic-header">Basic Header<a class="headerlink" href="#basic-header" title="Permanent link">&para;</a></h3>
-<p>The basic header contains global metadata about the recording session, including the timestamp resolution and the origin of time. You can inspect it using the following method. Key fields:</p>
+<p>The basic header contains global metadata about the recording session, including the timestamp resolution and the origin of time. You can inspect it using <code>pyvideosync.nev.get_basic_header</code>. Key fields:</p>
 <ul>
 <li><strong>TimeStampResolution</strong>: Number of timestamp ticks per second (e.g., 30,000 means 1 tick = 33.3 μs).</li>
 <li><strong>SampleTimeResolution</strong>: Used for waveform sampling resolution, often the same as TimeStampResolution.</li>

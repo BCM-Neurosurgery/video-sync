@@ -1339,7 +1339,6 @@
 - The <code>.ns5</code> file is most commonly used when raw neural data is acquired at the <strong>highest available sampling rate (30 kHz)</strong>.</p>
 <p>This section provides guidance on how to interpret and process <code>.ns5</code> files, including reading the header structure, decoding the data blocks, and aligning NS5 signals with NEV-based events like triggers or serial pulses.</p>
 <h2 id="ns5-file-structure">NS5 File Structure<a class="headerlink" href="#ns5-file-structure" title="Permanent link">&para;</a></h2>
-<p>Ns5 is...</p>
 <p>A Ns5 file consists of three main components:</p>
 <ul>
 <li>Basic Header</li>
@@ -1753,20 +1752,18 @@
 </code></pre></div></p>
 </li>
 <li>
-<p><strong>Compute dynamic sample rate</strong>:<br />
-Although the NS5 file uses a nominal timestamp resolution of 30,000 Hz, the actual spacing between video frames (based on <code>frame_id</code> vs. <code>TimeStamp</code>) is not exactly 1000 ticks per frame. This small variation (e.g., 998, 1001) accumulates over time and can lead to noticeable drift. To ensure audio and video remain aligned, we compute the true sample rate dynamically:
-<div class="highlight"><pre><span></span><code><span class="n">exported_video_duration_s</span> <span class="o">=</span> <span class="p">(</span><span class="n">max_frame</span> <span class="o">-</span> <span class="n">min_frame</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">30</span>  <span class="c1"># 30 fps</span>
-<span class="n">fps_audio</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">audio_samples</span><span class="p">)</span> <span class="o">/</span> <span class="n">exported_video_duration_s</span><span class="p">)</span>
-</code></pre></div></p>
-</li>
-<li>
 <p><strong>Export to WAV</strong>:
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">scipy.io.wavfile</span><span class="w"> </span><span class="kn">import</span> <span class="n">write</span> <span class="k">as</span> <span class="n">wav_write</span>
-<span class="n">wav_write</span><span class="p">(</span><span class="n">audio_wav_path</span><span class="p">,</span> <span class="n">fps_audio</span><span class="p">,</span> <span class="n">audio_samples</span><span class="p">)</span>
+<span class="n">wav_write</span><span class="p">(</span><span class="n">audio_wav_path</span><span class="p">,</span> <span class="n">fps_audio</span><span class="o">=</span><span class="mi">30000</span><span class="p">,</span> <span class="n">audio_samples</span><span class="p">)</span>
 </code></pre></div></p>
 </li>
 </ol>
-<p>This ensures the audio duration matches the actual video length, avoiding sync issues due to small timing deviations in frame acquisition.</p>
+<blockquote>
+<p>Although the NS5 file uses a nominal timestamp resolution of 30,000 Hz, in the merged file with <code>.ns5</code>, <code>.json</code>, and <code>.nev</code>, the actual spacing between video frames (based on <code>frame_id</code> vs. <code>TimeStamp</code>) is not exactly 1000 ticks per frame. This small variation (e.g., 998, 1001) accumulates over time and can lead to noticeable drift. To ensure audio and video remain aligned, we compute the true sample rate dynamically. Refer to <code>pyvideosync.process.make_synced_subclip_ffmpeg</code> for more detail:
+<div class="highlight"><pre><span></span><code><span class="n">exported_video_duration_s</span> <span class="o">=</span> <span class="p">(</span><span class="n">max_frame</span> <span class="o">-</span> <span class="n">min_frame</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">30</span>  <span class="c1"># 30 fps</span>
+<span class="n">fps_audio</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">audio_samples</span><span class="p">)</span> <span class="o">/</span> <span class="n">exported_video_duration_s</span><span class="p">)</span>
+</code></pre></div></p>
+</blockquote>
 
 
 

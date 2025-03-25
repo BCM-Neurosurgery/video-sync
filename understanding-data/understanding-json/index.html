@@ -62,7 +62,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#understanding-json" class="md-skip">
+        <a href="#how-json-is-saved" class="md-skip">
           Skip to content
         </a>
       
@@ -1106,8 +1106,6 @@
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
-        
-      
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
           
@@ -1137,8 +1135,6 @@
 <nav class="md-nav md-nav--secondary" aria-label="Table of contents">
   
   
-  
-    
   
   
     <label class="md-nav__title" for="__toc">
@@ -1231,8 +1227,6 @@
   
   
   
-    
-  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -1310,8 +1304,8 @@
   
 
 
-<h1 id="understanding-json">Understanding JSON<a class="headerlink" href="#understanding-json" title="Permanent link">&para;</a></h1>
-<p>This section explains how JSON metadata is generated and saved during acquisition using the multi-camera recording system.</p>
+  <h1>Understanding JSON</h1>
+
 <h2 id="how-json-is-saved">How JSON is Saved<a class="headerlink" href="#how-json-is-saved" title="Permanent link">&para;</a></h2>
 <p>The JSON metadata is assembled during each recording loop iteration and written asynchronously to disk via a dedicated thread. This ensures that JSON saving does not block the main acquisition loop.</p>
 <p>Relevant code:</p>
@@ -1422,7 +1416,6 @@
     <span class="n">frame_metadata</span><span class="p">[</span><span class="s2">&quot;frame_rates_binning&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">BinningHorizontal</span> <span class="o">*</span> <span class="mi">30</span><span class="p">)</span>
     <span class="n">frame_metadata</span><span class="p">[</span><span class="s2">&quot;frame_rates_requested&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">AcquisitionFrameRate</span><span class="p">)</span>
 </code></pre></div>
-<p>This loop ensures that the metadata per frame and per camera is stored in a synchronized fashion and saved with high fidelity.</p>
 
 
 
