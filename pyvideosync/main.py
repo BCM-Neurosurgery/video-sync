@@ -76,6 +76,9 @@ def main():
 
     # 2. Find all JSON files and MP4 files
     camera_files = datapool.get_video_file_pool().list_groups()
+    if not camera_files:
+        logger.error("No camera files found")
+        return
 
     # 3. load camera serials from the config file
     camera_serials = pathutils.cam_serial
