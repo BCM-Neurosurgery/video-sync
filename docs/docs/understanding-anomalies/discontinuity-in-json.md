@@ -181,6 +181,69 @@ These patterns are artifacts of the encoding and buffering system and do not nec
         ],
 ```
 
+[utsw_TRD011_day_3_20240718_180417.json](discontinuity-in-json/utsw_TRD011_day_3_20240718_180417.json)
+
+```json
+"chunk_serial_data": 
+        [
+            6422523
+        ],
+        [
+            1
+        ],
+        [
+            10
+        ],
+        [
+            18
+        ],
+        [
+            26
+        ],
+        [
+            32
+        ],
+        [
+            43
+        ],
+        [
+            50
+        ],
+        [
+            54
+        ],
+        [
+            63
+        ],
+        [
+            70
+        ],
+        [
+            79
+        ],
+        [
+            86
+        ],
+        [
+            94
+        ],
+        [
+            101
+        ],
+        [
+            109
+        ],
+        [
+            120
+        ],
+        [
+            125
+        ],
+        [
+            6422659
+        ],
+```
+
 #### **Type III Discontinuity**  
 [YFB_20240504_052717.json](discontinuity-in-json/YFB_20240504_052717.json)
 
