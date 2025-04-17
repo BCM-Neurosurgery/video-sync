@@ -32,6 +32,7 @@ from pyvideosync.fixanomaly import fill_array_gaps
         ([0, 5], [5]),
         ([-1, -1, -1, 4, 5, 6, 7, 0, 12], [4, 5, 6, 7, 8, 9, 10, 11, 12]),
         ([-1, 0, -1, 0], []),
+        ([127, 0, 20405, 20406, 20407], [20403, 20404, 20405, 20406, 20407]),
     ],
 )
 def test_fill_array_gaps(input_array, expected_output):

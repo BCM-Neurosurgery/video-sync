@@ -1,4 +1,95 @@
 import numpy as np
+from typing import List
+
+
+def fix_discontinuities_heuristic(arr: List[int]) -> List[int]:
+    """
+    Repairs type I to type IV anomalies in a 1-D integer list.
+
+    Anomalies:
+        1. Type I: [20323583, 0, 20323585]
+        2. Type II: [20332543, 0, 1, 2, 3, ..., 127, 0, 20332673, 20332674]
+        3. Type III: [30133802, 30133804, 30133805]
+        4. Type IV: [-1, 20323572]
+
+    Observation:
+        1. The anomalies usually go from -1 to 127, the maximum is 127.
+        2. There shouldn't be adjacent 0s.
+        3. -1 appears at the beginning of the list; there can be adjacent -1s.
+
+    Heuristic approach:
+        - Replace everything < 128 with -1.
+        - If max value ≤ 127, or list is empty, return early.
+        - Fill leading -1s based on the first valid number.
+        - Fill -1 gaps in the middle exhaustively between surrounding valid numbers.
+        - Gaps between valid numbers > 1 are filled exhaustively.
+
+    Args:
+        arr (List[int]): 1-D list of integers.
+
+    Returns:
+        List[int]: Gap-filled integer sequence.
+    """
+    # Copy to avoid mutating the input
+    seq = arr.copy()
+    if not seq:
+        return []
+
+    # If everything is ≤ 127, assume it's already "just 0..127" and do nothing
+    if max(seq) <= 127:
+        return seq.copy()
+
+    # Step 1: replace small values with -1
+    rep = [-1 if x < 128 else x for x in seq]
+    n = len(rep)
+    result: List[int] = []
+
+    # Step 2: find the first real value (> -1)
+    first_valid_idx = next((i for i, x in enumerate(rep) if x != -1), None)
+    if first_valid_idx is None:
+        return []
+
+    first_val = rep[first_valid_idx]
+    # Fill any leading -1s by counting backward from the first valid
+    for k in range(first_valid_idx):
+        result.append(first_val - (first_valid_idx - k))
+    result.append(first_val)
+
+    prev = first_val
+    i = first_valid_idx + 1
+
+    # Step 3: walk through the rest
+    while i < n:
+        cur = rep[i]
+        if cur == -1:
+            # find next valid
+            j = i + 1
+            while j < n and rep[j] == -1:
+                j += 1
+            if j < n:
+                next_val = rep[j]
+                # fill all the in‑between values
+                for fill in range(prev + 1, next_val):
+                    result.append(fill)
+                result.append(next_val)
+                prev = next_val
+                i = j + 1
+            else:
+                # trailing -1s: fill forward from prev
+                trailing_count = n - i
+                for offset in range(1, trailing_count + 1):
+                    result.append(prev + offset)
+                break
+        else:
+            # a real value; if there's a numeric gap, fill it
+            if cur > prev + 1:
+                for fill in range(prev + 1, cur):
+                    result.append(fill)
+            result.append(cur)
+            prev = cur
+            i += 1
+
+    return result
 
 
 def fix_discontinuities(arr: np.array) -> list:
