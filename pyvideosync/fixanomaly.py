@@ -1,8 +1,79 @@
 import numpy as np
-from typing import List
+from typing import List, Tuple, Any, Optional
 
 
-def fix_discontinuities_heuristic(arr: List[int]) -> List[int]:
+def fix_typei(arr: List[int]) -> List[int]:
+    """
+    If a lone 0 is flanked by two integers that differ by 2, replaces
+    that 0 with the missing middle value. All other entries (including
+    zeros at the edges or in larger gaps) are left unchanged.
+
+    Args:
+        arr: A list of integers, where 0 marks a single placeholder.
+
+    Returns:
+        A new list with any [x, 0, y] gaps turned into [x, x+1, y] if y−x == 2.
+    """
+    result = arr.copy()
+    # skip first and last index since they can't be “between” two numbers
+    for i in range(1, len(arr) - 1):
+        if arr[i] == 0 and arr[i - 1] + 2 == arr[i + 1]:
+            result[i] = arr[i - 1] + 1
+    return result
+
+
+def fix_typeiv(arr: List[int]) -> List[int]:
+    """
+    Fills leading placeholder values (marked as anything < 128) by counting
+    backward from the first “real” value (>= 128).
+
+    Treats all values < 128 as missing (-1).  If the entire list is empty
+    returns empty list.  If the maximum value in the list is ≤ 127, assumes
+    the sequence is already “just 0..127” and returns a shallow copy.
+
+    Args:
+        arr: List[int] — the original sequence, where any x < 128 is a placeholder.
+
+    Returns:
+        List[int] — a new list where any leading placeholders have been replaced
+        by a backwards-counting sequence ending at the first real value.  All
+        subsequent entries (including any interior placeholders) are left as-is
+        (i.e. ≥128 remain unchanged, <128 become -1).
+    """
+    seq = arr.copy()
+    if not seq:
+        return []
+    # if everything is ≤ 127, nothing to do
+    if max(seq) <= 127:
+        return seq.copy()
+
+    # step 1: map placeholders
+    rep: List[int] = [x if x >= 128 else -1 for x in seq]
+    # step 2: find first real value
+    first_valid_idx: Optional[int] = next(
+        (i for i, x in enumerate(rep) if x != -1), None
+    )
+    if first_valid_idx is None:
+        # no real values at all
+        return []
+
+    first_val = rep[first_valid_idx]
+    result: List[int] = []
+
+    # fill any leading placeholders by counting backward
+    for k in range(first_valid_idx):
+        result.append(first_val - (first_valid_idx - k))
+
+    # append the first real value
+    result.append(first_val)
+
+    # append the rest unchanged
+    result.extend(rep[first_valid_idx + 1 :])
+
+    return result
+
+
+def fix_discontinuities(arr: List[int]) -> List[int]:
     """
     Repairs type I to type IV anomalies in a 1-D integer list.
 
@@ -92,112 +163,48 @@ def fix_discontinuities_heuristic(arr: List[int]) -> List[int]:
     return result
 
 
-def fix_discontinuities(arr: np.array) -> list:
-    """Repairs incremental discontinuities in a 1-D integer array.
+def fix_discontinuities_with_fill(
+    arr: List[int], arr2: List[Any], fill_number: Any
+) -> Tuple[List[int], List[Any]]:
+    """Fixes discontinuities in one array and fills corresponding positions in a second array.
 
-    The function identifies and fixes two specific anomaly types in an otherwise incrementally increasing integer array:
-
-    - **Type I Discontinuity**: Single zero occurring between two integers that differ by exactly 2.
-      Example: `[1, 2, 3, 0, 5]` becomes `[1, 2, 3, 4, 5]`.
-
-    - **Type II Discontinuity**: Sequence reset starting from zero and incrementally counting up again from 1.
-      Example: `[7, 8, 0, 1, 2]` becomes `[7, 8, 9, 10, 11]`.
+    Wherever `arr` is “fixed” or interpolated by `fix_discontinuities()`, this function
+    will insert `fill_number` into `arr2` at the same positions.
 
     Args:
-        arr (list or np.ndarray): The input array containing integer values. It is expected
-            to be primarily incremental but may contain anomalies as described above.
+        arr (List[int]): Original list of integers, possibly with gaps.
+        arr2 (List[Any]): A parallel list (same length as `arr`) whose values should be
+                          carried over when `arr` values match, or replaced by `fill_number`
+                          for each inserted/interpolated entry.
+        fill_number (Any): The value to insert into the second list wherever `arr` was
+                           interpolated.
 
     Returns:
-        list: A corrected array with discontinuities repaired, maintaining incremental continuity.
+        List[Any]:
+            - The second element is a new list the same length as the fixed array, where
+              original `arr2` values are preserved when `arr` wasn't changed, and
+              `fill_number` is used for each new/interpolated entry.
 
-    Examples:
-        >>> fix_discontinuities([1, 2, 3, 0, 5, 6, 7, 0, 9])
-        [1, 2, 3, 4, 5, 6, 7, 8, 9]
-
-        >>> fix_discontinuities([5, 6, 7, 8, 0, 1, 2, 3, 4])
-        [5, 6, 7, 8, 9, 10, 11, 12, 13]
-
-        >>> fix_discontinuities([2, 0, 4, 0, 6])
-        [2, 3, 4, 5, 6]
-
-    Notes:
-        - If the discontinuity cannot be resolved (e.g., zero at the very end with no following numbers),
-          the function leaves the original value(s) unchanged.
-        - The function makes a copy of the input array to avoid side-effects.
+    Raises:
+        ValueError: If `arr` and `arr2` are not the same length.
     """
-    arr = np.array(arr, dtype=int).copy()
-    n = len(arr)
-    i = 1
+    if len(arr) != len(arr2):
+        raise ValueError("`arr` and `arr2` must be the same length")
 
-    while i < n - 1:
-        # Detect Type I discontinuity
-        if (
-            arr[i] == 0
-            and arr[i - 1] != 0
-            and arr[i + 1] != 0
-            and arr[i + 1] - arr[i - 1] == 2
-        ):
-            arr[i] = arr[i - 1] + 1
-            i += 1
-            continue
+    # Assume fix_discontinuities is already defined elsewhere
+    fixed_arr = fix_discontinuities(arr)
 
-        # Detect Type II discontinuity
-        if arr[i] == 0 and arr[i + 1] == 1:
-            # Found start of type II discontinuity
-            fix_start = i
-            fix_val = arr[i - 1] + 1
-            j = i
-            while j < n and arr[j] == (j - i):
-                arr[j] = fix_val
-                fix_val += 1
-                j += 1
-            i = j
-            continue
+    filled_arr2: List[Any] = []
+    j = 0  # pointer into the original arr/arr2
+    n_orig = len(arr)
 
-        i += 1
+    for v in fixed_arr:
+        if j < n_orig and v == arr[j]:
+            # this value came from the original array: carry over arr2[j]
+            filled_arr2.append(arr2[j])
+            j += 1
+        else:
+            # this value was interpolated/inserted: use fill_number
+            filled_arr2.append(fill_number)
 
-    return arr.tolist()
-
-
-def fill_array_gaps(arr: np.ndarray) -> list:
-    """Fills numeric gaps in an integer array, handling zeros and negative placeholders.
-
-    Given a 1-D integer array possibly containing gaps, zeros, or placeholder negatives (-1),
-    this function returns a fully continuous integer sequence from the first valid (positive)
-    number to the last number, filling in all missing intermediate integers.
-
-    Args:
-        arr (Union[List[int], np.ndarray]): Array potentially containing zeros, gaps, or -1 placeholders.
-
-    Returns:
-        List[int]: Continuous sequence of integers from first valid number to the last number.
-
-    Examples:
-        >>> fill_array_gaps([2844396, 2844399, 2844401])
-        [2844396, 2844397, 2844398, 2844399, 2844400, 2844401]
-
-        >>> fill_array_gaps([2844411, 0, 2844418, 2844420])
-        [2844411, 2844412, 2844413, 2844414, 2844415, 2844416, 2844417, 2844418, 2844419, 2844420]
-
-        >>> fill_array_gaps([-1, -1, -1, 4, 5, 6, 7, 0, 12])
-        [4, 5, 6, 7, 8, 9, 10, 11, 12]
-
-        >>> fill_array_gaps([-1, 0, -1, 0])
-        []
-    """
-    arr = np.array(arr)
-
-    # Identify the first valid positive integer as the starting point
-    valid_indices = np.where(arr > 0)[0]
-
-    if valid_indices.size == 0:
-        # No valid starting point found
-        return []
-
-    start_index = valid_indices[0]
-    start = arr[start_index]
-    end = arr[valid_indices[-1]]
-
-    filled_array = np.arange(start, end + 1).tolist()
-
-    return filled_array
+    return filled_arr2

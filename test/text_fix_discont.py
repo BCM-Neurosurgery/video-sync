@@ -1,4 +1,4 @@
-from pyvideosync.fixanomaly import fix_discontinuities_heuristic
+from pyvideosync.fixanomaly import fix_discontinuities
 import numpy as np
 import pytest
 
@@ -80,5 +80,5 @@ comp_test_4_expected = [5685247] + [5685248 + i for i in range(127)]
     ],
 )
 def test_fix_discontinuities(arr, expected):
-    result = fix_discontinuities_heuristic(arr)
+    result = fix_discontinuities(arr)
     assert result == expected
