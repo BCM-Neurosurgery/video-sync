@@ -260,6 +260,8 @@ class Videojson:
 
         for camera_serial in self.get_camera_serials():
             chunk_serial = self.get_chunk_serial_list(camera_serial)
+            if not chunk_serial:
+                continue
             chunk_serial_filtered = [i for i in chunk_serial if i >= 128]
             min_chunk_serial = min(chunk_serial_filtered)
             max_chunk_serial = max(chunk_serial_filtered)
