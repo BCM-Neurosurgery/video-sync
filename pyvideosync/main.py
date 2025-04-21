@@ -14,6 +14,7 @@ from pyvideosync.pathutils import PathUtils
 from pyvideosync.process import (
     ffmpeg_concat_mp4s,
     make_synced_subclip_ffmpeg,
+    make_synced_subclip_moviepy,
 )
 from pyvideosync.utils import (
     load_timestamps,
@@ -111,6 +112,10 @@ def main():
                 logger.error(f"No chunk serials found in JSON file: {json_path}")
                 continue
 
+            if start_serial > nev_end_serial:
+                logger.info(f"Past end serial: {timestamp}")
+                break
+
             if end_serial < nev_start_serial:
                 logger.info(f"No overlap found: {timestamp}")
                 continue
@@ -145,11 +150,6 @@ def main():
 
             videojson = Videojson(json_path)
             camera_df = videojson.get_camera_df(camera_serial)
-            camera_df["frame_ids_relative"] = (
-                camera_df["frame_ids_reconstructed"]
-                - camera_df["frame_ids_reconstructed"].iloc[0]
-                + 1
-            )
 
             camera_df = camera_df.loc[
                 (camera_df["chunk_serial_data"] >= nev_start_serial)
@@ -183,8 +183,7 @@ def main():
                     "TimeStamp",
                     "Amplitude",
                     "chunk_serial",
-                    "frame_ids_reconstructed",
-                    "frame_ids_relative",
+                    "mp4_frame_idx",  # we only need the mp4_frame_idx
                 ]
             ]
 
@@ -218,7 +217,7 @@ def main():
             df_sub = all_merged_df[all_merged_df["mp4_file"] == mp4_path]
 
             # Build a subclip from the relevant frames, attach audio
-            subclip = make_synced_subclip_ffmpeg(
+            subclip = make_synced_subclip_moviepy(
                 df_sub,
                 mp4_path,
                 os.path.join(pathutils.output_dir, camera_serial),
@@ -227,7 +226,7 @@ def main():
             subclip_paths.append(subclip)
 
         final_path = os.path.join(
-            pathutils.output_dir, camera_serial, f"stitched_{camera_serial}.mp4"
+            pathutils.output_dir, camera_serial, pathutils.get_final_video_out_path()
         )
         # Now 'subclip_paths' has each final MP4 subclip
         # If we have only one, just rename or copy it

@@ -2,7 +2,12 @@ import json
 import pandas as pd
 import numpy as np
 from datetime import datetime
-from pyvideosync.fixanomaly import fix_discontinuities, fill_array_gaps
+from pyvideosync.fixanomaly import (
+    fix_typei,
+    fix_typeiv,
+    fix_discontinuities,
+)
+from typing import List
 
 
 class Videojson:
@@ -92,46 +97,94 @@ class Videojson:
             # Returns DataFrame with chunk_serial_data and frame_id columns for camera 123456
 
         """
-        assert (
-            cam_serial in self.get_camera_serials()
-        ), "Camera serial not found in JSON"
-        cam_idx = self.get_camera_serials().index(cam_serial)
-        headers = [
-            "chunk_serial_data",
-            "frame_id",
-        ]
-        res = []
-        for i in range(self.get_length_of_recording()):
-            temp = {}
-            for header in headers:
-                if header == "real_times":
-                    temp[header] = self.dic[header][i]
-                else:
-                    temp[header] = self.dic[header][i][cam_idx]
-            res.append(temp)
-        df = pd.DataFrame.from_records(res)
-        df = self.reconstruct_frame_id(df)
+        if cam_serial not in self.get_camera_serials():
+            raise AssertionError(
+                "Camera serial not found in JSON. Please check the serial number."
+            )
+        chunk_serial = self.get_chunk_serial_list(cam_serial)
+        frame_ids = self.get_frame_ids_list(cam_serial)
 
-        # First, fix discontinuities
-        chunk_serial_fixed = fix_discontinuities(df["chunk_serial_data"].tolist())
-        frame_id_fixed = fix_discontinuities(df["frame_ids_reconstructed"].tolist())
+        # now create another array for mp4 relative frame ids
+        # we don't really need to fix the overflow in frame ids
+        # because they are just counter from cam buffer
+        mp4_frame_idx = np.arange(len(frame_ids))
 
-        # Now explicitly interpolate (fill gaps) which will increase the DataFrame length
-        continuous_chunk_serial = fill_array_gaps(chunk_serial_fixed)
-        continuous_frame_ids = fill_array_gaps(frame_id_fixed)
+        # fix type i and type iv in chunk serial
+        # now there should only be type ii and type iii left
+        chunk_serial_fixed = fix_typei(chunk_serial)
+        chunk_serial_fixed = fix_typeiv(chunk_serial_fixed)
 
-        # Create a new DataFrame from the continuous sequences
-        df_continuous = pd.DataFrame(
+        # now the remaining discontinuities
+        # in chunk serial should only be
+        # type ii or type iii (jumps)
+        df = pd.DataFrame(
             {
-                "chunk_serial_data": continuous_chunk_serial,
-                "frame_ids_reconstructed": continuous_frame_ids,
+                "chunk_serial_data": chunk_serial_fixed,
+                "mp4_frame_idx": mp4_frame_idx,
             }
         )
 
-        # Optional: align original timestamps or real_times by reindexing
-        # (This step depends on how I'd like to handle the original time information.)
-        # For instance, I could use a merge or interpolation on original timestamps.
-        return df_continuous
+        if max(chunk_serial_fixed) < 128:
+            return df
+
+        # otherwise, let's first remove all
+        # remaining cases of type ii and turn them into type iii
+        df = self.interpolate_stream(df)
+        return df
+
+    def interpolate_stream(
+        self, df: pd.DataFrame, threshold: int = 128, method: str = "fill"
+    ) -> pd.DataFrame:
+        """
+        Filters out chunk_serial_data < threshold, then fills in every missing
+        chunk_serial_data between the new min and max with -1
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+            Must contain columns 'chunk_serial_data', 'frame_ids_reconstructed', 'mp4_frame_idx'.
+        threshold : int, optional
+            Drop any chunk_serial_data below this value (default=128).
+
+        Returns
+        -------
+        pd.DataFrame
+            With columns:
+            - chunk_serial_data : every integer from new min→max
+            - mp4_frame_idx : interpolated & rounded
+        """
+        # 1. keep only chunk_serial_data ≥ threshold
+        df2 = df[df["chunk_serial_data"] >= threshold].copy()
+        if df2.empty:
+            return pd.DataFrame(
+                columns=[
+                    "chunk_serial_data",
+                    "mp4_frame_idx",
+                ]
+            )
+
+        x_orig = df2["chunk_serial_data"].to_numpy()
+        y_mp4 = df2["mp4_frame_idx"].to_numpy()
+
+        x_full = np.arange(x_orig.min(), x_orig.max() + 1)
+
+        if method == "fill":
+            # Create a mapping from chunk_serial_data to mp4_frame_idx
+            idx_map = dict(zip(x_orig, y_mp4))
+            y_mp4_full = np.array([idx_map.get(x, -1) for x in x_full])
+
+        elif method == "linear":
+            # Interpolate the missing values linearly
+            y_mp4_full = np.interp(x_full, x_orig, y_mp4)
+            y_mp4_full = np.round(y_mp4_full).astype(int)
+
+        # 5. build result
+        return pd.DataFrame(
+            {
+                "chunk_serial_data": x_full,
+                "mp4_frame_idx": y_mp4_full,
+            }
+        )
 
     def get_chunk_serial_list(self, cam_serial):
         """Return the list of chunk serial"""
@@ -154,101 +207,66 @@ class Videojson:
             res.append(frame_ids[cam_idx])
         return res
 
-    def get_unique_frame_ids(self):
+    def fix_frame_id_overflow(self, frame_ids: List[int]) -> np.ndarray:
         """
-        Get unique frame IDs for the initialized camera.
-        """
-        return self.camera_df["frame_id"].unique()
+        Reconstructs a list of frame IDs by correcting for rollover at 65535.
 
-    def reconstruct_frame_id(self, df):
-        """
-        work on frame_id column so that it continus after 65535 instead of
-        rolling over
+        When frame IDs reach 65535, they roll over to 0. This function detects
+        such rollovers and reconstructs a monotonically increasing sequence by
+        adding 65535 * rollover_count to each value after a rollover.
 
-        Algo:
-        - the only place when frame id no longer increases is when it rolls over
-        - initialize counter = 0
-        - go through rows, whenever there is a drop, increment counter by 1
-        - add 65535 * counter
+        Args:
+            frame_ids (List[int]): A list of frame IDs with potential rollovers.
+
+        Returns:
+            np.ndarray: A corrected list of frame IDs as a NumPy array.
+
+        Algorithm:
+        - Initialize a rollover counter.
+        - Iterate through the list; whenever a frame ID is less than the previous one,
+        increment the counter.
+        - Add 65535 * counter to each frame ID to correct for rollovers.
         """
-        frame_ids = df["frame_id"].to_numpy()
-        counters = [0]
         counter = 0
+        counters = [0]
         for i in range(1, len(frame_ids)):
             if frame_ids[i - 1] > frame_ids[i]:
                 counter += 1
             counters.append(counter)
-        frame_ids = frame_ids + 65535 * np.array(counters)
-        df["frame_ids_reconstructed"] = frame_ids
-        return df
 
-    def get_start_chunk_serial(self, cam_serial):
-        """Get the first chunk serial data for cam_serial camera that is not 0 or -1.
-
-        Args:
-            cam_serial (str): e.g. "18486644"
-
-        Returns:
-            int: The first chunk serial data that is not 0 or -1, or None if not found.
-        """
-        try:
-            # Find the index of the cam_serial in the 'serials' list
-            index = self.dic["serials"].index(cam_serial)
-            # Iterate through the chunk_serial_data for the given camera serial
-            for serial_list in self.dic["chunk_serial_data"]:
-                serial = serial_list[index]
-                if serial != 0 and serial != -1:
-                    return serial
-            return None
-        except ValueError:
-            return None
-
-    def get_end_chunk_serial(self, cam_serial):
-        """Get the last chunk serial data for cam_serial camera that is not 0 or -1.
-
-        Args:
-            cam_serial (str): e.g. "18486644"
-
-        Returns:
-            int: The last chunk serial data that is not 0 or -1, or None if not found.
-        """
-        try:
-            # Find the index of the cam_serial in the 'serials' list
-            index = self.dic["serials"].index(cam_serial)
-            # Iterate through the chunk_serial_data for the given camera serial in reverse
-            for serial_list in reversed(self.dic["chunk_serial_data"]):
-                serial = serial_list[index]
-                if serial != 0 and serial != -1:
-                    return serial
-            return None
-        except ValueError:
-            return None
+        frame_ids = np.array(frame_ids)
+        corrected_ids = frame_ids + 65535 * np.array(counters)
+        return corrected_ids
 
     def get_min_max_chunk_serial(self):
         """
-        Get the minimum and maximum chunk serial data across all cameras,
-        assuming the chunk serial data is already ordered.
-        Ignores values that are 0 or -1.
+        Get the minimum and maximum chunk serial data fast.
+
+        Assumption:
+            - the serial data does not vary a lot among cameras
+
+        Important:
+            when we get the min and max, we can't use functions to interporlate data,
+            which can potentially lead to matching with wrong jsons
 
         Returns:
             tuple: (min_serial, max_serial), or (None, None) if no valid data is found.
         """
-        min_serial, max_serial = None, None
+        if not self.dic or "chunk_serial_data" not in self.dic:
+            return None, None
 
-        for serial_list in self.dic["chunk_serial_data"]:
-            for serial in serial_list:
-                if serial != 0 and serial != -1:
-                    min_serial = serial
-                    break
-            if min_serial is not None:
+        min_chunk_serial = None
+        max_chunk_serial = None
+
+        for camera_serial in self.get_camera_serials():
+            chunk_serial = self.get_chunk_serial_list(camera_serial)
+            chunk_serial_filtered = [i for i in chunk_serial if i >= 128]
+            min_chunk_serial = min(chunk_serial_filtered)
+            max_chunk_serial = max(chunk_serial_filtered)
+            if min_chunk_serial != 0 and max_chunk_serial != 0:
                 break
 
-        for serial_list in reversed(self.dic["chunk_serial_data"]):
-            for serial in reversed(serial_list):
-                if serial != 0 and serial != -1:
-                    max_serial = serial
-                    break
-            if max_serial is not None:
-                break
+        if not min_chunk_serial or not max_chunk_serial:
+            return None, None
 
-        return min_serial, max_serial
+        return min_chunk_serial, max_chunk_serial

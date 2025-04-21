@@ -3,6 +3,9 @@ from pyvideosync import utils
 from tqdm import tqdm
 import pandas as pd
 import os
+import subprocess
+from fractions import Fraction
+from typing import List
 
 
 class Video:
@@ -78,135 +81,173 @@ class Video:
         ]
         return pd.DataFrame.from_records(stats)
 
-    def slice_video(self, output_file: str, frames_to_keep: list, output_fps: float):
-        """
-        Slices the video to only keep the frames specified in frames_to_keep and saves it to output_file
-        with the specified FPS.
-
-        Parameters:
-        ----------
-        output_file : str
-            The path to save the output video file.
-        frames_to_keep : list
-            A list of frame indices to keep in the output video.
-        output_fps : float
-            The frames per second for the output video.
-        """
-        # Reinitialize the capture to ensure it starts from the beginning
-        self.capture = cv2.VideoCapture(self.video_path)
-        if not self.capture.isOpened():
-            raise ValueError(f"Error reopening video file {self.video_path}")
-
-        # Get video properties
-        frame_width = self.get_frame_width()
-        frame_height = self.get_frame_height()
-        total_frames = self.get_frame_count()
-
-        # Define the codec and create VideoWriter object
-        fourcc = cv2.VideoWriter_fourcc(*"mp4v")  # or 'XVID'
-        out = cv2.VideoWriter(
-            output_file, fourcc, output_fps, (frame_width, frame_height)
-        )
-
-        frames_to_keep = set(frames_to_keep)  # Convert list to set for fast lookup
-
-        # Initialize the progress bar
-        pbar = tqdm(total=total_frames, desc="Processing video", unit="frame")
-
-        current_frame_index = 0
-        while True:
-            ret, frame = self.capture.read()
-            if not ret:
-                break
-
-            if current_frame_index in frames_to_keep:
-                out.write(frame)
-
-            current_frame_index += 1
-            pbar.update(1)
-
-        pbar.close()
-        # Release everything when job is finished
-        self.capture.release()
-        out.release()
-        cv2.destroyAllWindows()
-
-    def extract_frames(self, frames_dir) -> list:
-        """Extract frames from a video file and store them in memory.
+    @staticmethod
+    def get_video_fps(input_path: str) -> float:
+        """Fetches the frame rate (FPS) of an MP4 video using ffprobe.
 
         Args:
-            video_path (str): Path to the input video file.
+            input_path (str): Path to the source MP4 file.
 
         Returns:
-            list: A list of frames extracted from the video. Each frame is represented as a numpy array.
+            float: The video's frames per second.
+
+        Raises:
+            subprocess.CalledProcessError: If the ffprobe command fails.
+            ValueError: If the returned frame rate string cannot be parsed.
         """
-        frame_list = []
-        frame_id = 0
+        # Run ffprobe to get raw r_frame_rate (e.g. "30000/1001" or "30/1")
+        cmd = [
+            "ffprobe",
+            "-v",
+            "error",
+            "-select_streams",
+            "v:0",
+            "-show_entries",
+            "stream=r_frame_rate",
+            "-of",
+            "default=noprint_wrappers=1:nokey=1",
+            input_path,
+        ]
+        raw = subprocess.check_output(cmd, text=True).strip()
+        try:
+            return float(Fraction(raw))
+        except Exception as e:
+            raise ValueError(f"Cannot parse frame rate '{raw}'") from e
 
-        total_frames = self.get_frame_count()
+    @staticmethod
+    def pad_blank_frame_end(input_path: str, output_path: str) -> None:
+        """Appends a single blank (black) frame to the end of an MP4 video.
 
-        with tqdm(total=total_frames, desc="Extracting frames") as pbar:
-            while self.capture.isOpened():
-                ret, frame = self.capture.read()
-                if not ret:
-                    break
-                frame_path = os.path.join(frames_dir, f"frame_{frame_id}.png")
-                cv2.imwrite(frame_path, frame)
-                frame_list.append(frame_path)
-                frame_id += 1
-                pbar.update(1)
-        self.capture.release()
-        return frame_list
+        Args:
+            input_path (str): Path to the source MP4 file.
+            output_path (str): Path where the padded video will be written.
 
-    # @staticmethod
-    # def make_synced_subclip(df_sub, mp4_path, fps_video=30, fps_audio=30000):
-    #     """
-    #     Given a sub-DataFrame for a single mp4_file, where
-    #     frame_ids_relative runs from e.g. 11797..18000,
-    #     produce a MoviePy clip for exactly that frame range
-    #     (subclip of the MP4) plus the corresponding audio.
-    #     """
-    #     # 1) Identify which frames we need
-    #     min_frame = df_sub["frame_ids_relative"].min()
-    #     max_frame = df_sub["frame_ids_relative"].max()
+        Raises:
+            subprocess.CalledProcessError: If the ffmpeg command fails.
+        """
+        fps = Video.get_video_fps(input_path)
+        frame_duration = 1.0 / fps
 
-    #     # 2) Convert frames to seconds, subclip only that portion
-    #     start_sec = min_frame / fps_video
-    #     # +1 so we include the last frame—MoviePy’s subclip end is exclusive by default
-    #     end_sec = (max_frame + 1) / fps_video
+        ffmpeg_cmd = [
+            "ffmpeg",
+            "-y",
+            "-i",
+            input_path,
+            "-vf",
+            f"tpad=stop_mode=add:stop_duration={frame_duration}:color=black",
+            "-c:v",
+            "libx264",
+            "-c:a",
+            "copy",
+            output_path,
+        ]
+        subprocess.run(ffmpeg_cmd, check=True)
 
-    #     video_clip = VideoFileClip(mp4_path).subclipped(start_sec, end_sec)
+    @staticmethod
+    def get_frame_count_ffmpeg(input_path: str) -> int:
+        """Counts the total number of video frames in an MP4 file using ffprobe.
 
-    #     # 4) Write amplitude array to a temporary WAV file
-    #     audio_samples = df_sub["Amplitude"].values
-    #     audio_name = os.path.basename(mp4_path).replace(".mp4", ".wav")
-    #     audio_path = f"/home/auto/CODE/utils/video-sync/Testing/YFITesting/02242025/18486634/{audio_name}"
-    #     wav.write(audio_path, fps_audio, audio_samples)
+        Args:
+            input_path (str): Path to the source MP4 file.
 
-    #     # 3) Build the raw audio array for that sub-range
-    #     #    (Already filtered by df_sub, so just take the amplitude column.)
-    #     # audio_samples = df_sub["Amplitude"].values.astype(np.float32)
-    #     # # wav.write("scipy_audio.wav", fps_audio, audio_samples)
-    #     # audio_samples /= 32768.0
-    #     # audio_samples = audio_samples.reshape(-1, 1)  # Make it mono shape (N, 1)
-    #     # fps_audio *= 2  # Double the audio FPS since we did the reshape
-    #     audio_clip = AudioFileClip(audio_path)
+        Returns:
+            int: The total number of frames in the video.
 
-    #     # 4) Match audio duration to the subclip's duration, if needed
-    #     subclip_duration = video_clip.duration  # (should be end_sec - start_sec)
-    #     print(f"Subclip duration: {subclip_duration}")
+        Raises:
+            subprocess.CalledProcessError: If the ffprobe command fails.
+            ValueError: If the frame count cannot be parsed as an integer.
+        """
+        cmd = [
+            "ffprobe",
+            "-v",
+            "error",
+            "-count_frames",
+            "-select_streams",
+            "v:0",
+            "-show_entries",
+            "stream=nb_read_frames",
+            "-of",
+            "default=noprint_wrappers=1:nokey=1",
+            input_path,
+        ]
+        raw = subprocess.check_output(cmd, text=True).strip()
+        try:
+            return int(raw)
+        except Exception as e:
+            raise ValueError(f"Cannot parse frame count '{raw}'") from e
 
-    #     # If your audio is precisely aligned in time, you can also just let it run.
-    #     # But often it's good to clamp or set explicitly:
-    #     audio_clip = audio_clip.set_duration(subclip_duration)
+    @staticmethod
+    def extract_frames_to_video(
+        mp4_path: str, exported_fps: int, frame_ids: List[int], output_path: str
+    ) -> None:
+        """Extracts specific frames from an MP4 and exports them as a new video.
 
-    #     # 5) Attach the audio to the subclip
-    #     final_subclip = video_clip.set_audio(audio_clip)
+        This uses FFmpeg's `select` filter to pick out only the frames whose frame
+        numbers are in `frame_ids`, then re-encodes the result at `exported_fps`.
 
-    #     final_subclip.write_videofile(
-    #         f"/home/auto/CODE/utils/video-sync/Testing/YFITesting/02242025/18486634/{os.path.basename(mp4_path).replace('.mp4', '.mp4')}",
-    #         codec="libx264",
-    #         audio_codec="aac",
-    #     )
+        Args:
+            mp4_path (str): Path to the input MP4 video.
+            exported_fps (int): Frame rate for the output video.
+            frame_ids (List[int]): List of zero-based frame indices to extract.
+            output_path (str): Path where the output MP4 will be written.
 
-    #     return final_subclip
+        Raises:
+            subprocess.CalledProcessError: If the FFmpeg command fails.
+        """
+        # Build select expression: eq(n\,F1)+eq(n\,F2)+...
+        select_expr = "+".join(f"eq(n\\,{fid})" for fid in frame_ids)
+
+        vf_filter = f"select='{select_expr}',setpts=N/{exported_fps}/TB"
+
+        ffmpeg_cmd = [
+            "ffmpeg",
+            "-y",  # overwrite output if exists
+            "-i",
+            mp4_path,
+            "-vf",
+            vf_filter,
+            "-fps_mode",
+            "cfr",  # constant frame rate
+            "-r",
+            str(exported_fps),  # force output FPS
+            "-c:v",
+            "libx264",  # encode as H.264
+            output_path,
+        ]
+
+        subprocess.run(ffmpeg_cmd, check=True)
+
+    @staticmethod
+    def export_frame_as_image(
+        mp4_path: str, frame_id: int, output_image_path: str
+    ) -> None:
+        """Exports a single frame from an MP4 video as an image file.
+
+        This uses FFmpeg's `select` filter to grab the frame whose zero-based
+        index equals `frame_id`, then writes it out as a single image.
+
+        Args:
+            mp4_path (str): Path to the source MP4 video file.
+            frame_id (int): Zero-based index of the frame to extract.
+            output_image_path (str): Path (including filename and extension,
+                e.g. `.png` or `.jpg`) where the extracted frame will be saved.
+
+        Raises:
+            subprocess.CalledProcessError: If the FFmpeg command fails.
+        """
+        # Build the FFmpeg command
+        ffmpeg_cmd = [
+            "ffmpeg",
+            "-y",  # overwrite output if it exists
+            "-i",
+            mp4_path,  # input file
+            "-vf",
+            f"select='eq(n\\,{frame_id})'",  # pick exactly that frame
+            "-frames:v",
+            "1",  # output exactly one frame
+            "-update",
+            "1",  # write a single image (no sequence)
+            output_image_path,
+        ]
+        # Run the command
+        subprocess.run(ffmpeg_cmd, check=True)

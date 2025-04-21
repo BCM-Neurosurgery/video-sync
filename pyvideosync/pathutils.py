@@ -63,6 +63,11 @@ class PathUtils:
         ]
         return missing_fields == []
 
+    def get_final_video_out_path(self):
+        """Return the final video output path"""
+        # TODO: get self._config["nsp_dir"]
+        return os.path.basename(self._config["nsp_dir"] + ".mp4")
+
     @property
     def config(self):
         return self._config
@@ -146,13 +151,6 @@ class PathUtils:
         return os.path.join(
             self.video_output_dir,
             f"audio_{self.cam_serial}_sliced_{self.timestamp}.wav",
-        )
-
-    @property
-    def final_video_out_path(self):
-        return os.path.join(
-            self.video_output_dir,
-            f"final_{self.cam_serial}_aligned_{self.timestamp}.mp4",
         )
 
     def make_frames_output_dir(self):
