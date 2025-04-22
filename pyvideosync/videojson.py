@@ -197,6 +197,16 @@ class Videojson:
             res.append(chunk_serial[cam_idx])
         return res
 
+    def get_timestamps_list(self, cam_serial):
+        assert (
+            cam_serial in self.get_camera_serials()
+        ), "Camera serial not found in JSON"
+        cam_idx = self.get_camera_serials().index(cam_serial)
+        res = []
+        for timestampsblock in self.dic["timestamps"]:
+            res.append(timestampsblock[cam_idx])
+        return res
+
     def get_frame_ids_list(self, cam_serial):
         assert (
             cam_serial in self.get_camera_serials()
