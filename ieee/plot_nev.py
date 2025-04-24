@@ -177,70 +177,79 @@ def plot_chunk_serial_diff_histogram(
 
 def plot_chunk_interval_distribution(
     nev,
-    save_path: str,
+    save_path: str = None,
     ax=None,
     figsize=(6, 3),
-    nominal_rate_hz: float = 30.0,
     sampling_rate: int = 30000,
+    bins: int = 100,
+    bar_width: float = 0.5,  # thickness of each bar
+    x_spacing: float = 1,  # distance between bar centers
+    color: str = "#4c72b0",  # professional default blue
 ):
     """
-    Plot a histogram of inter-chunk time intervals to demonstrate that chunks are
-    spaced at ~30 Hz based on 30 kHz timestamp data.
+    Plot only the non-zero-frequency bars, with adjustable bar width and spacing.
 
     Args:
-        nev: Nev object with .get_chunk_serial_df() that returns a DataFrame
-             with 'chunk_serial' and 'TimeStamps' columns.
-        save_path: Path to save the plot (PNG, PDF, etc.).
-        ax: Optional matplotlib Axes for subplot support.
+        nev: Nev object with .get_chunk_serial_df() containing 'TimeStamps'.
+        save_path: Where to save the figure (optional).
+        ax: Optional matplotlib axis.
         figsize: Figure size if ax is None.
-        nominal_rate_hz: Expected chunk rate (default 30 Hz).
-        sampling_rate: Timestamp base rate (default 30 000 Hz).
-        bins: Number of histogram bins.
+        sampling_rate: Sampling rate of timestamps (Hz).
+        bins: Number of bins for the histogram.
+        bar_width: Fractional width of each bar (in the same units as x_spacing).
+        x_spacing: Spacing between consecutive bar centers (default = 1.0).
+        color: Histogram fill color.
     """
-    # 1. Pull timestamps & compute Δt in seconds
+    # 1) compute frequencies
     df = nev.get_chunk_serial_df()
     stamps = df["TimeStamps"].values
-    dt_seconds = np.diff(stamps) / sampling_rate
+    dt_s = np.diff(stamps) / sampling_rate
+    freqs = 1.0 / dt_s
 
-    # 2. Nominal interval (s)
-    nominal_interval = 1.0 / nominal_rate_hz
+    # 2) histogram & filter zeros
+    counts, edges = np.histogram(freqs, bins=bins)
+    centers = (edges[:-1] + edges[1:]) / 2
+    mask = counts > 0
+    counts = counts[mask]
+    centers = centers[mask]
 
-    # 3. Create figure/axis if needed
-    created_fig = False
+    # 3) x positions = 0, x_spacing, 2*x_spacing, ...
+    x = np.arange(len(counts)) * x_spacing
+
+    # 4) axis setup
+    created = False
     if ax is None:
         fig, ax = plt.subplots(figsize=figsize)
-        created_fig = True
+        created = True
 
-    # 4. Plot histogram
-    ax.hist(
-        dt_seconds,
-        color="black",
+    # 5) draw bars (log(1+count))
+    ax.bar(
+        x,
+        np.log1p(counts),
+        width=bar_width,
+        align="center",
+        color=color,
         edgecolor="white",
+        linewidth=0.5,
     )
-    # 5. Vertical line at expected interval
-    # ax.axvline(
-    #     nominal_interval,
-    #     color="red",
-    #     linestyle="--",
-    #     linewidth=1.2,
-    #     label=f"Nominal {nominal_rate_hz:.0f} Hz → {nominal_interval:.4f} s",
-    # )
 
-    # 6. Formatting
-    ax.set_title("Distribution of Time Between Chunk Serials", fontsize=12)
-    ax.set_xlabel("Interval Duration (s)", fontsize=10)
-    ax.set_ylabel("Count", fontsize=10)
+    # 6) tick at each bar center, label with true Hz
+    ax.set_xticks(x)
+    ax.set_xticklabels([f"{c:.1f} Hz" for c in centers], rotation=45, ha="right")
+
+    # 7) formatting
+    ax.set_title("Inter-Chunk Frequency Distribution", fontsize=13, weight="bold")
+    ax.set_xlabel("Chunk Frequency", fontsize=11)
+    ax.set_ylabel("log(Count + 1)", fontsize=11)
+    ax.tick_params(labelsize=9)
     ax.grid(True, linestyle="--", alpha=0.3)
-    ax.legend(loc="upper right", fontsize=8)
 
-    # 7. Save
+    # 8) save & cleanup
     if save_path:
-        fig_to_save = ax.figure
-        fig_to_save.tight_layout()
-        fig_to_save.savefig(save_path, dpi=300)
-
-    # 8. Clean up if we created the figure
-    if created_fig:
+        fig = ax.figure
+        fig.tight_layout()
+        fig.savefig(save_path, dpi=300, bbox_inches="tight")
+    if created:
         plt.close(fig)
 
 
@@ -250,82 +259,104 @@ def plot_exposure_interval_distribution(
     ax=None,
     figsize=(6, 3),
     sampling_rate: int = 30000,
-    nominal_rate_hz: float = 30.0,
+    bins: int = 100,
+    bar_width: float = 0.3,
+    x_spacing: float = 1.0,
+    color: str = "#dd8452",  # professional orange
 ):
     """
-    Reads a CSV of exposure pulses and plots the distribution of time intervals
-    between the first '1' in each group of Bit8.  This demonstrates that
-    exposures occur at ~30 Hz.
+    Reads exposure pulses from CSV and plots the distribution of intervals
+    (in Hz) using log-scaled counts. Only non-zero bars are shown.
 
     Args:
-        csv_path: Path to the CSV file. Must have columns:
-            - "TimeStamps": integer sample indices at 'sampling_rate' Hz
-            - "Bit8": 0/1 indicating exposure pulse
-        save_path: Path to save the resulting PNG/PDF figure.
-        ax: Optional matplotlib Axes to plot onto. If None, a new figure is created.
-        figsize: Figure size when creating a new Axes.
-        sampling_rate: Sampling rate of the TimeStamps (default 30 kHz).
-        nominal_rate_hz: Expected exposure rate (default 30 Hz).
-        bins: Number of histogram bins.
+        csv_path: CSV file with "TimeStamps" and "Bit8" columns.
+        save_path: Output path for the plot.
+        ax: Optional axis to plot into.
+        figsize: Figure size if ax is None.
+        sampling_rate: Timestamps per second (Hz).
+        bins: Number of histogram bins for frequency.
+        bar_width: Width of each bar.
+        x_spacing: Distance between bar centers.
+        color: Color of the histogram bars.
     """
-    # 1. Load data
+    # 1. Load exposure timestamps from rising edges
     df = pd.read_csv(csv_path)
     stamps = df["TimeStamps"].to_numpy()
     bits = df["Bit8"].to_numpy().astype(int)
 
-    # 2. Find the first index of each 1‑group (rising edges)
     ones = np.where(bits == 1)[0]
     if ones.size == 0:
         raise ValueError("No exposure pulses (Bit8==1) found in CSV.")
-    # A rising edge is where the gap to the previous '1' is >1 sample
     edges = ones[np.insert(np.diff(ones) > 1, 0, True)]
     edge_times = stamps[edges]
+    intervals_s = np.diff(edge_times) / sampling_rate
+    freqs = 1.0 / intervals_s
 
-    # 3. Compute inter‑edge intervals in seconds
-    intervals = np.diff(edge_times) / sampling_rate
-    nominal_interval = 1.0 / nominal_rate_hz
+    # 2. Histogram and filter out empty bins
+    counts, edges = np.histogram(freqs, bins=bins)
+    centers = (edges[:-1] + edges[1:]) / 2
+    mask = counts > 0
+    counts = counts[mask]
+    centers = centers[mask]
 
-    # 4. Prepare axes
+    # 3. Categorical x for adjacent bars
+    x = np.arange(len(counts)) * x_spacing
+
+    # 4. Setup axis
+    created_fig = False
     if ax is None:
         fig, ax = plt.subplots(figsize=figsize)
+        created_fig = True
 
-    # 5. Plot histogram
-    ax.hist(intervals, color="black", edgecolor="white")
-    # ax.axvline(
-    #     nominal_interval,
-    #     color="red",
-    #     linestyle="--",
-    #     linewidth=1.2,
-    #     label=f"Nominal {nominal_rate_hz:.0f} Hz → {nominal_interval:.4f} s",
-    # )
+    # 5. Plot bars
+    ax.bar(
+        x,
+        np.log1p(counts),
+        width=bar_width,
+        align="center",
+        color=color,
+        edgecolor="white",
+        linewidth=0.5,
+    )
 
-    # 6. Formatting for IEEE style
-    ax.set_title("Exposure-Pulse Interval Distribution", fontsize=12)
-    ax.set_xlabel("Interval (s)", fontsize=10)
-    ax.set_ylabel("Count", fontsize=10)
+    # 6. X ticks and labels
+    ax.set_xticks(x)
+    ax.set_xticklabels([f"{c:.1f} Hz" for c in centers], rotation=45, ha="right")
+
+    # 7. Aesthetics
+    ax.set_title("Exposure-Pulse Frequency Distribution", fontsize=13, weight="bold")
+    ax.set_xlabel("Frequency (Hz)", fontsize=11)
+    ax.set_ylabel("log(Count + 1)", fontsize=11)
+    ax.tick_params(labelsize=9)
     ax.grid(True, linestyle="--", alpha=0.3)
-    # ax.legend(loc="upper right", fontsize=8)
 
-    # 7. Save and clean up
-    if ax.figure:
-        ax.figure.tight_layout()
-        ax.figure.savefig(save_path, dpi=300)
-        if ax is None:
-            plt.close(ax.figure)
+    # 8. Save
+    if save_path:
+        fig = ax.figure
+        fig.tight_layout()
+        fig.savefig(save_path, dpi=300, bbox_inches="tight")
+    if created_fig:
+        plt.close(fig)
 
 
 if __name__ == "__main__":
     nev_path = (
-        "/home/auto/CODE/utils/video-sync/ieeener/data/nev/NSP1-20240723-111254-003.nev"
+        "/home/auto/CODE/utils/video-sync/ieee/data/nev/NSP1-20240723-111254-003.nev"
     )
-    filled_df_path = "/home/auto/CODE/utils/video-sync/ieeener/data/intermediate_results/filled_df.csv"
+    filled_df_path = (
+        "/home/auto/CODE/utils/video-sync/ieee/data/intermediate_results/filled_df.csv"
+    )
 
     cam_exposure_png_save = (
-        "/home/auto/CODE/utils/video-sync/ieeener/data/plot/cam_exposure.png"
+        "/home/auto/CODE/utils/video-sync/ieee/plot/cam_exposure.png"
     )
-    serial_diff_dist_png = "/home/auto/CODE/utils/video-sync/ieeener/data/plot/serial_diff_distribution.png"
-    serial_time_diff_distribution_png = "/home/auto/CODE/utils/video-sync/ieeener/data/plot/serial_time_diff_distribution.png"
-    cam_exposure_time_diff_distribution_png = "/home/auto/CODE/utils/video-sync/ieeener/data/plot/cam_exposure_time_diff_distribution.png"
+    serial_diff_dist_png = (
+        "/home/auto/CODE/utils/video-sync/ieee/plot/serial_diff_distribution.png"
+    )
+    serial_time_diff_distribution_png = (
+        "/home/auto/CODE/utils/video-sync/ieee/plot/serial_time_diff_distribution.png"
+    )
+    cam_exposure_time_diff_distribution_png = "/home/auto/CODE/utils/video-sync/ieee/plot/cam_exposure_time_diff_distribution.png"
 
     nev = Nev(nev_path)
 
@@ -340,25 +371,29 @@ if __name__ == "__main__":
     #     show_legend=True,
     # )
 
-    plot_chunk_serial_diff_histogram(
-        nev=nev,
-        save_path=serial_diff_dist_png,
-        ax=None,
-        range_min=0,
-        range_max=2,
-    )
+    # plot_chunk_serial_diff_histogram(
+    #     nev=nev,
+    #     save_path=serial_diff_dist_png,
+    #     ax=None,
+    #     range_min=0,
+    #     range_max=2,
+    # )
 
     # plot_chunk_interval_distribution(
     #     nev=nev,
-    #     save_path=nev_serial_time_diff_distribution_png_save,
+    #     save_path=serial_time_diff_distribution_png,
     #     ax=None,
+    #     figsize=(4, 3),
+    #     bar_width=0.2,
+    #     x_spacing=0.5,
     # )
 
-    # plot_exposure_interval_distribution(
-    #     csv_path=filled_df_path,
-    #     save_path=nev_cam_exposure_time_diff_distribution_png_save,
-    #     ax=None,
-    #     figsize=(6, 3),
-    #     sampling_rate=30000,
-    #     nominal_rate_hz=30.0,
-    # )
+    plot_exposure_interval_distribution(
+        csv_path=filled_df_path,
+        save_path=cam_exposure_time_diff_distribution_png,
+        ax=None,
+        figsize=(6, 3),
+        sampling_rate=30000,
+        bar_width=0.3,
+        x_spacing=0.5,
+    )
