@@ -56,186 +56,261 @@ def main():
         logger.error("Config not valid, exiting to inital screen...")
         return
 
-    datapool = DataPool(pathutils.nsp_dir, pathutils.cam_recording_dir)
+    # Check if we're in batch processing mode
+    if pathutils.is_batch_mode():
+        logger.info("Running in batch processing mode")
 
-    if not datapool.verify_integrity():
-        logger.error(
-            "File integrity check failed: Missing or duplicate NSP files detected. "
-            "Please verify the directory structure and try again. Returning to the initial screen."
-        )
-        return
+        # Get all matching task directories
+        matching_dirs = pathutils.get_matching_task_dirs()
 
-    # 1. Get NEV serial start and end
-    nsp1_nev_path = datapool.get_nev_path()
-    nev = Nev(nsp1_nev_path)
-    nev_chunk_serial_df = nev.get_chunk_serial_df()
-    logger.info(f"NEV dataframe\n: {nev_chunk_serial_df}")
-    nev_start_serial, nev_end_serial = get_column_min_max(
-        nev_chunk_serial_df, "chunk_serial"
-    )
-    logger.info(f"Start serial: {nev_start_serial}, End serial: {nev_end_serial}")
+        if not matching_dirs:
+            logger.error("No matching task directories found")
+            return
 
-    # 2. Find all JSON files and MP4 files
-    camera_files = datapool.get_video_file_pool().list_groups()
-    if not camera_files:
-        logger.error("No camera files found")
-        return
+        logger.info(f"Found {len(matching_dirs)} matching directories:")
+        for dir_path in matching_dirs:
+            logger.info(f"  - {dir_path}")
 
-    # 3. load camera serials from the config file
-    camera_serials = pathutils.cam_serial
-    logger.info(f"Camera serials loaded from config: {camera_serials}")
-
-    # 4. Go through all JSON files and find the ones that
-    # are within the NEV serial range
-    # read timestamps if available
-    timestamps_path = os.path.join(pathutils.output_dir, "timestamps.json")
-    timestamps = load_timestamps(timestamps_path, logger)
-    if timestamps:
-        logger.info(f"Loaded timestamps: {timestamps}")
+        # Process each directory
+        success_count = 0
+        nsp_dirs_to_process = matching_dirs
     else:
-        logger.info("No timestamps found")
-        timestamps = []
-        for timestamp, camera_file_group in camera_files.items():
+        # Single directory mode (existing behavior)
+        logger.info("Running in single directory mode")
+        nsp_dirs_to_process = [pathutils.nsp_dir]
+        success_count = 0
 
-            json_path = get_json_file(camera_file_group, pathutils)
-            if json_path is None:
-                logger.error(f"No JSON file found in group {timestamp}")
-                continue
+    # Process all directories (either single or batch)
+    for nsp_dir in nsp_dirs_to_process:
+        if pathutils.is_batch_mode():
+            logger.info(f"Processing directory: {nsp_dir}")
 
-            videojson = Videojson(json_path)
-            if not videojson.is_valid():
-                logger.error(f"Invalid JSON file: {json_path}")
-                continue
+        try:
+            # Create datapool with current nsp_dir
+            datapool = DataPool(nsp_dir, pathutils.cam_recording_dir)
 
-            start_serial, end_serial = videojson.get_min_max_chunk_serial()
-            if start_serial is None or end_serial is None:
-                logger.error(f"No chunk serials found in JSON file: {json_path}")
-                continue
-
-            if start_serial > nev_end_serial:
-                logger.info(f"Past end serial: {timestamp}")
-                break
-
-            if end_serial < nev_start_serial:
-                logger.info(f"No overlap found: {timestamp}")
-                continue
-
-            elif start_serial <= nev_end_serial:
-                logger.info(f"Overlap found, timestamp: {timestamp}")
-                timestamps.append(timestamp)
-
+            # Create output directory for this specific NSP directory
+            if pathutils.is_batch_mode():
+                # For batch processing, create a subdirectory named after the NSP directory
+                nsp_dirname = os.path.basename(nsp_dir)
+                current_output_dir = os.path.join(pathutils.output_dir, nsp_dirname)
             else:
-                logger.info(f"Break: {timestamp}")
-                break
-        logger.info(f"timestamps: {timestamps}")
-        save_timestamps(timestamps_path, timestamps)
+                current_output_dir = pathutils.output_dir
 
-    sorted_timestamps = sort_timestamps(timestamps)
+            os.makedirs(current_output_dir, exist_ok=True)
 
-    # process NS5 channel data
-    ns5_path = datapool.get_ns5_path()
-    ns5 = Nsx(ns5_path)
+            if not datapool.verify_integrity():
+                logger.error(
+                    "File integrity check failed: Missing or duplicate NSP files detected. "
+                    "Please verify the directory structure and try again. Returning to the initial screen."
+                )
+                if pathutils.is_batch_mode():
+                    continue
+                else:
+                    return
 
-    # 5. Go through the timestamps and process the videos
-    for camera_serial in camera_serials:
-        all_merged_list = []
-
-        for i, timestamp in enumerate(sorted_timestamps):
-            camera_file_group = camera_files[timestamp]
-
-            json_path = get_json_file(camera_file_group, pathutils)
-            if json_path is None:
-                logger.error(f"No JSON file found in group {timestamp}")
-                continue
-
-            videojson = Videojson(json_path)
-            camera_df = videojson.get_camera_df(camera_serial)
-
-            camera_df = camera_df.loc[
-                (camera_df["chunk_serial_data"] >= nev_start_serial)
-                & (camera_df["chunk_serial_data"] <= nev_end_serial)
-            ]
-
-            chunk_serial_joined = nev_chunk_serial_df.merge(
-                camera_df,
-                left_on="chunk_serial",
-                right_on="chunk_serial_data",
-                how="inner",
+            # 1. Get NEV serial start and end
+            nsp1_nev_path = datapool.get_nev_path()
+            nev = Nev(nsp1_nev_path)
+            nev_chunk_serial_df = nev.get_chunk_serial_df()
+            logger.info(f"NEV dataframe\n: {nev_chunk_serial_df}")
+            nev_start_serial, nev_end_serial = get_column_min_max(
+                nev_chunk_serial_df, "chunk_serial"
+            )
+            logger.info(
+                f"Start serial: {nev_start_serial}, End serial: {nev_end_serial}"
             )
 
-            logger.info("Processing ns5 filtered channel df...")
-            ns5_slice = ns5.get_filtered_channel_df(
-                pathutils.ns5_channel,
-                chunk_serial_joined.iloc[0]["TimeStamps"],
-                chunk_serial_joined.iloc[-1]["TimeStamps"],
-            )
+            # 2. Find all JSON files and MP4 files
+            camera_files = datapool.get_video_file_pool().list_groups()
+            if not camera_files:
+                logger.error("No camera files found")
+                if pathutils.is_batch_mode():
+                    continue
+                else:
+                    return
 
-            logger.info("Merging ns5 and chunk serial df...")
-            all_merged = ns5_slice.merge(
-                chunk_serial_joined,
-                left_on="TimeStamp",
-                right_on="TimeStamps",
-                how="left",
-            )
+            # 3. load camera serials from the config file
+            camera_serials = pathutils.cam_serial
+            logger.info(f"Camera serials loaded from config: {camera_serials}")
 
-            all_merged = all_merged[
-                [
-                    "TimeStamp",
-                    "Amplitude",
-                    "chunk_serial",
-                    "mp4_frame_idx",  # we only need the mp4_frame_idx
-                ]
-            ]
+            # 4. Go through all JSON files and find the ones that
+            # are within the NEV serial range
+            # read timestamps if available
+            timestamps_path = os.path.join(current_output_dir, "timestamps.json")
+            timestamps = load_timestamps(timestamps_path, logger)
+            if timestamps:
+                logger.info(f"Loaded timestamps: {timestamps}")
+            else:
+                logger.info("No timestamps found")
+                timestamps = []
+                for timestamp, camera_file_group in camera_files.items():
 
-            mp4_path = get_mp4_file(camera_file_group, camera_serial, pathutils)
-            if mp4_path is None:
-                logger.error(f"No MP4 file found in group {timestamp}")
-                continue
+                    json_path = get_json_file(camera_file_group, pathutils)
+                    if json_path is None:
+                        logger.error(f"No JSON file found in group {timestamp}")
+                        continue
 
-            all_merged["mp4_file"] = mp4_path
-            all_merged_list.append(all_merged)
+                    videojson = Videojson(json_path)
+                    if not videojson.is_valid():
+                        logger.error(f"Invalid JSON file: {json_path}")
+                        continue
 
-        if not all_merged_list:
-            logger.warning(f"No valid merged data for {camera_serial}")
-            continue
+                    start_serial, end_serial = videojson.get_min_max_chunk_serial()
+                    if start_serial is None or end_serial is None:
+                        logger.error(
+                            f"No chunk serials found in JSON file: {json_path}"
+                        )
+                        continue
 
-        all_merged_df = pd.concat(all_merged_list, ignore_index=True)
+                    if start_serial > nev_end_serial:
+                        logger.info(f"Past end serial: {timestamp}")
+                        break
+
+                    if end_serial < nev_start_serial:
+                        logger.info(f"No overlap found: {timestamp}")
+                        continue
+
+                    elif start_serial <= nev_end_serial:
+                        logger.info(f"Overlap found, timestamp: {timestamp}")
+                        timestamps.append(timestamp)
+
+                    else:
+                        logger.info(f"Break: {timestamp}")
+                        break
+                logger.info(f"timestamps: {timestamps}")
+                save_timestamps(timestamps_path, timestamps)
+
+            sorted_timestamps = sort_timestamps(timestamps)
+
+            # process NS5 channel data
+            ns5_path = datapool.get_ns5_path()
+            ns5 = Nsx(ns5_path)
+
+            # 5. Go through the timestamps and process the videos
+            for camera_serial in camera_serials:
+                all_merged_list = []
+
+                for i, timestamp in enumerate(sorted_timestamps):
+                    camera_file_group = camera_files[timestamp]
+
+                    json_path = get_json_file(camera_file_group, pathutils)
+                    if json_path is None:
+                        logger.error(f"No JSON file found in group {timestamp}")
+                        continue
+
+                    videojson = Videojson(json_path)
+                    camera_df = videojson.get_camera_df(camera_serial)
+
+                    camera_df = camera_df.loc[
+                        (camera_df["chunk_serial_data"] >= nev_start_serial)
+                        & (camera_df["chunk_serial_data"] <= nev_end_serial)
+                    ]
+
+                    chunk_serial_joined = nev_chunk_serial_df.merge(
+                        camera_df,
+                        left_on="chunk_serial",
+                        right_on="chunk_serial_data",
+                        how="inner",
+                    )
+
+                    logger.info("Processing ns5 filtered channel df...")
+                    ns5_slice = ns5.get_filtered_channel_df(
+                        pathutils.ns5_channel,
+                        chunk_serial_joined.iloc[0]["TimeStamps"],
+                        chunk_serial_joined.iloc[-1]["TimeStamps"],
+                    )
+
+                    logger.info("Merging ns5 and chunk serial df...")
+                    all_merged = ns5_slice.merge(
+                        chunk_serial_joined,
+                        left_on="TimeStamp",
+                        right_on="TimeStamps",
+                        how="left",
+                    )
+
+                    all_merged = all_merged[
+                        [
+                            "TimeStamp",
+                            "Amplitude",
+                            "chunk_serial",
+                            "mp4_frame_idx",  # we only need the mp4_frame_idx
+                        ]
+                    ]
+
+                    mp4_path = get_mp4_file(camera_file_group, camera_serial, pathutils)
+                    if mp4_path is None:
+                        logger.error(f"No MP4 file found in group {timestamp}")
+                        continue
+
+                    all_merged["mp4_file"] = mp4_path
+                    all_merged_list.append(all_merged)
+
+                if not all_merged_list:
+                    logger.warning(f"No valid merged data for {camera_serial}")
+                    continue
+
+                all_merged_df = pd.concat(all_merged_list, ignore_index=True)
+                logger.info(
+                    f"Final merged DataFrame for {camera_serial} head:\n{all_merged_df.head()}"
+                )
+                logger.info(
+                    f"Final merged DataFrame for {camera_serial} tail:\n{all_merged_df.tail()}"
+                )
+
+                # process the videos
+                video_output_dir = os.path.join(current_output_dir, camera_serial)
+                os.makedirs(video_output_dir, exist_ok=True)
+
+                session_uuid = str(uuid.uuid4())[:8]
+                subclip_paths = []
+                for mp4_path in all_merged_df["mp4_file"].unique():
+                    df_sub = all_merged_df[all_merged_df["mp4_file"] == mp4_path]
+
+                    # Build a subclip from the relevant frames, attach audio
+                    subclip = make_synced_subclip_moviepy(
+                        df_sub,
+                        mp4_path,
+                        os.path.join(current_output_dir, camera_serial),
+                        session_uuid,
+                    )
+                    subclip_paths.append(subclip)
+
+                # Create final path based on the nsp directory name
+                if pathutils.is_batch_mode():
+                    final_video_name = f"{os.path.basename(nsp_dir)}.mp4"
+                else:
+                    final_video_name = pathutils.get_final_video_out_path()
+
+                final_path = os.path.join(
+                    current_output_dir, camera_serial, final_video_name
+                )
+                # Now 'subclip_paths' has each final MP4 subclip
+                # If we have only one, just rename or copy it
+                if len(subclip_paths) == 1:
+                    shutil.move(subclip_paths[0], final_path)
+                else:
+                    ffmpeg_concat_mp4s(subclip_paths, final_path)
+
+                logger.info(f"Saved {camera_serial} to {final_path}")
+
+            # Track success for batch mode
+            if pathutils.is_batch_mode():
+                success_count += 1
+                logger.info(f"Successfully processed: {nsp_dir}")
+
+        except Exception as e:
+            if pathutils.is_batch_mode():
+                logger.error(f"Error processing {nsp_dir}: {str(e)}")
+            else:
+                logger.error(f"Error processing: {str(e)}")
+                raise
+
+    # Log batch processing results
+    if pathutils.is_batch_mode():
         logger.info(
-            f"Final merged DataFrame for {camera_serial} head:\n{all_merged_df.head()}"
+            f"Batch processing complete. Successfully processed {success_count}/{len(nsp_dirs_to_process)} directories"
         )
-        logger.info(
-            f"Final merged DataFrame for {camera_serial} tail:\n{all_merged_df.tail()}"
-        )
-
-        # process the videos
-        video_output_dir = os.path.join(pathutils.output_dir, camera_serial)
-        os.makedirs(video_output_dir, exist_ok=True)
-
-        session_uuid = str(uuid.uuid4())[:8]
-        subclip_paths = []
-        for mp4_path in all_merged_df["mp4_file"].unique():
-            df_sub = all_merged_df[all_merged_df["mp4_file"] == mp4_path]
-
-            # Build a subclip from the relevant frames, attach audio
-            subclip = make_synced_subclip_moviepy(
-                df_sub,
-                mp4_path,
-                os.path.join(pathutils.output_dir, camera_serial),
-                session_uuid,
-            )
-            subclip_paths.append(subclip)
-
-        final_path = os.path.join(
-            pathutils.output_dir, camera_serial, pathutils.get_final_video_out_path()
-        )
-        # Now 'subclip_paths' has each final MP4 subclip
-        # If we have only one, just rename or copy it
-        if len(subclip_paths) == 1:
-            shutil.move(subclip_paths[0], final_path)
-        else:
-            ffmpeg_concat_mp4s(subclip_paths, final_path)
-
-        logger.info(f"Saved {camera_serial} to {final_path}")
 
 
 if __name__ == "__main__":
