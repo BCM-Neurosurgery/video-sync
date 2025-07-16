@@ -8,7 +8,7 @@ cam_serial: ["23512014"]
 # The camera recording directory contains date folders with camera recordings
 # On Linux, use single forward slashes as shown below
 # On Windows, use double backslashes e.g. "C:\\Users\\user\\Desktop\\data"
-nsp_dir: "/mnt/lake-database/stitched/YFK/EMU-0036_urge"
+nsp_dir: "/mnt/stitched/EMU-18112/YFK/EMU-0036_urge"
 cam_recording_dir: "/mnt/datalake/data/emu/YFKDatafile/VIDEO"
 
 # Paths for the output files

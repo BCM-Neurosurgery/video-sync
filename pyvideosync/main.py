@@ -90,12 +90,9 @@ def main():
             datapool = DataPool(nsp_dir, pathutils.cam_recording_dir)
 
             # Create output directory for this specific NSP directory
-            if pathutils.is_batch_mode():
-                # For batch processing, create a subdirectory named after the NSP directory
-                nsp_dirname = os.path.basename(nsp_dir)
-                current_output_dir = os.path.join(pathutils.output_dir, nsp_dirname)
-            else:
-                current_output_dir = pathutils.output_dir
+            # Always create a subdirectory named after the NSP directory (task name)
+            nsp_dirname = os.path.basename(nsp_dir)
+            current_output_dir = os.path.join(pathutils.output_dir, nsp_dirname)
 
             os.makedirs(current_output_dir, exist_ok=True)
 
@@ -277,10 +274,7 @@ def main():
                     subclip_paths.append(subclip)
 
                 # Create final path based on the nsp directory name
-                if pathutils.is_batch_mode():
-                    final_video_name = f"{os.path.basename(nsp_dir)}.mp4"
-                else:
-                    final_video_name = pathutils.get_final_video_out_path()
+                final_video_name = f"{os.path.basename(nsp_dir)}.mp4"
 
                 final_path = os.path.join(
                     current_output_dir, camera_serial, final_video_name
