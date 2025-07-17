@@ -56,11 +56,11 @@ class PathUtils:
     def is_config_valid(self):
         """Return True if config has all the required fields"""
         # Check if using new batch processing mode
-        if "base_dir" in self._config and "keyword" in self._config:
+        if "base_dir" in self._config and "keywords" in self._config:
             required_fields = [
                 "cam_serial",
                 "base_dir",
-                "keyword",
+                "keywords",
                 "cam_recording_dir",
                 "output_dir",
                 "channel_name",
@@ -209,35 +209,44 @@ class PathUtils:
         self._ns5_rel_path = ns5_rel_path
         self._ns5_abs_path = os.path.join(self._nsp_dir, self._ns5_rel_path)
 
-    def get_matching_task_dirs(self):
-        """Return list of task directories that match the keyword pattern"""
-        if "base_dir" not in self._config or "keyword" not in self._config:
-            return []
+    def get_matching_task_dirs(self, base_dir, keywords):
+        """
+        Find all subdirectories in base_dir that contain any of the specified keywords in their task name.
 
-        base_dir = self._config["base_dir"]
-        keyword = self._config["keyword"].lower()
+        Args:
+            base_dir (str): Base directory to search in
+            keywords (list): List of keywords to search for in task names
 
-        if not os.path.exists(base_dir):
-            print(f"Base directory '{base_dir}' does not exist.")
-            return []
+        Returns:
+            list: List of matching directory paths
+        """
+        import os
+
+        # Ensure keywords is always a list
+        if not isinstance(keywords, list):
+            raise ValueError("keywords must be a list")
 
         matching_dirs = []
+
+        if not os.path.exists(base_dir):
+            print(f"Warning: Base directory does not exist: {base_dir}")
+            return matching_dirs
+
+        # Convert keywords to lowercase for case-insensitive matching
+        keywords_lower = [keyword.lower() for keyword in keywords]
+
         for item in os.listdir(base_dir):
             item_path = os.path.join(base_dir, item)
             if os.path.isdir(item_path):
-                # Check if the directory name contains the keyword
-                # Handle both formats: EMU-XXXX_convo and EMU-XXXX_subj-YFK_task-something
-                if "_task-" in item:
-                    # Extract task part for structured names
-                    task_part = item.split("_task-")[1].split("_")[0].lower()
-                    if keyword in task_part:
-                        matching_dirs.append(item_path)
-                elif keyword in item.lower():
-                    # For simple names like EMU-0016_convo
+                # Check if directory name contains any of the keywords
+                item_lower = item.lower()
+
+                # Check if any keyword matches the directory name
+                if any(keyword in item_lower for keyword in keywords_lower):
                     matching_dirs.append(item_path)
 
-        return sorted(matching_dirs)
+        return matching_dirs
 
     def is_batch_mode(self):
         """Return True if using batch processing mode"""
-        return "base_dir" in self._config and "keyword" in self._config
+        return "base_dir" in self._config and "keywords" in self._config

@@ -5,8 +5,12 @@ cam_serial: ["23512014"]
 # Base directory containing all task directories
 base_dir: "/mnt/stitched/EMU-18112/YFK/"
 
-# Keyword to search for in task names (e.g., "convo", "GoNoGo", "EyesClosed")
-keyword: "convo"
+# Keywords to search for in task names (must be a list)
+# Examples:
+# keywords: ["convo"]  # Single keyword in list
+# keywords: ["convo", "Conversations", "GoNoGo", "EyesClosed"]  # Multiple keywords
+# Current example - matches tasks with "convo" OR "Conversations" in the name
+keywords: ["convo", "Conversations"]
 
 # Directory of Cam Recordings
 cam_recording_dir: "/mnt/datalake/data/emu/YFKDatafile/VIDEO"

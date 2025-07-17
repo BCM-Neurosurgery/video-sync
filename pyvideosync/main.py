@@ -60,8 +60,14 @@ def main():
     if pathutils.is_batch_mode():
         logger.info("Running in batch processing mode")
 
+        # Get base directory and keywords from config
+        base_dir = pathutils._config.get("base_dir")
+        keywords = pathutils._config.get(
+            "keywords", pathutils._config.get("keyword", [])
+        )
+
         # Get all matching task directories
-        matching_dirs = pathutils.get_matching_task_dirs()
+        matching_dirs = pathutils.get_matching_task_dirs(base_dir, keywords)
 
         if not matching_dirs:
             logger.error("No matching task directories found")
