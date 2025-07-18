@@ -133,11 +133,7 @@ def main():
                 else:
                     return
 
-            # 3. load camera serials from the config file
-            camera_serials = pathutils.cam_serial
-            logger.info(f"Camera serials loaded from config: {camera_serials}")
-
-            # 4. Go through all JSON files and find the ones that
+            # 3. Go through all JSON files and find the ones that
             # are within the NEV serial range
             # read timestamps if available
             timestamps_path = os.path.join(current_output_dir, "timestamps.json")
@@ -185,6 +181,36 @@ def main():
                 save_timestamps(timestamps_path, timestamps)
 
             sorted_timestamps = sort_timestamps(timestamps)
+
+            # 4. Get available camera serials from overlapping JSON files only
+            if pathutils.cam_serial:
+                camera_serials = pathutils.cam_serial
+                logger.info(f"Camera serials loaded from config: {camera_serials}")
+            else:
+                # Auto-detect camera serials from JSON files with overlapping timestamps
+                available_serials = set()
+                for timestamp in sorted_timestamps:
+                    camera_file_group = camera_files[timestamp]
+                    json_path = get_json_file(camera_file_group, pathutils)
+                    if json_path:
+                        videojson = Videojson(json_path)
+                        if videojson.is_valid():
+                            json_serials = videojson.get_camera_serials()
+                            available_serials.update(json_serials)
+
+                camera_serials = list(available_serials)
+                logger.info(
+                    f"Auto-detected camera serials from overlapping JSONs: {camera_serials}"
+                )
+
+            if not camera_serials:
+                logger.error(
+                    "No camera serials found (either in config or overlapping JSON files)"
+                )
+                if pathutils.is_batch_mode():
+                    continue
+                else:
+                    return
 
             # process NS5 channel data
             ns5_path = datapool.get_ns5_path()

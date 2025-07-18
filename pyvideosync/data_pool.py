@@ -138,6 +138,6 @@ class VideoFilesPool:
             for file in files:
                 if file.endswith(".mp4"):
                     serial = extract_cam_serial(file)
-                if serial:
-                    serials.add(serial)
+                    if serial:
+                        serials.add(serial)
         return serials

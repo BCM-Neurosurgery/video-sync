@@ -18,7 +18,8 @@ class PathUtils:
         self._timestamp = timestamp
         self._config = self.load_config(config_path)
         self._output_dir = self.config["output_dir"]
-        self._cam_serial = self.config["cam_serial"]
+        # cam_serial is now optional - will be auto-detected if not provided
+        self._cam_serial = self.config.get("cam_serial", None)
         # Handle both batch mode (base_dir) and single mode (nsp_dir)
         if "base_dir" in self._config:
             self._nsp_dir = None  # Will be set dynamically in batch mode
@@ -58,7 +59,6 @@ class PathUtils:
         # Check if using new batch processing mode
         if "base_dir" in self._config and "keywords" in self._config:
             required_fields = [
-                "cam_serial",
                 "base_dir",
                 "keywords",
                 "cam_recording_dir",
@@ -68,7 +68,6 @@ class PathUtils:
         else:
             # Traditional single directory mode
             required_fields = [
-                "cam_serial",
                 "nsp_dir",
                 "cam_recording_dir",
                 "output_dir",

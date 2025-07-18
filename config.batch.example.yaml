@@ -1,6 +1,6 @@
 # Example configuration for batch processing
-# Camera serial number
-cam_serial: ["23512014"]
+# Camera serial number (optional - if not provided, will auto-detect from video files)
+# cam_serial: ["23512014"]
 
 # Base directory containing all task directories
 base_dir: "/mnt/stitched/EMU-18112/YFK/"
@@ -10,7 +10,7 @@ base_dir: "/mnt/stitched/EMU-18112/YFK/"
 # keywords: ["convo"]  # Single keyword in list
 # keywords: ["convo", "Conversations", "GoNoGo", "EyesClosed"]  # Multiple keywords
 # Current example - matches tasks with "convo" OR "Conversations" in the name
-keywords: ["convo", "Conversations"]
+keywords: ["convo"]
 
 # Directory of Cam Recordings
 cam_recording_dir: "/mnt/datalake/data/emu/YFKDatafile/VIDEO"
