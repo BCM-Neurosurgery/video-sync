@@ -108,6 +108,21 @@ class PathUtils:
         return self._ns5_channel
 
     @property
+    def gpu_enabled(self):
+        """Return whether GPU acceleration is enabled"""
+        return self._config.get("gpu_enabled", False)
+
+    @property
+    def gpu_type(self):
+        """Return GPU type for acceleration"""
+        return self._config.get("gpu_type", "nvidia")
+
+    @property
+    def gpu_type(self):
+        """Return GPU type for acceleration"""
+        return self._config.get("gpu_type", "nvidia")
+
+    @property
     def timestamp(self):
         if self._timestamp is None:
             raise ValueError("timestamp is not set")

@@ -20,3 +20,7 @@ output_dir: "/home/auto/CODE/utils/video-sync/Testing/YFKTesting"
 
 # Channel name for the audio data
 channel_name: "RoomMic2"
+
+# GPU Configuration (optional)
+gpu_enabled: true
+gpu_type: "nvidia"  # Options: "nvidia", "amd", "intel", "cpu"

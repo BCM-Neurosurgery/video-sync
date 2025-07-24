@@ -13,8 +13,10 @@ from pyvideosync.logging_config import (
 from pyvideosync.pathutils import PathUtils
 from pyvideosync.process import (
     ffmpeg_concat_mp4s,
+    ffmpeg_concat_mp4s_gpu,
     make_synced_subclip_ffmpeg,
     make_synced_subclip_moviepy,
+    make_synced_subclip_moviepy_gpu,
 )
 from pyvideosync.utils import (
     load_timestamps,
@@ -297,12 +299,23 @@ def main():
                     df_sub = all_merged_df[all_merged_df["mp4_file"] == mp4_path]
 
                     # Build a subclip from the relevant frames, attach audio
-                    subclip = make_synced_subclip_moviepy(
-                        df_sub,
-                        mp4_path,
-                        os.path.join(current_output_dir, camera_serial),
-                        session_uuid,
-                    )
+                    # Use GPU acceleration if enabled
+                    if pathutils.gpu_enabled:
+                        subclip = make_synced_subclip_moviepy_gpu(
+                            df_sub,
+                            mp4_path,
+                            os.path.join(current_output_dir, camera_serial),
+                            session_uuid,
+                            gpu_enabled=pathutils.gpu_enabled,
+                            gpu_type=pathutils.gpu_type,
+                        )
+                    else:
+                        subclip = make_synced_subclip_moviepy(
+                            df_sub,
+                            mp4_path,
+                            os.path.join(current_output_dir, camera_serial),
+                            session_uuid,
+                        )
                     subclip_paths.append(subclip)
 
                 # Create final path based on the nsp directory name
@@ -316,7 +329,16 @@ def main():
                 if len(subclip_paths) == 1:
                     shutil.move(subclip_paths[0], final_path)
                 else:
-                    ffmpeg_concat_mp4s(subclip_paths, final_path)
+                    # Use GPU-accelerated concat if enabled
+                    if pathutils.gpu_enabled:
+                        ffmpeg_concat_mp4s_gpu(
+                            subclip_paths,
+                            final_path,
+                            gpu_enabled=pathutils.gpu_enabled,
+                            gpu_type=pathutils.gpu_type,
+                        )
+                    else:
+                        ffmpeg_concat_mp4s(subclip_paths, final_path)
 
                 logger.info(f"Saved {camera_serial} to {final_path}")
 

@@ -47,6 +47,78 @@ def ffmpeg_concat_mp4s(mp4_paths, output_path):
     return output_path
 
 
+def ffmpeg_concat_mp4s_gpu(
+    mp4_paths, output_path, gpu_enabled=False, gpu_type="nvidia"
+):
+    """
+    GPU-accelerated version of ffmpeg_concat_mp4s.
+    Concatenates MP4 files with optional GPU re-encoding for optimization.
+    """
+    # 1) Write a temporary filelist
+    list_file = os.path.join(os.path.dirname(output_path), "concat_filelist.txt")
+    with open(list_file, "w") as f:
+        for p in mp4_paths:
+            f.write(f"file '{p}'\n")
+
+    # 2) Choose encoding strategy
+    if gpu_enabled:
+        # Re-encode with GPU for potentially better compatibility
+        if gpu_type == "nvidia":
+            codec = "h264_nvenc"
+            codec_params = ["-preset", "fast", "-cq", "20"]
+        elif gpu_type == "amd":
+            codec = "h264_amf"
+            codec_params = ["-quality", "balanced"]
+        elif gpu_type == "intel":
+            codec = "h264_qsv"
+            codec_params = ["-preset", "fast"]
+        else:
+            codec = "libx264"
+            codec_params = ["-preset", "fast", "-crf", "20"]
+
+        cmd = [
+            "ffmpeg",
+            "-y",  # overwrite
+            "-f",
+            "concat",
+            "-safe",
+            "0",
+            "-i",
+            list_file,
+            "-c:v",
+            codec,
+            *codec_params,
+            "-c:a",
+            "copy",  # copy audio without re-encoding
+            output_path,
+        ]
+    else:
+        # Use stream copy (no re-encoding) for speed
+        cmd = [
+            "ffmpeg",
+            "-y",  # overwrite
+            "-f",
+            "concat",
+            "-safe",
+            "0",
+            "-i",
+            list_file,
+            "-c",
+            "copy",
+            output_path,
+        ]
+
+    print("Running FFmpeg concat with GPU acceleration:")
+    print(" ".join(cmd))
+    subprocess.run(cmd, check=True)
+
+    # Remove the temporary filelist
+    os.remove(list_file)
+
+    print(f"Concatenated video written to: {output_path}")
+    return output_path
+
+
 def make_synced_subclip_ffmpeg(
     df_sub, mp4_path, out_dir, session_uuid, fps_video: int = 30
 ):
@@ -227,4 +299,117 @@ def make_synced_subclip_moviepy(
     # os.remove(audio_wav_path)
 
     print(f"Final subclip with audio: {final_path}")
+    return final_path
+
+
+def make_synced_subclip_moviepy_gpu(
+    df_sub,
+    mp4_path,
+    out_dir,
+    session_uuid,
+    fps_video: int = 30,
+    gpu_enabled=False,
+    gpu_type="nvidia",
+):
+    """
+    GPU-accelerated MoviePy version: extracts frames by index and muxes with custom audio.
+    """
+    base_name = os.path.splitext(os.path.basename(mp4_path))[0]
+    subclip_video_path = os.path.join(
+        out_dir, f"{base_name}_subclip_{session_uuid}.mp4"
+    )
+    audio_wav_path = os.path.join(out_dir, f"{base_name}_audio_{session_uuid}.wav")
+    final_path = os.path.join(out_dir, f"{base_name}_final_{session_uuid}.mp4")
+
+    # 1. Get frame indices
+    df_frames = df_sub.dropna(subset=["mp4_frame_idx"])
+    frames = df_frames["mp4_frame_idx"].astype(int).tolist()
+    if not frames:
+        raise ValueError("No frames to extract!")
+
+    # 2. Write audio to WAV
+    audio_samples = df_sub["Amplitude"].values.astype(np.int16)
+    exported_video_duration_s = len(frames) / fps_video
+    fps_audio = int(len(audio_samples) / exported_video_duration_s)
+    wav_write(audio_wav_path, fps_audio, audio_samples)
+
+    # 3. Determine encoding parameters
+    if gpu_enabled:
+        if gpu_type == "nvidia":
+            codec = "h264_nvenc"
+            codec_params = ["-preset", "fast", "-cq", "20"]
+        elif gpu_type == "amd":
+            codec = "h264_amf"
+            codec_params = ["-quality", "balanced"]
+        elif gpu_type == "intel":
+            codec = "h264_qsv"
+            codec_params = ["-preset", "fast"]
+        else:
+            codec = "libx264"
+            codec_params = ["-preset", "ultrafast"]
+    else:
+        codec = "libx264"
+        codec_params = ["-preset", "ultrafast"]
+
+    # 4. Stream frames lazily using a custom VideoClip
+    with VideoFileClip(mp4_path) as video:
+        input_fps = video.fps
+        print(f"Input video FPS: {input_fps}")
+        frame_shape = video.get_frame(0).shape
+        blank_frame = np.zeros(frame_shape, dtype=np.uint8)
+
+        # Pre-calculate times for each frame index
+        time_lookup = [(idx / input_fps if idx != -1 else None) for idx in frames]
+
+        def make_frame(t):
+            frame_idx = int(t * fps_video)
+            actual_time = time_lookup[frame_idx]
+            if actual_time is None:
+                return blank_frame
+            return video.get_frame(actual_time)
+
+        # Lazy video generation with GPU encoding
+        clip = VideoClip(make_frame, duration=exported_video_duration_s)
+        clip.fps = fps_video
+
+        # Use custom ffmpeg_params for GPU acceleration
+        ffmpeg_params = codec_params if gpu_enabled else ["-preset", "ultrafast"]
+
+        clip.write_videofile(
+            subclip_video_path,
+            codec=codec,
+            audio=False,
+            fps=fps_video,
+            ffmpeg_params=ffmpeg_params,
+            threads=2,
+            logger=None,
+        )
+        clip.close()
+
+    # 5. Mux video and audio with GPU encoding for final output
+    video_clip = VideoFileClip(subclip_video_path)
+    audio_clip = AudioFileClip(audio_wav_path)
+    new_audioclip = CompositeAudioClip([audio_clip])
+    video_clip.audio = new_audioclip
+
+    # Use GPU encoding for final output
+    final_ffmpeg_params = codec_params if gpu_enabled else ["-preset", "ultrafast"]
+
+    video_clip.write_videofile(
+        final_path,
+        codec=codec,
+        audio_codec="aac",
+        fps=fps_video,
+        ffmpeg_params=final_ffmpeg_params,
+        threads=2,
+        logger=None,
+    )
+    video_clip.close()
+    audio_clip.close()
+
+    # Optionally clean up intermediates
+    # os.remove(subclip_video_path)
+    # os.remove(audio_wav_path)
+
+    print(f"Final GPU-accelerated subclip with audio: {final_path}")
     return final_path
