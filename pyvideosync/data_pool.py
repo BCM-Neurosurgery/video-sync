@@ -41,45 +41,29 @@ class DataPool:
                     self.video_file_pool.add_file(str(file_path.resolve()))
 
     def verify_integrity(self) -> bool:
-        """Verifies the integrity of the directory by ensuring it contains exactly one NSP-1 `.nev` file and one NSP-1 `.ns5` file.
-
-        Returns:
-            bool: True if both 'NSP-1.nev' and 'NSP-1.ns5' files are found, otherwise False.
-        """
-        has_nev = False
-        has_ns5 = False
-
-        for file in os.listdir(self.nsp_dir):
-            if file.endswith("NSP-1.nev"):
-                has_nev = True
-            elif file.endswith("NSP-1.ns5"):
-                has_ns5 = True
-
-        return has_nev and has_ns5
+        """Verifies the NSP directory has exactly one `.nev` file and one `.ns5` file."""
+        nev_files = self._find_files_by_extension(".nev")
+        ns5_files = self._find_files_by_extension(".ns5")
+        return len(nev_files) == 1 and len(ns5_files) == 1
 
     def get_nev_path(self) -> str:
-        """Finds the NEV file in the directory that ends with 'NSP-1.nev'.
-
-        Returns:
-            str: The full path of the 'NSP-1.nev' file if found, otherwise an empty string.
-        """
-        for file in os.listdir(self.nsp_dir):
-            if file.endswith("NSP-1.nev"):
-                return os.path.join(self.nsp_dir, file)
-
-        return ""
+        """Returns the single `.nev` file path if present, otherwise an empty string."""
+        nev_files = self._find_files_by_extension(".nev")
+        return nev_files[0] if len(nev_files) == 1 else ""
 
     def get_ns5_path(self) -> str:
-        """Finds the NS5 file in the directory that ends with 'NSP-1.ns5'.
+        """Returns the single `.ns5` file path if present, otherwise an empty string."""
+        ns5_files = self._find_files_by_extension(".ns5")
+        return ns5_files[0] if len(ns5_files) == 1 else ""
 
-        Returns:
-            str: The full path of the 'NSP-1.ns5' file if found, otherwise an empty string.
-        """
+    def _find_files_by_extension(self, extension: str) -> list[str]:
+        """List files in the NSP directory that match an extension."""
+        matches = []
         for file in os.listdir(self.nsp_dir):
-            if file.endswith("NSP-1.ns5"):
-                return os.path.join(self.nsp_dir, file)
-
-        return ""
+            full_path = os.path.join(self.nsp_dir, file)
+            if os.path.isfile(full_path) and file.lower().endswith(extension.lower()):
+                matches.append(full_path)
+        return matches
 
     def get_video_file_pool(self) -> "VideoFilesPool":
         """Retrieves the video file pool.
