@@ -115,18 +115,40 @@ class Video:
             raise ValueError(f"Cannot parse frame rate '{raw}'") from e
 
     @staticmethod
-    def pad_blank_frame_end(input_path: str, output_path: str) -> None:
+    def pad_blank_frame_end(
+        input_path: str, output_path: str, gpu_enabled=False, gpu_type="nvidia"
+    ) -> None:
         """Appends a single blank (black) frame to the end of an MP4 video.
 
         Args:
             input_path (str): Path to the source MP4 file.
             output_path (str): Path where the padded video will be written.
+            gpu_enabled (bool): Whether to use GPU acceleration.
+            gpu_type (str): Type of GPU acceleration ("nvidia", "amd", "intel").
 
         Raises:
             subprocess.CalledProcessError: If the ffmpeg command fails.
         """
         fps = Video.get_video_fps(input_path)
         frame_duration = 1.0 / fps
+
+        # Choose encoder based on GPU settings
+        if gpu_enabled:
+            if gpu_type == "nvidia":
+                codec = "h264_nvenc"
+                codec_params = ["-preset", "fast", "-cq", "20"]
+            elif gpu_type == "amd":
+                codec = "h264_amf"
+                codec_params = ["-quality", "balanced"]
+            elif gpu_type == "intel":
+                codec = "h264_qsv"
+                codec_params = ["-preset", "fast"]
+            else:
+                codec = "libx264"
+                codec_params = ["-preset", "fast", "-crf", "20"]
+        else:
+            codec = "libx264"
+            codec_params = ["-preset", "fast", "-crf", "20"]
 
         ffmpeg_cmd = [
             "ffmpeg",
@@ -136,7 +158,8 @@ class Video:
             "-vf",
             f"tpad=stop_mode=add:stop_duration={frame_duration}:color=black",
             "-c:v",
-            "libx264",
+            codec,
+            *codec_params,
             "-c:a",
             "copy",
             output_path,
@@ -178,7 +201,12 @@ class Video:
 
     @staticmethod
     def extract_frames_to_video(
-        mp4_path: str, exported_fps: int, frame_ids: List[int], output_path: str
+        mp4_path: str,
+        exported_fps: int,
+        frame_ids: List[int],
+        output_path: str,
+        gpu_enabled=False,
+        gpu_type="nvidia",
     ) -> None:
         """Extracts specific frames from an MP4 and exports them as a new video.
 
@@ -190,6 +218,8 @@ class Video:
             exported_fps (int): Frame rate for the output video.
             frame_ids (List[int]): List of zero-based frame indices to extract.
             output_path (str): Path where the output MP4 will be written.
+            gpu_enabled (bool): Whether to use GPU acceleration.
+            gpu_type (str): Type of GPU acceleration ("nvidia", "amd", "intel").
 
         Raises:
             subprocess.CalledProcessError: If the FFmpeg command fails.
@@ -198,6 +228,24 @@ class Video:
         select_expr = "+".join(f"eq(n\\,{fid})" for fid in frame_ids)
 
         vf_filter = f"select='{select_expr}',setpts=N/{exported_fps}/TB"
+
+        # Choose encoder based on GPU settings
+        if gpu_enabled:
+            if gpu_type == "nvidia":
+                codec = "h264_nvenc"
+                codec_params = ["-preset", "fast", "-cq", "20"]
+            elif gpu_type == "amd":
+                codec = "h264_amf"
+                codec_params = ["-quality", "balanced"]
+            elif gpu_type == "intel":
+                codec = "h264_qsv"
+                codec_params = ["-preset", "fast"]
+            else:
+                codec = "libx264"
+                codec_params = ["-preset", "fast", "-crf", "20"]
+        else:
+            codec = "libx264"
+            codec_params = ["-preset", "fast", "-crf", "20"]
 
         ffmpeg_cmd = [
             "ffmpeg",
@@ -211,7 +259,8 @@ class Video:
             "-r",
             str(exported_fps),  # force output FPS
             "-c:v",
-            "libx264",  # encode as H.264
+            codec,  # encode with chosen codec
+            *codec_params,
             output_path,
         ]
 

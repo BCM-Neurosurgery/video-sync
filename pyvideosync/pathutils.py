@@ -18,8 +18,13 @@ class PathUtils:
         self._timestamp = timestamp
         self._config = self.load_config(config_path)
         self._output_dir = self.config["output_dir"]
-        self._cam_serial = self.config["cam_serial"]
-        self._nsp_dir = self.config["nsp_dir"]
+        # cam_serial is now optional - will be auto-detected if not provided
+        self._cam_serial = self.config.get("cam_serial", None)
+        # Handle both batch mode (base_dir) and single mode (nsp_dir)
+        if "base_dir" in self._config:
+            self._nsp_dir = None  # Will be set dynamically in batch mode
+        else:
+            self._nsp_dir = self.config["nsp_dir"]
         self._cam_recording_dir = self.config["cam_recording_dir"]
         self._ns5_channel = self.config["channel_name"]
         self._video_to_process = None
@@ -51,13 +56,23 @@ class PathUtils:
 
     def is_config_valid(self):
         """Return True if config has all the required fields"""
-        required_fields = [
-            "cam_serial",
-            "nsp_dir",
-            "cam_recording_dir",
-            "output_dir",
-            "channel_name",
-        ]
+        # Check if using new batch processing mode
+        if "base_dir" in self._config and "keywords" in self._config:
+            required_fields = [
+                "base_dir",
+                "keywords",
+                "cam_recording_dir",
+                "output_dir",
+                "channel_name",
+            ]
+        else:
+            # Traditional single directory mode
+            required_fields = [
+                "nsp_dir",
+                "cam_recording_dir",
+                "output_dir",
+                "channel_name",
+            ]
         missing_fields = [
             field for field in required_fields if field not in self._config
         ]
@@ -91,6 +106,21 @@ class PathUtils:
     @property
     def ns5_channel(self):
         return self._ns5_channel
+
+    @property
+    def gpu_enabled(self):
+        """Return whether GPU acceleration is enabled"""
+        return self._config.get("gpu_enabled", False)
+
+    @property
+    def gpu_type(self):
+        """Return GPU type for acceleration"""
+        return self._config.get("gpu_type", "nvidia")
+
+    @property
+    def gpu_type(self):
+        """Return GPU type for acceleration"""
+        return self._config.get("gpu_type", "nvidia")
 
     @property
     def timestamp(self):
@@ -192,3 +222,45 @@ class PathUtils:
         """Set ns5 paths"""
         self._ns5_rel_path = ns5_rel_path
         self._ns5_abs_path = os.path.join(self._nsp_dir, self._ns5_rel_path)
+
+    def get_matching_task_dirs(self, base_dir, keywords):
+        """
+        Find all subdirectories in base_dir that contain any of the specified keywords in their task name.
+
+        Args:
+            base_dir (str): Base directory to search in
+            keywords (list): List of keywords to search for in task names
+
+        Returns:
+            list: List of matching directory paths
+        """
+        import os
+
+        # Ensure keywords is always a list
+        if not isinstance(keywords, list):
+            raise ValueError("keywords must be a list")
+
+        matching_dirs = []
+
+        if not os.path.exists(base_dir):
+            print(f"Warning: Base directory does not exist: {base_dir}")
+            return matching_dirs
+
+        # Convert keywords to lowercase for case-insensitive matching
+        keywords_lower = [keyword.lower() for keyword in keywords]
+
+        for item in os.listdir(base_dir):
+            item_path = os.path.join(base_dir, item)
+            if os.path.isdir(item_path):
+                # Check if directory name contains any of the keywords
+                item_lower = item.lower()
+
+                # Check if any keyword matches the directory name
+                if any(keyword in item_lower for keyword in keywords_lower):
+                    matching_dirs.append(item_path)
+
+        return matching_dirs
+
+    def is_batch_mode(self):
+        """Return True if using batch processing mode"""
+        return "base_dir" in self._config and "keywords" in self._config

@@ -1,0 +1,26 @@
+# Example configuration for batch processing
+# Camera serial number (optional - if not provided, will auto-detect from video files)
+# cam_serial: ["23512014"]
+
+# Base directory containing all task directories
+base_dir: "/mnt/stitched/EMU-18112/YFK/"
+
+# Keywords to search for in task names (must be a list)
+# Examples:
+# keywords: ["convo"]  # Single keyword in list
+# keywords: ["convo", "Conversations", "GoNoGo", "EyesClosed"]  # Multiple keywords
+# Current example - matches tasks with "convo" OR "Conversations" in the name
+keywords: ["convo"]
+
+# Directory of Cam Recordings
+cam_recording_dir: "/mnt/datalake/data/emu/YFKDatafile/VIDEO"
+
+# Paths for the output files
+output_dir: "/home/auto/CODE/utils/video-sync/Testing/YFKTesting"
+
+# Channel name for the audio data
+channel_name: "RoomMic2"
+
+# GPU Configuration (optional)
+gpu_enabled: true
+gpu_type: "nvidia"  # Options: "nvidia", "amd", "intel", "cpu"
