@@ -215,8 +215,7 @@ def main(config_path):
 
         logger.info(f"Saved {camera_serial} to {video_output_path}")
 
-
-if __name__ == "__main__":
+def cli():
     parser = argparse.ArgumentParser(
         description="Video synchronization tool for neural data and camera recordings."
     )
@@ -230,3 +229,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     main(args.config)
+
+if __name__ == "__main__":
+    cli()
