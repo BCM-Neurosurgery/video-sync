@@ -40,46 +40,49 @@ class DataPool:
                 for file_path in datefolder_path.iterdir():
                     self.video_file_pool.add_file(str(file_path.resolve()))
 
-    def verify_integrity(self) -> bool:
-        """Verifies the integrity of the directory by ensuring it contains exactly one NSP-1 `.nev` file and one NSP-1 `.ns5` file.
+    def _resolve_nsp_file(self, extension: str) -> str:
+        """Pick a single NSP file by extension.
 
-        Returns:
-            bool: True if both 'NSP-1.nev' and 'NSP-1.ns5' files are found, otherwise False.
+        Prefers files ending in `NSP-1.<ext>` so stitched dirs containing both
+        NSP-1 and NSP-2 files resolve to NSP-1. Falls back to any single file
+        with the given extension (TRD-style single-file dirs).
         """
-        has_nev = False
-        has_ns5 = False
-
+        ext = extension.lower()
+        suffix_match = []
+        any_match = []
         for file in os.listdir(self.nsp_dir):
-            if file.endswith("NSP-1.nev"):
-                has_nev = True
-            elif file.endswith("NSP-1.ns5"):
-                has_ns5 = True
+            full_path = os.path.join(self.nsp_dir, file)
+            if not os.path.isfile(full_path):
+                continue
+            lower = file.lower()
+            if lower.endswith(ext):
+                any_match.append(full_path)
+                if lower.endswith(f"nsp-1{ext}"):
+                    suffix_match.append(full_path)
 
-        return has_nev and has_ns5
+        if len(suffix_match) == 1:
+            return suffix_match[0]
+        if not suffix_match and len(any_match) == 1:
+            return any_match[0]
+        return ""
+
+    def verify_integrity(self) -> bool:
+        """Verifies the NSP directory resolves to exactly one `.nev` and one `.ns5` file.
+
+        Accepts either stitched naming (`*NSP-1.nev` / `*NSP-1.ns5`, possibly
+        alongside NSP-2 siblings) or a single arbitrarily-named `.nev` + `.ns5`.
+        """
+        return bool(self._resolve_nsp_file(".nev")) and bool(
+            self._resolve_nsp_file(".ns5")
+        )
 
     def get_nev_path(self) -> str:
-        """Finds the NEV file in the directory that ends with 'NSP-1.nev'.
-
-        Returns:
-            str: The full path of the 'NSP-1.nev' file if found, otherwise an empty string.
-        """
-        for file in os.listdir(self.nsp_dir):
-            if file.endswith("NSP-1.nev"):
-                return os.path.join(self.nsp_dir, file)
-
-        return ""
+        """Returns the resolved NEV file path, or an empty string if none."""
+        return self._resolve_nsp_file(".nev")
 
     def get_ns5_path(self) -> str:
-        """Finds the NS5 file in the directory that ends with 'NSP-1.ns5'.
-
-        Returns:
-            str: The full path of the 'NSP-1.ns5' file if found, otherwise an empty string.
-        """
-        for file in os.listdir(self.nsp_dir):
-            if file.endswith("NSP-1.ns5"):
-                return os.path.join(self.nsp_dir, file)
-
-        return ""
+        """Returns the resolved NS5 file path, or an empty string if none."""
+        return self._resolve_nsp_file(".ns5")
 
     def get_video_file_pool(self) -> "VideoFilesPool":
         """Retrieves the video file pool.
