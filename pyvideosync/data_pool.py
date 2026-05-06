@@ -18,15 +18,28 @@ class DataPool:
         video_file_pool (VideoFilesPool): Stores all video-related files.
     """
 
-    def __init__(self, nsp_dir: str, cam_recording_dir: str) -> None:
+    def __init__(
+        self,
+        nsp_dir: str,
+        cam_recording_dir: str,
+        nev_path: str | None = None,
+        ns5_path: str | None = None,
+    ) -> None:
         """Initializes the DataPool class.
 
         Args:
-            nsp_dir (str): Path to the NSP directory.
+            nsp_dir (str): Path to the NSP directory (used for file discovery
+                when explicit nev/ns5 paths are not provided).
             cam_recording_dir (str): Path to the camera recording directory.
+            nev_path (str, optional): Explicit NEV file path. When set,
+                directory-based discovery for the NEV is bypassed.
+            ns5_path (str, optional): Explicit NS5 file path. When set,
+                directory-based discovery for the NS5 is bypassed.
         """
         self.nsp_dir = nsp_dir
         self.cam_recording_dir = cam_recording_dir
+        self._explicit_nev = nev_path
+        self._explicit_ns5 = ns5_path
         self.video_file_pool = VideoFilesPool()
         self.init_pools()
 
@@ -67,21 +80,24 @@ class DataPool:
         return ""
 
     def verify_integrity(self) -> bool:
-        """Verifies the NSP directory resolves to exactly one `.nev` and one `.ns5` file.
+        """Verifies a NEV and NS5 file are resolvable for this session.
 
         Accepts either stitched naming (`*NSP-1.nev` / `*NSP-1.ns5`, possibly
-        alongside NSP-2 siblings) or a single arbitrarily-named `.nev` + `.ns5`.
+        alongside NSP-2 siblings), a single arbitrarily-named `.nev` + `.ns5`,
+        or explicit paths supplied via the constructor.
         """
-        return bool(self._resolve_nsp_file(".nev")) and bool(
-            self._resolve_nsp_file(".ns5")
-        )
+        return bool(self.get_nev_path()) and bool(self.get_ns5_path())
 
     def get_nev_path(self) -> str:
         """Returns the resolved NEV file path, or an empty string if none."""
+        if self._explicit_nev:
+            return self._explicit_nev
         return self._resolve_nsp_file(".nev")
 
     def get_ns5_path(self) -> str:
         """Returns the resolved NS5 file path, or an empty string if none."""
+        if self._explicit_ns5:
+            return self._explicit_ns5
         return self._resolve_nsp_file(".ns5")
 
     def get_video_file_pool(self) -> "VideoFilesPool":

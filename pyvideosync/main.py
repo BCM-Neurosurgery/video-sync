@@ -58,49 +58,62 @@ def main():
         logger.error("Config not valid, exiting to inital screen...")
         return
 
-    # Check if we're in batch processing mode
+    # Build the list of sessions to process. Each entry is a tuple:
+    #   (task_name, nsp_dir, nev_path_or_None, ns5_path_or_None)
+    # When nev_path/ns5_path are None, DataPool discovers them from nsp_dir.
+    sessions: list[tuple[str, str, str | None, str | None]] = []
     if pathutils.is_batch_mode():
-        logger.info("Running in batch processing mode")
-
-        # Get base directory and keywords from config
+        logger.info("Running in subdir batch processing mode")
         base_dir = pathutils._config.get("base_dir")
         keywords = pathutils._config.get(
             "keywords", pathutils._config.get("keyword", [])
         )
-
-        # Get all matching task directories
         matching_dirs = pathutils.get_matching_task_dirs(base_dir, keywords)
-
         if not matching_dirs:
             logger.error("No matching task directories found")
             return
-
         logger.info(f"Found {len(matching_dirs)} matching directories:")
         for dir_path in matching_dirs:
             logger.info(f"  - {dir_path}")
-
-        # Process each directory
-        success_count = 0
-        nsp_dirs_to_process = matching_dirs
+        sessions = [(os.path.basename(d), d, None, None) for d in matching_dirs]
+    elif pathutils.is_flat_batch_mode():
+        logger.info("Running in flat-file batch processing mode")
+        flat_dir = pathutils._config.get("flat_dir")
+        keywords = pathutils._config.get(
+            "keywords", pathutils._config.get("keyword", None)
+        )
+        pairs = pathutils.get_flat_nev_ns5_pairs(flat_dir, keywords)
+        if not pairs:
+            logger.error("No nev/ns5 pairs found in flat_dir")
+            return
+        logger.info(f"Found {len(pairs)} nev/ns5 pairs in {flat_dir}:")
+        for task_name, _, _ in pairs:
+            logger.info(f"  - {task_name}")
+        sessions = [(name, flat_dir, nev, ns5) for name, nev, ns5 in pairs]
     else:
-        # Single directory mode (existing behavior)
         logger.info("Running in single directory mode")
-        nsp_dirs_to_process = [pathutils.nsp_dir]
-        success_count = 0
+        sessions = [
+            (os.path.basename(pathutils.nsp_dir), pathutils.nsp_dir, None, None)
+        ]
 
-    # Process all directories (either single or batch)
-    for nsp_dir in nsp_dirs_to_process:
-        if pathutils.is_batch_mode():
-            logger.info(f"Processing directory: {nsp_dir}")
+    is_batch = pathutils.is_batch_mode() or pathutils.is_flat_batch_mode()
+    success_count = 0
+
+    for task_name, nsp_dir, nev_path, ns5_path in sessions:
+        if is_batch:
+            logger.info(f"Processing session: {task_name}")
 
         try:
-            # Create datapool with current nsp_dir
-            datapool = DataPool(nsp_dir, pathutils.cam_recording_dir)
+            # Create datapool for this session (explicit paths used in flat mode).
+            datapool = DataPool(
+                nsp_dir,
+                pathutils.cam_recording_dir,
+                nev_path=nev_path,
+                ns5_path=ns5_path,
+            )
 
-            # Create output directory for this specific NSP directory
-            # Always create a subdirectory named after the NSP directory (task name)
-            nsp_dirname = os.path.basename(nsp_dir)
-            current_output_dir = os.path.join(pathutils.output_dir, nsp_dirname)
+            # Create output directory named after the session (task) name
+            current_output_dir = os.path.join(pathutils.output_dir, task_name)
 
             os.makedirs(current_output_dir, exist_ok=True)
 
@@ -109,7 +122,7 @@ def main():
                     "File integrity check failed: Missing or duplicate NSP files detected. "
                     "Please verify the directory structure and try again. Returning to the initial screen."
                 )
-                if pathutils.is_batch_mode():
+                if is_batch:
                     continue
                 else:
                     return
@@ -130,7 +143,7 @@ def main():
             camera_files = datapool.get_video_file_pool().list_groups()
             if not camera_files:
                 logger.error("No camera files found")
-                if pathutils.is_batch_mode():
+                if is_batch:
                     continue
                 else:
                     return
@@ -209,7 +222,7 @@ def main():
                 logger.error(
                     "No camera serials found (either in config or overlapping JSON files)"
                 )
-                if pathutils.is_batch_mode():
+                if is_batch:
                     continue
                 else:
                     return
@@ -318,8 +331,8 @@ def main():
                         )
                     subclip_paths.append(subclip)
 
-                # Create final path based on the nsp directory name
-                final_video_name = f"{os.path.basename(nsp_dir)}.mp4"
+                # Final video name follows the session task name
+                final_video_name = f"{task_name}.mp4"
 
                 final_path = os.path.join(
                     current_output_dir, camera_serial, final_video_name
@@ -342,22 +355,22 @@ def main():
 
                 logger.info(f"Saved {camera_serial} to {final_path}")
 
-            # Track success for batch mode
-            if pathutils.is_batch_mode():
+            # Track success for batch modes
+            if is_batch:
                 success_count += 1
-                logger.info(f"Successfully processed: {nsp_dir}")
+                logger.info(f"Successfully processed: {task_name}")
 
         except Exception as e:
-            if pathutils.is_batch_mode():
-                logger.error(f"Error processing {nsp_dir}: {str(e)}")
+            if is_batch:
+                logger.error(f"Error processing {task_name}: {str(e)}")
             else:
                 logger.error(f"Error processing: {str(e)}")
                 raise
 
     # Log batch processing results
-    if pathutils.is_batch_mode():
+    if is_batch:
         logger.info(
-            f"Batch processing complete. Successfully processed {success_count}/{len(nsp_dirs_to_process)} directories"
+            f"Batch processing complete. Successfully processed {success_count}/{len(sessions)} sessions"
         )
 
 

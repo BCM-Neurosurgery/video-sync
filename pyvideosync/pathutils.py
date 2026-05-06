@@ -20,9 +20,9 @@ class PathUtils:
         self._output_dir = self.config["output_dir"]
         # cam_serial is now optional - will be auto-detected if not provided
         self._cam_serial = self.config.get("cam_serial", None)
-        # Handle both batch mode (base_dir) and single mode (nsp_dir)
-        if "base_dir" in self._config:
-            self._nsp_dir = None  # Will be set dynamically in batch mode
+        # Handle batch (base_dir), flat-batch (flat_dir), and single (nsp_dir) modes
+        if "base_dir" in self._config or "flat_dir" in self._config:
+            self._nsp_dir = None  # Will be set dynamically in batch modes
         else:
             self._nsp_dir = self.config["nsp_dir"]
         self._cam_recording_dir = self.config["cam_recording_dir"]
@@ -56,11 +56,19 @@ class PathUtils:
 
     def is_config_valid(self):
         """Return True if config has all the required fields"""
-        # Check if using new batch processing mode
         if "base_dir" in self._config and "keywords" in self._config:
+            # Subdir batch mode
             required_fields = [
                 "base_dir",
                 "keywords",
+                "cam_recording_dir",
+                "output_dir",
+                "channel_name",
+            ]
+        elif "flat_dir" in self._config:
+            # Flat-file batch mode: pair every nev/ns5 in one directory
+            required_fields = [
+                "flat_dir",
                 "cam_recording_dir",
                 "output_dir",
                 "channel_name",
@@ -262,5 +270,56 @@ class PathUtils:
         return matching_dirs
 
     def is_batch_mode(self):
-        """Return True if using batch processing mode"""
+        """Return True if using subdir batch processing mode"""
         return "base_dir" in self._config and "keywords" in self._config
+
+    def is_flat_batch_mode(self):
+        """Return True if using flat-file batch processing mode.
+
+        In flat mode, `flat_dir` contains many `.nev` and `.ns5` files at the
+        top level; each `.nev` is paired with a same-basename `.ns5` and
+        processed as its own session.
+        """
+        return "flat_dir" in self._config
+
+    def get_flat_nev_ns5_pairs(self, flat_dir, keywords=None):
+        """Pair every `.nev` in `flat_dir` with a same-basename `.ns5`.
+
+        Args:
+            flat_dir (str): Directory containing nev/ns5 files at the top level.
+            keywords (list, optional): Case-insensitive substrings; if provided,
+                only pairs whose nev basename contains any keyword are kept.
+
+        Returns:
+            list[tuple[str, str, str]]: List of (task_name, nev_path, ns5_path),
+            sorted by task_name. task_name is the nev basename without extension.
+        """
+        if not os.path.exists(flat_dir):
+            print(f"Warning: flat_dir does not exist: {flat_dir}")
+            return []
+
+        nev_by_stem = {}
+        ns5_by_stem = {}
+        for entry in os.listdir(flat_dir):
+            full = os.path.join(flat_dir, entry)
+            if not os.path.isfile(full):
+                continue
+            stem, ext = os.path.splitext(entry)
+            ext_lower = ext.lower()
+            if ext_lower == ".nev":
+                nev_by_stem[stem] = full
+            elif ext_lower == ".ns5":
+                ns5_by_stem[stem] = full
+
+        keywords_lower = (
+            [k.lower() for k in keywords] if isinstance(keywords, list) else None
+        )
+
+        pairs = []
+        for stem in sorted(nev_by_stem):
+            if stem not in ns5_by_stem:
+                continue
+            if keywords_lower and not any(k in stem.lower() for k in keywords_lower):
+                continue
+            pairs.append((stem, nev_by_stem[stem], ns5_by_stem[stem]))
+        return pairs

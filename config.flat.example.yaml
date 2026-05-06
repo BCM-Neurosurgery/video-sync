@@ -1,0 +1,30 @@
+# Example configuration for flat-file batch processing.
+#
+# Use this layout when a single directory contains many `.nev` and `.ns5`
+# files at the top level (e.g., raw chunked NSP recordings like
+# `NSP1-<datetime>-001.nev` / `NSP1-<datetime>-001.ns5`, ..., `-NNN.{nev,ns5}`).
+# Each `.nev` is paired with a same-basename `.ns5` and processed as its own
+# sync session, producing a per-pair output MP4 named after the basename.
+
+# Directory containing nev/ns5 files at the top level
+flat_dir: "/mnt/datalake/data/emu/YFWDatafile/DATA/20260501-091328"
+
+# Optional case-insensitive substrings; only nev basenames containing any
+# keyword are processed. Omit (or set to []) to process every pair.
+# keywords: ["NSP1-"]
+
+# Directory of camera recordings (date-grouped subfolders)
+cam_recording_dir: "/mnt/datalake/data/emu/YFWDatafile/VIDEO"
+
+# Output root; one subdirectory per pair, named after the nev basename
+output_dir: "/home/auto/CODE/utils/video-sync/Testing/YFWTesting"
+
+# NS5 audio channel name (must exist in the NS5 extended headers)
+channel_name: "RoomMic2"
+
+# Optional camera serials filter; omit to auto-detect from JSONs
+# cam_serial: ["23512014"]
+
+# Optional GPU configuration
+# gpu_enabled: true
+# gpu_type: "nvidia"
