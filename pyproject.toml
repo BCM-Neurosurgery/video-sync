@@ -1,0 +1,39 @@
+[project]
+name = "pyvideosync"
+version = "1.2.0"
+requires-python = ">=3.12"
+dependencies = [
+    "pandas>=2.2.2",
+    "numpy>=1.26.4,<2",
+    "matplotlib>=3.8.4",
+    "opencv-python>=4.9.0",
+    "tqdm>=4.66.2",
+    "scipy>=1.13.0",
+    "scp>=0.15.0",
+    "moviepy>=1.0.3",
+    "pyyaml>=6.0.2",
+    "pytz",
+    "brpylib @ git+ssh://git@github.com/BCM-Neurosurgery/Python-Utilities-videosync.git",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black>=24.4.0",
+    "pyinstaller>=6.10.0",
+]
+
+[project.scripts]
+stitch-videos = "pyvideosync.main:main"
+plot-nev-cam-exposure = "profiler.plot_nev_cam_exposure:main"
+profile-cam-json = "profiler.profile_camera_jsons:main"
+benchmark-nevs = "profiler.benchmark_nevs:main"
+benchmark-camera = "profiler.benchmark_camera_files:main"
+plot-nev-agg-discontinuity = "profiler.plot_nev_agg_discontinuity:main"
+plot-json-agg-discontinuity = "profiler.plot_json_agg_discontinuity:main"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
