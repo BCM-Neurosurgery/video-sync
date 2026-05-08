@@ -160,5 +160,8 @@ cython_debug/
 #.idea/
 *.mp4
 *.wav
+*.h5
+data/
+test_runs/
 site/
 docs/site/
