@@ -24,22 +24,30 @@ class DataPool:
         cam_recording_dir: str,
         nev_path: str | None = None,
         ns5_path: str | None = None,
+        ns3_path: str | None = None,
     ) -> None:
         """Initializes the DataPool class.
 
         Args:
             nsp_dir (str): Path to the NSP directory (used for file discovery
-                when explicit nev/ns5 paths are not provided).
+                when explicit per-extension paths are not provided).
             cam_recording_dir (str): Path to the camera recording directory.
             nev_path (str, optional): Explicit NEV file path. When set,
                 directory-based discovery for the NEV is bypassed.
             ns5_path (str, optional): Explicit NS5 file path. When set,
                 directory-based discovery for the NS5 is bypassed.
+            ns3_path (str, optional): Explicit NS3 file path. When set,
+                directory-based discovery for the NS3 is bypassed.
         """
         self.nsp_dir = nsp_dir
         self.cam_recording_dir = cam_recording_dir
-        self._explicit_nev = nev_path
-        self._explicit_ns5 = ns5_path
+        # Per-extension overrides; when an entry is set, get_nsp_path(ext)
+        # returns it directly without scanning the directory.
+        self._explicit_paths: dict[str, str | None] = {
+            ".nev": nev_path,
+            ".ns5": ns5_path,
+            ".ns3": ns3_path,
+        }
         self.video_file_pool = VideoFilesPool()
         self.init_pools()
 
@@ -82,23 +90,36 @@ class DataPool:
     def verify_integrity(self) -> bool:
         """Verifies a NEV and NS5 file are resolvable for this session.
 
-        Accepts either stitched naming (`*NSP-1.nev` / `*NSP-1.ns5`, possibly
+        Accepts stitched naming (`*NSP-1.nev` / `*NSP-1.ns5`, possibly
         alongside NSP-2 siblings), a single arbitrarily-named `.nev` + `.ns5`,
-        or explicit paths supplied via the constructor.
+        or explicit paths supplied via the constructor. NS3 is optional and
+        not part of the integrity check.
         """
         return bool(self.get_nev_path()) and bool(self.get_ns5_path())
 
+    def get_nsp_path(self, ext: str) -> str:
+        """Resolve the NSP file with the given extension.
+
+        Honors any explicit-path override passed to the constructor first,
+        then falls back to suffix-aware directory discovery.
+        Returns an empty string if no file resolves.
+        """
+        explicit = self._explicit_paths.get(ext)
+        if explicit:
+            return explicit
+        return self._resolve_nsp_file(ext)
+
     def get_nev_path(self) -> str:
-        """Returns the resolved NEV file path, or an empty string if none."""
-        if self._explicit_nev:
-            return self._explicit_nev
-        return self._resolve_nsp_file(".nev")
+        """Resolved NEV file path, or empty string if none."""
+        return self.get_nsp_path(".nev")
 
     def get_ns5_path(self) -> str:
-        """Returns the resolved NS5 file path, or an empty string if none."""
-        if self._explicit_ns5:
-            return self._explicit_ns5
-        return self._resolve_nsp_file(".ns5")
+        """Resolved NS5 file path, or empty string if none."""
+        return self.get_nsp_path(".ns5")
+
+    def get_ns3_path(self) -> str:
+        """Resolved NS3 file path, or empty string if none."""
+        return self.get_nsp_path(".ns3")
 
     def get_video_file_pool(self) -> "VideoFilesPool":
         """Retrieves the video file pool.
