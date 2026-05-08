@@ -19,3 +19,7 @@ output_dir: "/home/auto/CODE/utils/video-sync/Testing/YFKTesting"
 # Channel name for the audio data
 # Do not change this
 channel_name: "RoomMic2"
+
+# Optional: emit an HDF5 sidecar with ALL NS3 channels aligned to the synced
+# video. The .ns3 file is auto-discovered next to the .nev/.ns5 (same naming).
+# ns3_sidecar: true

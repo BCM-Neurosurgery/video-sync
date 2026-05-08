@@ -22,6 +22,12 @@ output_dir: "/home/auto/CODE/utils/video-sync/Testing/YFWTesting"
 # NS5 audio channel name (must exist in the NS5 extended headers)
 channel_name: "RoomMic2"
 
+# Emit an HDF5 sidecar with ALL NS3 channels per session, aligned to the NEV
+# TimeStamps range. Output: <output_dir>/<task>/<task>_ns3.h5
+# Layout: /timestamps (uint64), /amplitudes (int16, gzip), with channel_labels
+# attr on /amplitudes. Loadable in Python (h5py) and MATLAB (h5read) natively.
+# ns3_sidecar: true
+
 # Optional camera serials filter; omit to auto-detect from JSONs
 # cam_serial: ["23512014"]
 

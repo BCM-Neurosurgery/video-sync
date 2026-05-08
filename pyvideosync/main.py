@@ -29,9 +29,49 @@ from pyvideosync.utils import (
 from pyvideosync.videojson import Videojson
 from pyvideosync.nev import Nev
 from pyvideosync.nsx import Nsx
+from pyvideosync.sidecar import write_ns3_sidecar
 import argparse
 import shutil
 import uuid
+
+
+def _emit_ns3_sidecar(ns3_path, nev_chunk_serial_df, output_dir, task_name, logger):
+    """Slice all NS3 channels by the NEV TimeStamp range and write an HDF5 sidecar.
+
+    Runs once per session, before per-camera video processing. Failure here
+    logs a warning but does not abort the session — the synced video is still
+    the primary output.
+    """
+    try:
+        ns3 = Nsx(ns3_path)
+    except Exception as e:
+        logger.error(f"Could not open NS3 {ns3_path}: {e}")
+        return
+
+    ts_min = int(nev_chunk_serial_df["TimeStamps"].min())
+    ts_max = int(nev_chunk_serial_df["TimeStamps"].max())
+    timestamps, amplitudes, channel_labels = ns3.get_all_channels_arrays(ts_min, ts_max)
+    if len(timestamps) == 0:
+        logger.warning(
+            f"NS3 sidecar: no samples in NEV range [{ts_min}, {ts_max}] for {task_name}"
+        )
+        return
+
+    sidecar_path = os.path.join(output_dir, f"{task_name}_ns3.h5")
+    attrs = {
+        "samp_per_s": ns3.sampleResolution / ns3.basic_header["Period"],
+        "period": ns3.basic_header["Period"],
+        "timestamp_resolution": ns3.timestampResolution,
+        "time_origin": str(ns3.timeOrigin),
+        "ns3_path": ns3_path,
+        "nev_ts_min": ts_min,
+        "nev_ts_max": ts_max,
+    }
+    write_ns3_sidecar(sidecar_path, timestamps, amplitudes, channel_labels, attrs)
+    logger.info(
+        f"NS3 sidecar: wrote {sidecar_path} "
+        f"({len(timestamps)} samples × {len(channel_labels)} channels)"
+    )
 
 
 def main():
@@ -59,9 +99,11 @@ def main():
         return
 
     # Build the list of sessions to process. Each entry is a tuple:
-    #   (task_name, nsp_dir, nev_path_or_None, ns5_path_or_None)
-    # When nev_path/ns5_path are None, DataPool discovers them from nsp_dir.
-    sessions: list[tuple[str, str, str | None, str | None]] = []
+    #   (task_name, nsp_dir, nev_path_or_None, ns5_path_or_None, ns3_path_or_None)
+    # Explicit paths are populated only in flat-batch mode (where multiple
+    # chunks coexist in one directory). In single/subdir modes the slots stay
+    # None and DataPool resolves files from `nsp_dir`.
+    sessions: list[tuple[str, str, str | None, str | None, str | None]] = []
     if pathutils.is_batch_mode():
         logger.info("Running in subdir batch processing mode")
         base_dir = pathutils._config.get("base_dir")
@@ -75,31 +117,39 @@ def main():
         logger.info(f"Found {len(matching_dirs)} matching directories:")
         for dir_path in matching_dirs:
             logger.info(f"  - {dir_path}")
-        sessions = [(os.path.basename(d), d, None, None) for d in matching_dirs]
+        sessions = [(os.path.basename(d), d, None, None, None) for d in matching_dirs]
     elif pathutils.is_flat_batch_mode():
         logger.info("Running in flat-file batch processing mode")
         flat_dir = pathutils._config.get("flat_dir")
         keywords = pathutils._config.get(
             "keywords", pathutils._config.get("keyword", None)
         )
-        pairs = pathutils.get_flat_nev_ns5_pairs(flat_dir, keywords)
-        if not pairs:
-            logger.error("No nev/ns5 pairs found in flat_dir")
+        flat_sessions = pathutils.get_flat_nev_session_files(flat_dir, keywords)
+        if not flat_sessions:
+            logger.error("No nev/ns5 sessions found in flat_dir")
             return
-        logger.info(f"Found {len(pairs)} nev/ns5 pairs in {flat_dir}:")
-        for task_name, _, _ in pairs:
-            logger.info(f"  - {task_name}")
-        sessions = [(name, flat_dir, nev, ns5) for name, nev, ns5 in pairs]
+        logger.info(f"Found {len(flat_sessions)} sessions in {flat_dir}:")
+        for task_name, _, _, ns3 in flat_sessions:
+            logger.info(f"  - {task_name}{' (no ns3)' if ns3 is None else ''}")
+        sessions = [
+            (name, flat_dir, nev, ns5, ns3) for name, nev, ns5, ns3 in flat_sessions
+        ]
     else:
         logger.info("Running in single directory mode")
         sessions = [
-            (os.path.basename(pathutils.nsp_dir), pathutils.nsp_dir, None, None)
+            (
+                os.path.basename(pathutils.nsp_dir),
+                pathutils.nsp_dir,
+                None,
+                None,
+                None,
+            )
         ]
 
     is_batch = pathutils.is_batch_mode() or pathutils.is_flat_batch_mode()
     success_count = 0
 
-    for task_name, nsp_dir, nev_path, ns5_path in sessions:
+    for task_name, nsp_dir, nev_path, ns5_path, ns3_path in sessions:
         if is_batch:
             logger.info(f"Processing session: {task_name}")
 
@@ -110,6 +160,7 @@ def main():
                 pathutils.cam_recording_dir,
                 nev_path=nev_path,
                 ns5_path=ns5_path,
+                ns3_path=ns3_path,
             )
 
             # Create output directory named after the session (task) name
@@ -138,6 +189,23 @@ def main():
             logger.info(
                 f"Start serial: {nev_start_serial}, End serial: {nev_end_serial}"
             )
+
+            # Optional NS3 sidecar: all-channel HDF5 sliced by the NEV TimeStamps
+            # range. Emitted once per session, before per-camera processing.
+            if pathutils.ns3_sidecar:
+                ns3_resolved = datapool.get_ns3_path()
+                if ns3_resolved:
+                    _emit_ns3_sidecar(
+                        ns3_resolved,
+                        nev_chunk_serial_df,
+                        current_output_dir,
+                        task_name,
+                        logger,
+                    )
+                else:
+                    logger.warning(
+                        f"ns3_sidecar enabled but no .ns3 resolved for {task_name}"
+                    )
 
             # 2. Find all JSON files and MP4 files
             camera_files = datapool.get_video_file_pool().list_groups()

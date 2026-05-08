@@ -21,6 +21,10 @@ output_dir: "/home/auto/CODE/utils/video-sync/Testing/YFKTesting"
 # Channel name for the audio data
 channel_name: "RoomMic2"
 
+# Optional: emit an HDF5 sidecar with ALL NS3 channels per task, aligned to
+# the NEV TimeStamps range. Auto-discovers the matching .ns3 in each subdir.
+# ns3_sidecar: true
+
 # GPU Configuration (optional)
 gpu_enabled: true
 gpu_type: "nvidia"  # Options: "nvidia", "amd", "intel", "cpu"

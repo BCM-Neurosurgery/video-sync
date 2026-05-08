@@ -13,6 +13,7 @@ dependencies = [
     "moviepy>=1.0.3",
     "pyyaml>=6.0.2",
     "pytz",
+    "h5py>=3.10",
     "brpylib @ git+ssh://git@github.com/BCM-Neurosurgery/Python-Utilities-videosync.git",
 ]
 

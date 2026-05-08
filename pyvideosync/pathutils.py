@@ -116,6 +116,11 @@ class PathUtils:
         return self._ns5_channel
 
     @property
+    def ns3_sidecar(self):
+        """Return True if an NS3 HDF5 sidecar should be emitted per session."""
+        return bool(self._config.get("ns3_sidecar", False))
+
+    @property
     def gpu_enabled(self):
         """Return whether GPU acceleration is enabled"""
         return self._config.get("gpu_enabled", False)
@@ -282,44 +287,53 @@ class PathUtils:
         """
         return "flat_dir" in self._config
 
-    def get_flat_nev_ns5_pairs(self, flat_dir, keywords=None):
-        """Pair every `.nev` in `flat_dir` with a same-basename `.ns5`.
+    def get_flat_nev_session_files(self, flat_dir, keywords=None):
+        """Group same-basename `.nev`/`.ns5`/`.ns3` files in `flat_dir`.
+
+        Each NEV becomes a session; the matching NS5 must exist (sessions
+        without one are skipped, since NS5 is required by the audio pipeline).
+        NS3 is optional and surfaced as `None` when absent.
 
         Args:
-            flat_dir (str): Directory containing nev/ns5 files at the top level.
-            keywords (list, optional): Case-insensitive substrings; if provided,
-                only pairs whose nev basename contains any keyword are kept.
+            flat_dir: Directory containing nev/ns5/ns3 files at the top level.
+            keywords: Optional list of case-insensitive substrings; only nev
+                basenames containing any keyword are kept.
 
         Returns:
-            list[tuple[str, str, str]]: List of (task_name, nev_path, ns5_path),
-            sorted by task_name. task_name is the nev basename without extension.
+            list[tuple[str, str, str, str | None]]:
+                (task_name, nev_path, ns5_path, ns3_path_or_None), sorted by
+                task_name. task_name is the nev basename without extension.
         """
         if not os.path.exists(flat_dir):
             print(f"Warning: flat_dir does not exist: {flat_dir}")
             return []
 
-        nev_by_stem = {}
-        ns5_by_stem = {}
+        by_ext: dict[str, dict[str, str]] = {".nev": {}, ".ns5": {}, ".ns3": {}}
         for entry in os.listdir(flat_dir):
             full = os.path.join(flat_dir, entry)
             if not os.path.isfile(full):
                 continue
             stem, ext = os.path.splitext(entry)
             ext_lower = ext.lower()
-            if ext_lower == ".nev":
-                nev_by_stem[stem] = full
-            elif ext_lower == ".ns5":
-                ns5_by_stem[stem] = full
+            if ext_lower in by_ext:
+                by_ext[ext_lower][stem] = full
 
         keywords_lower = (
             [k.lower() for k in keywords] if isinstance(keywords, list) else None
         )
 
-        pairs = []
-        for stem in sorted(nev_by_stem):
-            if stem not in ns5_by_stem:
+        sessions = []
+        for stem in sorted(by_ext[".nev"]):
+            if stem not in by_ext[".ns5"]:
                 continue
             if keywords_lower and not any(k in stem.lower() for k in keywords_lower):
                 continue
-            pairs.append((stem, nev_by_stem[stem], ns5_by_stem[stem]))
-        return pairs
+            sessions.append(
+                (
+                    stem,
+                    by_ext[".nev"][stem],
+                    by_ext[".ns5"][stem],
+                    by_ext[".ns3"].get(stem),  # None if no matching .ns3
+                )
+            )
+        return sessions
