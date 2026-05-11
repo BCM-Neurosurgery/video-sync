@@ -31,6 +31,7 @@ from pyvideosync.nev import Nev
 from pyvideosync.nsx import Nsx
 from pyvideosync.sidecar import write_ns3_sidecar
 import argparse
+import json
 import shutil
 import uuid
 
@@ -422,6 +423,23 @@ def main():
                         ffmpeg_concat_mp4s(subclip_paths, final_path)
 
                 logger.info(f"Saved {camera_serial} to {final_path}")
+
+                window_path = os.path.join(
+                    current_output_dir, camera_serial, f"{task_name}_window.json"
+                )
+                with open(window_path, "w") as f:
+                    json.dump(
+                        {
+                            "ts_start": int(all_merged_df["TimeStamp"].min()),
+                            "ts_end": int(all_merged_df["TimeStamp"].max()),
+                            "samp_per_s": ns5.sampleResolution
+                            / ns5.basic_header["Period"],
+                            "channel_name": pathutils.ns5_channel,
+                        },
+                        f,
+                        indent=2,
+                    )
+                logger.info(f"Wrote NS5 window: {window_path}")
 
             # Track success for batch modes
             if is_batch:
