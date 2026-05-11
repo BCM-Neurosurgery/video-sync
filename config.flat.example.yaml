@@ -31,6 +31,11 @@ channel_name: "RoomMic2"
 # Optional camera serials filter; omit to auto-detect from JSONs
 # cam_serial: ["23512014"]
 
+# Optional: keep per-camera intermediates. Default true. Set false to delete
+# `*_subclip_*.mp4`, `*_audio_*.wav`, `*_final_*.mp4`, `concat_filelist.txt`
+# after the final MP4 + window.json are written.
+# keep_intermediates: false
+
 # Optional GPU configuration
 # gpu_enabled: true
 # gpu_type: "nvidia"

@@ -25,6 +25,11 @@ channel_name: "RoomMic2"
 # the NEV TimeStamps range. Auto-discovers the matching .ns3 in each subdir.
 # ns3_sidecar: true
 
+# Optional: keep per-camera intermediates. Default true. Set false to delete
+# `*_subclip_*.mp4`, `*_audio_*.wav`, `*_final_*.mp4`, `concat_filelist.txt`
+# after the final MP4 + window.json are written.
+# keep_intermediates: false
+
 # GPU Configuration (optional)
 gpu_enabled: true
 gpu_type: "nvidia"  # Options: "nvidia", "amd", "intel", "cpu"

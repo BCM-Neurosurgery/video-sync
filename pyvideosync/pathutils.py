@@ -121,6 +121,16 @@ class PathUtils:
         return bool(self._config.get("ns3_sidecar", False))
 
     @property
+    def keep_intermediates(self):
+        """Return True to retain per-camera subclip/audio/concat intermediates.
+
+        Default True preserves historical behavior; set False in the YAML to
+        delete `*_subclip_*.mp4`, `*_audio_*.wav`, `*_final_*.mp4`, and
+        `concat_filelist.txt` after the final MP4 + window sidecar are written.
+        """
+        return bool(self._config.get("keep_intermediates", True))
+
+    @property
     def gpu_enabled(self):
         """Return whether GPU acceleration is enabled"""
         return self._config.get("gpu_enabled", False)

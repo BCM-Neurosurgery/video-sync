@@ -31,6 +31,7 @@ from pyvideosync.nev import Nev
 from pyvideosync.nsx import Nsx
 from pyvideosync.sidecar import write_ns3_sidecar
 import argparse
+import glob
 import json
 import shutil
 import uuid
@@ -440,6 +441,28 @@ def main():
                         indent=2,
                     )
                 logger.info(f"Wrote NS5 window: {window_path}")
+
+                if not pathutils.keep_intermediates:
+                    cam_dir = os.path.join(current_output_dir, camera_serial)
+                    patterns = [
+                        "*_subclip_*.mp4",
+                        "*_audio_*.wav",
+                        "*_final_*.mp4",
+                        "concat_filelist.txt",
+                    ]
+                    removed = 0
+                    for pat in patterns:
+                        for path in glob.glob(os.path.join(cam_dir, pat)):
+                            if path == final_path:
+                                continue
+                            try:
+                                os.remove(path)
+                                removed += 1
+                            except OSError as e:
+                                logger.warning(f"Could not remove {path}: {e}")
+                    logger.info(
+                        f"Cleaned {removed} intermediate file(s) from {cam_dir}"
+                    )
 
             # Track success for batch modes
             if is_batch:

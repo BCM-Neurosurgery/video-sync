@@ -23,3 +23,8 @@ channel_name: "RoomMic2"
 # Optional: emit an HDF5 sidecar with ALL NS3 channels aligned to the synced
 # video. The .ns3 file is auto-discovered next to the .nev/.ns5 (same naming).
 # ns3_sidecar: true
+
+# Optional: keep per-camera intermediates (silent subclips, extracted WAVs,
+# per-input muxed clips, concat list). Default true preserves them. Set false
+# to delete them after the final MP4 + window.json are written.
+# keep_intermediates: false
