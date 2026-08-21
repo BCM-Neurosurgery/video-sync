@@ -1,10 +1,11 @@
 """Tests for stitched-time calibration and camera discovery."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import logging
 from pathlib import Path
 import tempfile
+from unittest.mock import patch
 
 import pandas as pd
 
@@ -116,6 +117,45 @@ def test_serial_fallback_scans_past_nonmonotonic_range():
         )
 
         assert result == [match_timestamp]
+
+
+def test_time_discovery_binary_searches_camera_groups():
+    base_time = datetime(2026, 8, 1)
+    camera_files = {
+        base_time + timedelta(minutes=index): [f"camera_{index}.json"]
+        for index in range(1024)
+    }
+    opened = []
+
+    class FakeVideojson:
+        def __init__(self, path):
+            self.index = int(Path(path).stem.rsplit("_", 1)[1])
+            opened.append(self.index)
+
+        def is_valid(self):
+            return True
+
+        def get_realtime_bounds(self):
+            start = base_time + timedelta(minutes=self.index)
+            return start, start + timedelta(seconds=30)
+
+        def get_camera_serials(self):
+            return ["23512014"]
+
+    window_start = base_time + timedelta(minutes=900)
+    with patch("pyvideosync.main.Videojson", FakeVideojson):
+        result = _find_overlapping_camera_timestamps(
+            camera_files,
+            ["23512014"],
+            0,
+            0,
+            LOGGER,
+            nev_start_utc=window_start,
+            nev_end_utc=window_start + timedelta(seconds=10),
+        )
+
+    assert result == [window_start]
+    assert len(opened) < 20
 
 
 if __name__ == "__main__":

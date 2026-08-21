@@ -93,9 +93,18 @@ def _find_overlapping_camera_timestamps(
     if (nev_start_utc is None) != (nev_end_utc is None):
         raise ValueError("nev_start_utc and nev_end_utc must be supplied together")
 
+    camera_items = sorted(camera_files.items())
+    if nev_start_utc is not None:
+        start_idx = _bisect_first_camera_overlap(camera_items, nev_start_utc)
+        logger.info(
+            f"Camera time search skipped {start_idx} of {len(camera_items)} "
+            "recording groups"
+        )
+        camera_items = camera_items[start_idx:]
+
     configured_serials = {str(serial) for serial in camera_serials or []}
     timestamps = []
-    for timestamp, camera_file_group in camera_files.items():
+    for timestamp, camera_file_group in camera_items:
         json_path = get_json_file(camera_file_group, None)
         if json_path is None:
             logger.error(f"No JSON file found in group {timestamp}")
@@ -106,12 +115,10 @@ def _find_overlapping_camera_timestamps(
             logger.error(f"Invalid JSON file: {json_path}")
             continue
 
-        available_serials = {str(serial) for serial in videojson.get_camera_serials()}
-        if configured_serials and configured_serials.isdisjoint(available_serials):
-            continue
-
         if nev_start_utc is not None:
             camera_start, camera_end = videojson.get_realtime_bounds()
+            if camera_start is not None and camera_start > nev_end_utc:
+                break
             overlaps = (
                 camera_start is not None
                 and camera_end is not None
@@ -127,11 +134,39 @@ def _find_overlapping_camera_timestamps(
                 and camera_end >= nev_start_serial
             )
 
+        available_serials = {str(serial) for serial in videojson.get_camera_serials()}
+        if configured_serials and configured_serials.isdisjoint(available_serials):
+            continue
+
         if overlaps:
             logger.info(f"Overlap found, timestamp: {timestamp}")
             timestamps.append(timestamp)
 
     return sorted(timestamps)
+
+
+def _bisect_first_camera_overlap(camera_items, window_start):
+    """Find the first camera group whose realtime end reaches the window."""
+    lo, hi = 0, len(camera_items)
+    while lo < hi:
+        mid = (lo + hi) // 2
+        _, camera_file_group = camera_items[mid]
+        json_path = get_json_file(camera_file_group, None)
+        if json_path is None:
+            hi = mid
+            continue
+
+        videojson = Videojson(json_path)
+        if not videojson.is_valid():
+            hi = mid
+            continue
+
+        _, camera_end = videojson.get_realtime_bounds()
+        if camera_end is not None and camera_end < window_start:
+            lo = mid + 1
+        else:
+            hi = mid
+    return lo
 
 
 def main():
