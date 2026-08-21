@@ -155,7 +155,12 @@ class Nev:
             results, columns=["TimeStamps", "chunk_serial", "UTCTimeStamp"]
         )
 
-    def get_chunk_serial_df(self, timestamp_byte: str = "first"):
+    def get_chunk_serial_df(
+        self,
+        timestamp_byte: str = "first",
+        reference_time_origin=None,
+        reference_start_timestamp: int | None = None,
+    ):
         """Reconstruct chunk serial numbers from grouped digital events.
 
         Processes the cleaned digital events DataFrame by grouping every five consecutive rows,
@@ -167,6 +172,11 @@ class Nev:
             timestamp_byte (str, optional): Which byte's timestamp to use ('first' or 'last').
                 Defaults to 'first'. Use 'last' if you want the timestamp representing
                 the full completion of the serial transmission (recommended for accurate synchronization).
+            reference_time_origin (datetime, optional): Time origin from the first raw
+                NEV used to build a stitched file.
+            reference_start_timestamp (int, optional): First digital-event timestamp
+                from that raw NEV. When both reference values are supplied, UTC is
+                calculated from the timestamp offset to this anchor.
 
         Returns:
             pd.DataFrame: A DataFrame containing:
@@ -188,9 +198,16 @@ class Nev:
             "first",
             "last",
         ], "timestamp_byte must be either 'first' or 'last'"
+        if (reference_time_origin is None) != (reference_start_timestamp is None):
+            raise ValueError(
+                "reference_time_origin and reference_start_timestamp must be "
+                "supplied together"
+            )
 
         df = self.get_cleaned_digital_events_df()
         results = []
+        time_origin = reference_time_origin or self.timeOrigin
+        timestamp_offset = int(reference_start_timestamp or 0)
 
         for i in range(0, len(df), 5):
             group = df.iloc[i : i + 5]
@@ -205,7 +222,9 @@ class Nev:
                     timestamp = group["TimeStamps"].iloc[-1]
 
                 unix_time = ts2unix(
-                    self.timeOrigin, self.timestampResolution, timestamp
+                    time_origin,
+                    self.timestampResolution,
+                    int(timestamp) - timestamp_offset,
                 )
                 results.append((timestamp, decimal_number, unix_time))
 

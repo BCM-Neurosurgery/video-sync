@@ -11,6 +11,10 @@ cam_serial: ["23512014"]
 nsp_dir: "/mnt/stitched/EMU-18112/YFK/EMU-0036_urge"
 cam_recording_dir: "/mnt/datalake/data/emu/YFKDatafile/VIDEO"
 
+# Optional: first raw NEV used to create a stitched NSP session. Supplying it
+# calibrates the stitched timestamp window for automatic camera discovery.
+# first_nev_path: "/mnt/datalake/data/emu/YFKDatafile/DATA/.../NSP1-....nev"
+
 # Paths for the output files
 # Subdirectories will be created in the output directory named after the camera serial number
 # The output files will be saved in the respective subdirectories

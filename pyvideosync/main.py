@@ -19,9 +19,6 @@ from pyvideosync.process import (
     make_synced_subclip_moviepy_gpu,
 )
 from pyvideosync.utils import (
-    load_timestamps,
-    save_timestamps,
-    sort_timestamps,
     get_column_min_max,
     get_json_file,
     get_mp4_file,
@@ -76,6 +73,65 @@ def _emit_ns3_sidecar(ns3_path, nev_chunk_serial_df, output_dir, task_name, logg
         f"NS3 sidecar: wrote {sidecar_path} "
         f"({len(timestamps)} samples × {len(channel_labels)} channels)"
     )
+
+
+def _find_overlapping_camera_timestamps(
+    camera_files,
+    camera_serials,
+    nev_start_serial,
+    nev_end_serial,
+    logger,
+    nev_start_utc=None,
+    nev_end_utc=None,
+):
+    """Return camera groups overlapping the NEV window.
+
+    Calibrated UTC bounds are preferred when a first-NEV reference is
+    available. Otherwise, preserve the serial-range fallback without assuming
+    that serials are monotonic across recording-date folders.
+    """
+    if (nev_start_utc is None) != (nev_end_utc is None):
+        raise ValueError("nev_start_utc and nev_end_utc must be supplied together")
+
+    configured_serials = {str(serial) for serial in camera_serials or []}
+    timestamps = []
+    for timestamp, camera_file_group in camera_files.items():
+        json_path = get_json_file(camera_file_group, None)
+        if json_path is None:
+            logger.error(f"No JSON file found in group {timestamp}")
+            continue
+
+        videojson = Videojson(json_path)
+        if not videojson.is_valid():
+            logger.error(f"Invalid JSON file: {json_path}")
+            continue
+
+        available_serials = {str(serial) for serial in videojson.get_camera_serials()}
+        if configured_serials and configured_serials.isdisjoint(available_serials):
+            continue
+
+        if nev_start_utc is not None:
+            camera_start, camera_end = videojson.get_realtime_bounds()
+            overlaps = (
+                camera_start is not None
+                and camera_end is not None
+                and camera_start <= nev_end_utc
+                and camera_end >= nev_start_utc
+            )
+        else:
+            camera_start, camera_end = videojson.get_min_max_chunk_serial()
+            overlaps = (
+                camera_start is not None
+                and camera_end is not None
+                and camera_start <= nev_end_serial
+                and camera_end >= nev_start_serial
+            )
+
+        if overlaps:
+            logger.info(f"Overlap found, timestamp: {timestamp}")
+            timestamps.append(timestamp)
+
+    return sorted(timestamps)
 
 
 def main():
@@ -185,7 +241,19 @@ def main():
             # 1. Get NEV serial start and end
             nsp1_nev_path = datapool.get_nev_path()
             nev = Nev(nsp1_nev_path)
-            nev_chunk_serial_df = nev.get_chunk_serial_df()
+            first_nev_path = pathutils.first_nev_path
+            if first_nev_path:
+                logger.info(
+                    f"Calibrating stitched timestamps with first raw NEV: "
+                    f"{first_nev_path}"
+                )
+                first_nev = Nev(first_nev_path)
+                nev_chunk_serial_df = nev.get_chunk_serial_df(
+                    reference_time_origin=first_nev.get_time_origin(),
+                    reference_start_timestamp=first_nev.get_start_timestamp(),
+                )
+            else:
+                nev_chunk_serial_df = nev.get_chunk_serial_df()
             logger.info(f"NEV dataframe\n: {nev_chunk_serial_df}")
             nev_start_serial, nev_end_serial = get_column_min_max(
                 nev_chunk_serial_df, "chunk_serial"
@@ -220,54 +288,34 @@ def main():
                 else:
                     return
 
-            # 3. Go through all JSON files and find the ones that
-            # are within the NEV serial range
-            # read timestamps if available
-            timestamps_path = os.path.join(current_output_dir, "timestamps.json")
-            timestamps = load_timestamps(timestamps_path, logger)
-            if timestamps:
-                logger.info(f"Loaded timestamps: {timestamps}")
-            else:
-                logger.info("No timestamps found")
-                timestamps = []
-                for timestamp, camera_file_group in camera_files.items():
-
-                    json_path = get_json_file(camera_file_group, pathutils)
-                    if json_path is None:
-                        logger.error(f"No JSON file found in group {timestamp}")
-                        continue
-
-                    videojson = Videojson(json_path)
-                    if not videojson.is_valid():
-                        logger.error(f"Invalid JSON file: {json_path}")
-                        continue
-
-                    start_serial, end_serial = videojson.get_min_max_chunk_serial()
-                    if start_serial is None or end_serial is None:
-                        logger.error(
-                            f"No chunk serials found in JSON file: {json_path}"
-                        )
-                        continue
-
-                    if start_serial > nev_end_serial:
-                        logger.info(f"Past end serial: {timestamp}")
-                        break
-
-                    if end_serial < nev_start_serial:
-                        logger.info(f"No overlap found: {timestamp}")
-                        continue
-
-                    elif start_serial <= nev_end_serial:
-                        logger.info(f"Overlap found, timestamp: {timestamp}")
-                        timestamps.append(timestamp)
-
-                    else:
-                        logger.info(f"Break: {timestamp}")
-                        break
-                logger.info(f"timestamps: {timestamps}")
-                save_timestamps(timestamps_path, timestamps)
-
-            sorted_timestamps = sort_timestamps(timestamps)
+            # 3. Find camera groups overlapping the calibrated NEV time window.
+            # Fall back to a full serial-range scan for legacy configurations.
+            nev_start_utc = (
+                nev_chunk_serial_df["UTCTimeStamp"].min() if first_nev_path else None
+            )
+            nev_end_utc = (
+                nev_chunk_serial_df["UTCTimeStamp"].max() if first_nev_path else None
+            )
+            if first_nev_path:
+                logger.info(
+                    f"Calibrated NEV serial window: {nev_start_utc} to {nev_end_utc}"
+                )
+            sorted_timestamps = _find_overlapping_camera_timestamps(
+                camera_files,
+                pathutils.cam_serial,
+                nev_start_serial,
+                nev_end_serial,
+                logger,
+                nev_start_utc=nev_start_utc,
+                nev_end_utc=nev_end_utc,
+            )
+            logger.info(f"timestamps: {sorted_timestamps}")
+            if not sorted_timestamps:
+                message = f"No camera recordings overlap the NEV window for {task_name}"
+                logger.error(message)
+                if is_batch:
+                    continue
+                raise RuntimeError(message)
 
             # 4. Get available camera serials from overlapping JSON files only
             if pathutils.cam_serial:
