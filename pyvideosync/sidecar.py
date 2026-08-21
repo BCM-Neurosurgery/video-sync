@@ -1,15 +1,84 @@
-"""
-Sidecar exporters that emit data products alongside the synced video.
-
-Currently only NS3: a wide HDF5 file with all NS3 channels sliced to the
-NSP master-clock time range covered by the session's NEV. The file is
-loadable from Python (h5py / pandas) and natively from MATLAB (`h5read`).
-"""
+"""Frame-mapping and optional NS3 sidecar exporters."""
 
 from __future__ import annotations
 
 import h5py
 import numpy as np
+import pandas as pd
+
+
+FRAME_MAPPING_COLUMNS = [
+    "synced_frame_idx",
+    "camera_serial",
+    "nev_serial_timestamp",
+    "nev_utc_time",
+    "ns5_sample_idx",
+    "chunk_serial",
+    "source_mp4_frame_idx",
+    "source_frame_available",
+    "source_mp4",
+    "ns5_file",
+]
+
+
+def build_frame_mapping(
+    joined_frames: pd.DataFrame,
+    camera_serial: str,
+    ns5_start_timestamp: int,
+    ns5_clk_per_sample: int,
+    ns5_path: str,
+) -> pd.DataFrame:
+    """Build the compact final-video-frame to NSP-time mapping.
+
+    ``joined_frames`` is the existing NEV-to-camera join accumulated in final
+    video order. This function assigns final frame indices and converts each
+    NEV timestamp to its zero-based sample index in the source NS5.
+
+    ``source_mp4_frame_idx == -1`` is retained deliberately: the video renderer
+    emits a blank frame for a missing source frame, so it is still a real frame
+    in the final synced MP4.
+    """
+    required = {
+        "TimeStamps",
+        "UTCTimeStamp",
+        "chunk_serial",
+        "mp4_frame_idx",
+        "mp4_file",
+    }
+    missing = sorted(required - set(joined_frames.columns))
+    if missing:
+        raise ValueError(f"joined_frames is missing columns: {', '.join(missing)}")
+    if ns5_clk_per_sample <= 0:
+        raise ValueError("ns5_clk_per_sample must be positive")
+
+    if joined_frames.empty:
+        return pd.DataFrame(columns=FRAME_MAPPING_COLUMNS)
+
+    frame_rows = joined_frames.reset_index(drop=True)
+    nev_timestamps = frame_rows["TimeStamps"].astype("int64")
+    sample_offsets = nev_timestamps - int(ns5_start_timestamp)
+    if (sample_offsets < 0).any():
+        raise ValueError("frame mapping contains timestamps before the NS5 start")
+    if (sample_offsets % ns5_clk_per_sample != 0).any():
+        raise ValueError("frame timestamps do not align to NS5 sample boundaries")
+
+    mapping = pd.DataFrame(
+        {
+            "synced_frame_idx": np.arange(len(frame_rows), dtype=np.int64),
+            "camera_serial": str(camera_serial),
+            "nev_serial_timestamp": nev_timestamps,
+            "nev_utc_time": pd.to_datetime(
+                frame_rows["UTCTimeStamp"], utc=True
+            ).map(lambda timestamp: timestamp.isoformat()),
+            "ns5_sample_idx": sample_offsets // ns5_clk_per_sample,
+            "chunk_serial": frame_rows["chunk_serial"].astype("int64"),
+            "source_mp4_frame_idx": frame_rows["mp4_frame_idx"].astype("int64"),
+            "source_mp4": frame_rows["mp4_file"].astype(str),
+            "ns5_file": str(ns5_path),
+        }
+    )
+    mapping["source_frame_available"] = mapping["source_mp4_frame_idx"] >= 0
+    return mapping[FRAME_MAPPING_COLUMNS]
 
 
 def write_ns3_sidecar(

@@ -126,7 +126,7 @@ class PathUtils:
 
         Default True preserves historical behavior; set False in the YAML to
         delete `*_subclip_*.mp4`, `*_audio_*.wav`, `*_final_*.mp4`, and
-        `concat_filelist.txt` after the final MP4 + window sidecar are written.
+        `concat_filelist.txt` after the final MP4 and frame mapping are written.
         """
         return bool(self._config.get("keep_intermediates", True))
 

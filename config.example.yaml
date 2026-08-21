@@ -26,5 +26,5 @@ channel_name: "RoomMic2"
 
 # Optional: keep per-camera intermediates (silent subclips, extracted WAVs,
 # per-input muxed clips, concat list). Default true preserves them. Set false
-# to delete them after the final MP4 + window.json are written.
+# to delete them after the final MP4 and frame-mapping CSV are written.
 # keep_intermediates: false

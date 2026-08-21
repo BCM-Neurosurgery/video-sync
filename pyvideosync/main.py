@@ -29,10 +29,12 @@ from pyvideosync.utils import (
 from pyvideosync.videojson import Videojson
 from pyvideosync.nev import Nev
 from pyvideosync.nsx import Nsx
-from pyvideosync.sidecar import write_ns3_sidecar
+from pyvideosync.sidecar import (
+    build_frame_mapping,
+    write_ns3_sidecar,
+)
 import argparse
 import glob
-import json
 import shutil
 import uuid
 
@@ -304,6 +306,7 @@ def main():
             # 5. Go through the timestamps and process the videos
             for camera_serial in camera_serials:
                 all_merged_list = []
+                joined_frames_list = []
 
                 for i, timestamp in enumerate(sorted_timestamps):
                     camera_file_group = camera_files[timestamp]
@@ -327,6 +330,12 @@ def main():
                         right_on="chunk_serial_data",
                         how="inner",
                     )
+                    if chunk_serial_joined.empty:
+                        logger.warning(
+                            f"No matching NEV/video serials for {camera_serial} "
+                            f"in {timestamp}"
+                        )
+                        continue
 
                     logger.info("Processing ns5 filtered channel df...")
                     ns5_slice = ns5.get_filtered_channel_df(
@@ -359,12 +368,16 @@ def main():
 
                     all_merged["mp4_file"] = mp4_path
                     all_merged_list.append(all_merged)
+                    joined_frames_list.append(
+                        chunk_serial_joined.assign(mp4_file=mp4_path)
+                    )
 
-                if not all_merged_list:
+                if not all_merged_list or not joined_frames_list:
                     logger.warning(f"No valid merged data for {camera_serial}")
                     continue
 
                 all_merged_df = pd.concat(all_merged_list, ignore_index=True)
+                joined_frames_df = pd.concat(joined_frames_list, ignore_index=True)
                 logger.info(
                     f"Final merged DataFrame for {camera_serial} head:\n{all_merged_df.head()}"
                 )
@@ -376,6 +389,16 @@ def main():
                 video_output_dir = os.path.join(current_output_dir, camera_serial)
                 os.makedirs(video_output_dir, exist_ok=True)
 
+                frame_mapping = build_frame_mapping(
+                    joined_frames_df,
+                    camera_serial=camera_serial,
+                    ns5_start_timestamp=ns5.timeStamp,
+                    ns5_clk_per_sample=ns5.clk_per_samp,
+                    ns5_path=ns5.path,
+                )
+                if frame_mapping.empty:
+                    logger.warning(f"No frame mapping rows for {camera_serial}")
+                    continue
                 session_uuid = str(uuid.uuid4())[:8]
                 subclip_paths = []
                 for mp4_path in all_merged_df["mp4_file"].unique():
@@ -425,22 +448,14 @@ def main():
 
                 logger.info(f"Saved {camera_serial} to {final_path}")
 
-                window_path = os.path.join(
-                    current_output_dir, camera_serial, f"{task_name}_window.json"
+                mapping_path = os.path.join(
+                    video_output_dir, f"{task_name}_frame_mapping.csv"
                 )
-                with open(window_path, "w") as f:
-                    json.dump(
-                        {
-                            "ts_start": int(all_merged_df["TimeStamp"].min()),
-                            "ts_end": int(all_merged_df["TimeStamp"].max()),
-                            "samp_per_s": ns5.sampleResolution
-                            / ns5.basic_header["Period"],
-                            "channel_name": pathutils.ns5_channel,
-                        },
-                        f,
-                        indent=2,
-                    )
-                logger.info(f"Wrote NS5 window: {window_path}")
+                frame_mapping.to_csv(mapping_path, index=False)
+                logger.info(
+                    f"Wrote frame mapping: {mapping_path} "
+                    f"({len(frame_mapping)} synced frames)"
+                )
 
                 if not pathutils.keep_intermediates:
                     cam_dir = os.path.join(current_output_dir, camera_serial)
