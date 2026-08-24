@@ -9,6 +9,7 @@ import pandas as pd
 from pyvideosync.sidecar import (
     FRAME_MAPPING_COLUMNS,
     build_frame_mapping,
+    combine_frame_mappings,
 )
 
 
@@ -72,6 +73,38 @@ def test_frame_mapping_csv_round_trip():
         assert loaded.loc[0, "synced_frame_idx"] == 0
     finally:
         os.unlink(path)
+
+
+def test_combine_frame_mappings_preserves_camera_order_and_frame_indices():
+    def mapping_for(camera_serial, timestamps):
+        return build_frame_mapping(
+            pd.DataFrame(
+                {
+                    "TimeStamps": timestamps,
+                    "UTCTimeStamp": [datetime(2026, 1, 1)] * len(timestamps),
+                    "chunk_serial": timestamps,
+                    "mp4_frame_idx": range(len(timestamps)),
+                    "mp4_file": [f"{camera_serial}.mp4"] * len(timestamps),
+                }
+            ),
+            camera_serial=camera_serial,
+            ns5_start_timestamp=0,
+            ns5_clk_per_sample=1,
+            ns5_path="/data/source.ns5",
+        )
+
+    combined = combine_frame_mappings(
+        [mapping_for("18486638", [10, 11]), mapping_for("23512014", [20])]
+    )
+
+    assert list(combined.columns) == FRAME_MAPPING_COLUMNS
+    assert combined["camera_serial"].tolist() == [
+        "18486638",
+        "18486638",
+        "23512014",
+    ]
+    assert combined["synced_frame_idx"].tolist() == [0, 1, 0]
+    assert not combined.duplicated(["camera_serial", "synced_frame_idx"]).any()
 
 
 def test_build_frame_mapping_rejects_unaligned_ns5_timestamp():

@@ -28,6 +28,7 @@ from pyvideosync.nev import Nev
 from pyvideosync.nsx import Nsx
 from pyvideosync.sidecar import (
     build_frame_mapping,
+    combine_frame_mappings,
     write_ns3_sidecar,
 )
 import argparse
@@ -396,7 +397,7 @@ def main():
                             json_serials = videojson.get_camera_serials()
                             available_serials.update(json_serials)
 
-                camera_serials = list(available_serials)
+                camera_serials = sorted(available_serials)
                 logger.info(
                     f"Auto-detected camera serials from overlapping JSONs: {camera_serials}"
                 )
@@ -411,6 +412,7 @@ def main():
                     return
 
             # 5. Go through the timestamps and process the videos
+            frame_mappings = []
             for camera_serial in camera_serials:
                 all_merged_list = []
                 joined_frames_list = []
@@ -494,7 +496,6 @@ def main():
 
                 # process the videos
                 video_output_dir = os.path.join(current_output_dir, camera_serial)
-                os.makedirs(video_output_dir, exist_ok=True)
 
                 frame_mapping = build_frame_mapping(
                     joined_frames_df,
@@ -506,6 +507,8 @@ def main():
                 if frame_mapping.empty:
                     logger.warning(f"No frame mapping rows for {camera_serial}")
                     continue
+                frame_mappings.append(frame_mapping)
+                os.makedirs(video_output_dir, exist_ok=True)
                 session_uuid = str(uuid.uuid4())[:8]
                 subclip_paths = []
                 for mp4_path in all_merged_df["mp4_file"].unique():
@@ -517,7 +520,7 @@ def main():
                         subclip = make_synced_subclip_moviepy_gpu(
                             df_sub,
                             mp4_path,
-                            os.path.join(current_output_dir, camera_serial),
+                            video_output_dir,
                             session_uuid,
                             gpu_enabled=pathutils.gpu_enabled,
                             gpu_type=pathutils.gpu_type,
@@ -526,17 +529,13 @@ def main():
                         subclip = make_synced_subclip_moviepy(
                             df_sub,
                             mp4_path,
-                            os.path.join(current_output_dir, camera_serial),
+                            video_output_dir,
                             session_uuid,
                         )
                     subclip_paths.append(subclip)
 
-                # Final video name follows the session task name
-                final_video_name = f"{task_name}.mp4"
-
-                final_path = os.path.join(
-                    current_output_dir, camera_serial, final_video_name
-                )
+                final_video_name = f"{task_name}_{camera_serial}.mp4"
+                final_path = os.path.join(current_output_dir, final_video_name)
                 # Now 'subclip_paths' has each final MP4 subclip
                 # If we have only one, just rename or copy it
                 if len(subclip_paths) == 1:
@@ -555,17 +554,8 @@ def main():
 
                 logger.info(f"Saved {camera_serial} to {final_path}")
 
-                mapping_path = os.path.join(
-                    video_output_dir, f"{task_name}_frame_mapping.csv"
-                )
-                frame_mapping.to_csv(mapping_path, index=False)
-                logger.info(
-                    f"Wrote frame mapping: {mapping_path} "
-                    f"({len(frame_mapping)} synced frames)"
-                )
-
                 if not pathutils.keep_intermediates:
-                    cam_dir = os.path.join(current_output_dir, camera_serial)
+                    cam_dir = video_output_dir
                     patterns = [
                         "*_subclip_*.mp4",
                         "*_audio_*.wav",
@@ -585,6 +575,20 @@ def main():
                     logger.info(
                         f"Cleaned {removed} intermediate file(s) from {cam_dir}"
                     )
+                    if not os.listdir(cam_dir):
+                        os.rmdir(cam_dir)
+
+            if frame_mappings:
+                combined_mapping = combine_frame_mappings(frame_mappings)
+                mapping_path = os.path.join(
+                    current_output_dir, f"{task_name}_frame_mapping.csv"
+                )
+                combined_mapping.to_csv(mapping_path, index=False)
+                logger.info(
+                    f"Wrote frame mapping: {mapping_path} "
+                    f"({len(combined_mapping)} synced frames across "
+                    f"{combined_mapping['camera_serial'].nunique()} cameras)"
+                )
 
             # Track success for batch modes
             if is_batch:

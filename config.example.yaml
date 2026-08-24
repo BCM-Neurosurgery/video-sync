@@ -16,8 +16,8 @@ cam_recording_dir: "/mnt/datalake/data/emu/YFKDatafile/VIDEO"
 # first_nev_path: "/mnt/datalake/data/emu/YFKDatafile/DATA/.../NSP1-....nev"
 
 # Paths for the output files
-# Subdirectories will be created in the output directory named after the camera serial number
-# The output files will be saved in the respective subdirectories
+# Final outputs: <output_dir>/<task>/<task>_<camera_serial>.mp4 and one combined
+# <output_dir>/<task>/<task>_frame_mapping.csv containing all processed cameras.
 output_dir: "/home/auto/CODE/utils/video-sync/Testing/YFKTesting"
 
 # Channel name for the audio data
@@ -30,5 +30,5 @@ channel_name: "RoomMic2"
 
 # Optional: keep per-camera intermediates (silent subclips, extracted WAVs,
 # per-input muxed clips, concat list). Default true preserves them. Set false
-# to delete them after the final MP4 and frame-mapping CSV are written.
+# to delete them after the final MP4s and combined frame-mapping CSV are written.
 # keep_intermediates: false

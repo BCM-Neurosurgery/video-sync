@@ -80,9 +80,19 @@ stitch-videos --config path/to/config.yaml
 - ✔️ Synchronizes NEV and NS5 files with camera recordings
 - ✔️ Slices video based on valid frames
 - ✔️ Aligns audio with video for precise synchronization
-- ✔️ Writes a frame-level CSV mapping synced frames to source frames, Arduino
-  chunk serials, NEV timestamps, and source NS5 sample indices
+- ✔️ Writes one task-level CSV mapping every camera's synced frames to source
+  frames, Arduino chunk serials, NEV timestamps, and source NS5 sample indices
 - ✔️ Supports configurable processing options
+
+Each task's final outputs are flat and camera-explicit:
+
+```text
+<output_dir>/<task>/
+├── <task>_<camera_serial>.mp4
+└── <task>_frame_mapping.csv
+```
+
+Use `(camera_serial, synced_frame_idx)` to identify one row in the combined CSV.
 
 ## 📜 License
 

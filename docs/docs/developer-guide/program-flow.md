@@ -186,42 +186,46 @@ If a matching MP4 file is found for the timestamp, it is added to the processing
 
 #### After Processing Videos: Synchronizing and Exporting
 
-With the synchronized DataFrame ready, the script processes the corresponding video files. It iterates through each unique MP4 file and **extracts relevant frames** based on the filtered timestamps. Using `make_synced_subclip_ffmpeg()`, the script generates subclips, attaching the audio data at 30 kHz.
+With the synchronized DataFrame ready, the script processes each camera's MP4 files and accumulates its frame mapping. Camera subdirectories are workspaces for intermediate clips; final MP4s and the combined mapping are written directly in the task directory.
 
 ```python
 for camera_serial in camera_serials:
     ...
-    # process the videos
-    video_output_dir = os.path.join(pathutils.output_dir, camera_serial)
+    video_output_dir = os.path.join(current_output_dir, camera_serial)
     os.makedirs(video_output_dir, exist_ok=True)
-    video_output_path = os.path.join(video_output_dir, "output.mp4")
+
+    frame_mapping = build_frame_mapping(
+        joined_frames_df,
+        camera_serial=camera_serial,
+        ns5_start_timestamp=ns5.timeStamp,
+        ns5_clk_per_sample=ns5.clk_per_samp,
+        ns5_path=ns5.path,
+    )
+    frame_mappings.append(frame_mapping)
 
     subclip_paths = []
     for mp4_path in all_merged_df["mp4_file"].unique():
         df_sub = all_merged_df[all_merged_df["mp4_file"] == mp4_path]
-
-        # Build a subclip from the relevant frames, attach audio
-        subclip = make_synced_subclip_ffmpeg(
-            df_sub,
-            mp4_path,
-            fps_audio=30000,  # 30kHz
-            out_dir=os.path.join(pathutils.output_dir, camera_serial),
+        subclip = make_synced_subclip_moviepy(
+            df_sub, mp4_path, video_output_dir, session_uuid
         )
         subclip_paths.append(subclip)
 ```
 
-If multiple subclips are generated, they are concatenated into a single video using `ffmpeg_concat_mp4s()`. Finally, the fully synchronized video is saved to the output directory, completing the alignment process. This ensures that the final exported video is precisely synchronized with continuous audio amplitude signals.
+If multiple subclips are generated, they are concatenated into one camera-specific final video. After every camera is processed, the mappings are combined into one task-level CSV. The pair `(camera_serial, synced_frame_idx)` identifies a final video frame.
 
 ```python
-    # Now 'subclip_paths' has each final MP4 subclip
-    # If we have only one, just rename or copy it
+    final_path = os.path.join(
+        current_output_dir, f"{task_name}_{camera_serial}.mp4"
+    )
     if len(subclip_paths) == 1:
-        final_path = subclip_paths[0]
+        shutil.move(subclip_paths[0], final_path)
     else:
-        final_path = os.path.join(
-            pathutils.output_dir, camera_serial, f"stitched_{camera_serial}.mp4"
-        )
         ffmpeg_concat_mp4s(subclip_paths, final_path)
 
-    logger.info(f"Saved {camera_serial} to {video_output_path}")
+combined_mapping = combine_frame_mappings(frame_mappings)
+combined_mapping.to_csv(
+    os.path.join(current_output_dir, f"{task_name}_frame_mapping.csv"),
+    index=False,
+)
 ```
