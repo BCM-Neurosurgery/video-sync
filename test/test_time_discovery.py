@@ -238,7 +238,6 @@ def test_flat_batch_discovers_every_matching_nev_ns5_pair():
             "NSP1-session-001.nev",
             "NSP1-session-001.ns5",
             "NSP1-session-001.ns3",
-            "NSP1-missing-ns5.nev",
             "NSP2-session-001.nev",
             "NSP2-session-001.ns5",
         ]:
@@ -255,6 +254,22 @@ def test_flat_batch_discovers_every_matching_nev_ns5_pair():
         ]
         assert sessions[0][3] == str(flat_dir / "NSP1-session-001.ns3")
         assert sessions[1][3] is None
+
+
+def test_flat_batch_rejects_unpaired_nev_or_ns5_files():
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        flat_dir = Path(tmp_dir)
+        (flat_dir / "NSP1-missing-ns5.nev").touch()
+        (flat_dir / "NSP1-missing-nev.ns5").touch()
+
+        pathutils = PathUtils.__new__(PathUtils)
+        try:
+            pathutils.get_flat_nev_session_files(str(flat_dir), keywords=["NSP1-"])
+        except ValueError as exc:
+            assert "NSP1-missing-nev" in str(exc)
+            assert "NSP1-missing-ns5" in str(exc)
+            return
+        raise AssertionError("expected ValueError for unpaired NEV/NS5 files")
 
 
 if __name__ == "__main__":

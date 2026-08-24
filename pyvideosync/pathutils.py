@@ -305,9 +305,9 @@ class PathUtils:
     def get_flat_nev_session_files(self, flat_dir, keywords=None):
         """Group same-basename `.nev`/`.ns5`/`.ns3` files in `flat_dir`.
 
-        Each NEV becomes a session; the matching NS5 must exist (sessions
-        without one are skipped, since NS5 is required by the audio pipeline).
-        NS3 is optional and surfaced as `None` when absent.
+        Each NEV becomes a session; every selected basename must have both a
+        NEV and NS5. Unpaired files raise before processing begins. NS3 is
+        optional and surfaced as `None` when absent.
 
         Args:
             flat_dir: Directory containing nev/ns5/ns3 files at the top level.
@@ -333,16 +333,30 @@ class PathUtils:
             if ext_lower in by_ext:
                 by_ext[ext_lower][stem] = full
 
-        keywords_lower = (
-            [k.lower() for k in keywords] if isinstance(keywords, list) else None
-        )
+        if keywords is not None and not isinstance(keywords, list):
+            raise ValueError("keywords must be a list")
+        keywords_lower = [k.lower() for k in keywords] if keywords else None
+
+        selected_stems = sorted(set(by_ext[".nev"]) | set(by_ext[".ns5"]))
+        if keywords_lower:
+            selected_stems = [
+                stem
+                for stem in selected_stems
+                if any(keyword in stem.lower() for keyword in keywords_lower)
+            ]
+
+        unpaired = [
+            stem
+            for stem in selected_stems
+            if stem not in by_ext[".nev"] or stem not in by_ext[".ns5"]
+        ]
+        if unpaired:
+            raise ValueError(
+                "Unpaired NEV/NS5 files in flat_dir: " + ", ".join(unpaired)
+            )
 
         sessions = []
-        for stem in sorted(by_ext[".nev"]):
-            if stem not in by_ext[".ns5"]:
-                continue
-            if keywords_lower and not any(k in stem.lower() for k in keywords_lower):
-                continue
+        for stem in selected_stems:
             sessions.append(
                 (
                     stem,

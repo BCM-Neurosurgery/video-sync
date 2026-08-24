@@ -10,6 +10,7 @@
 # only needed for stitched NSP files, not this raw layout.
 
 # Directory containing nev/ns5 files at the top level
+# Every selected basename must have both a .nev and .ns5 file.
 flat_dir: "/mnt/datalake/data/emu/YFWDatafile/DATA/20260501-091328"
 
 # Optional case-insensitive substrings; only nev basenames containing any
