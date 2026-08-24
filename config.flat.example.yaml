@@ -4,7 +4,9 @@
 # files at the top level (e.g., raw chunked NSP recordings like
 # `NSP1-<datetime>-001.nev` / `NSP1-<datetime>-001.ns5`, ..., `-NNN.{nev,ns5}`).
 # Each `.nev` is paired with a same-basename `.ns5` and processed as its own
-# sync session, producing a per-pair output MP4 named after the basename.
+# sync session, producing a per-pair output MP4 named after the basename. UTC
+# is automatically anchored to the paired NS5 header and first data packet;
+# `first_nev_path` is only needed for stitched NSP files, not this raw layout.
 
 # Directory containing nev/ns5 files at the top level
 flat_dir: "/mnt/datalake/data/emu/YFWDatafile/DATA/20260501-091328"

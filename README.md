@@ -50,9 +50,11 @@ A sample configuration is provided:
 cp config.example.yaml config.yaml
 ```
 
-For stitched NSP sessions whose output begins inside the first raw chunk, set
-`first_nev_path` to that raw NSP1 NEV. The pipeline uses it to calibrate UTC for
-automatic camera discovery, then uses chunk serials for exact frame alignment.
+For flat raw-data sessions, each NEV is automatically anchored to the matching
+NS5 header time and first packet timestamp. For stitched NSP sessions whose
+output begins inside the first raw chunk, set `first_nev_path` to that raw NSP1
+NEV instead. The calibrated UTC selects the camera files; chunk serials provide
+the exact frame-level alignment.
 
 ## 🚀 Usage
 Activate conda environment and run `stitch-videos` with the path to configuration in terminal:

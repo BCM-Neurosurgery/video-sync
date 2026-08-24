@@ -5,13 +5,15 @@ import json
 import logging
 from pathlib import Path
 import tempfile
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pandas as pd
 
-from pyvideosync.main import _find_overlapping_camera_timestamps
+from pyvideosync.main import (
+    _find_overlapping_camera_timestamps,
+    _get_nev_chunk_serial_df,
+)
 from pyvideosync.nev import Nev
-
 
 LOGGER = logging.getLogger(__name__)
 
@@ -32,7 +34,7 @@ def _write_camera_json(path: Path, serial_values, real_times):
     )
 
 
-def test_nev_utc_uses_first_raw_nev_anchor():
+def test_nev_utc_uses_explicit_timestamp_anchor():
     nev = Nev.__new__(Nev)
     nev.timestampResolution = 1000
     nev.timeOrigin = datetime(2026, 1, 10)
@@ -51,6 +53,37 @@ def test_nev_utc_uses_first_raw_nev_anchor():
 
     assert result.loc[0, "TimeStamps"] == 1500
     assert result.loc[0, "UTCTimeStamp"] == datetime(2026, 1, 1, 0, 0, 0, 500000)
+
+
+def test_flat_raw_utc_uses_paired_ns5_anchor():
+    expected = pd.DataFrame({"chunk_serial": [123]})
+    nev = Mock()
+    nev.get_chunk_serial_df.return_value = expected
+    ns5 = Mock()
+    ns5.path = "/data/NSP1-session-001.ns5"
+    ns5.get_timeOrigin.return_value = datetime(2026, 2, 17, 15, 19, 6, 735000)
+    ns5.get_start_timestamp.return_value = 1319438729
+
+    result, utc_calibrated = _get_nev_chunk_serial_df(nev, ns5, None, True, LOGGER)
+
+    assert result is expected
+    assert utc_calibrated is True
+    nev.get_chunk_serial_df.assert_called_once_with(
+        reference_time_origin=datetime(2026, 2, 17, 15, 19, 6, 735000),
+        reference_start_timestamp=1319438729,
+    )
+
+
+def test_legacy_mode_without_anchor_preserves_nev_timestamps():
+    expected = pd.DataFrame({"chunk_serial": [123]})
+    nev = Mock()
+    nev.get_chunk_serial_df.return_value = expected
+
+    result, utc_calibrated = _get_nev_chunk_serial_df(nev, Mock(), None, False, LOGGER)
+
+    assert result is expected
+    assert utc_calibrated is False
+    nev.get_chunk_serial_df.assert_called_once_with()
 
 
 def test_time_discovery_prefers_realtime_over_repeated_serials():

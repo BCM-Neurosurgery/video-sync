@@ -36,6 +36,34 @@ import shutil
 import uuid
 
 
+def _get_nev_chunk_serial_df(nev, ns5, first_nev_path, is_flat_batch_mode, logger):
+    """Build the serial mapping with the appropriate UTC timestamp anchor."""
+    if first_nev_path:
+        logger.info(
+            f"Calibrating stitched timestamps with first raw NEV: {first_nev_path}"
+        )
+        first_nev = Nev(first_nev_path)
+        return (
+            nev.get_chunk_serial_df(
+                reference_time_origin=first_nev.get_time_origin(),
+                reference_start_timestamp=first_nev.get_start_timestamp(),
+            ),
+            True,
+        )
+
+    if is_flat_batch_mode:
+        logger.info(f"Calibrating raw timestamps with paired NS5: {ns5.path}")
+        return (
+            nev.get_chunk_serial_df(
+                reference_time_origin=ns5.get_timeOrigin(),
+                reference_start_timestamp=ns5.get_start_timestamp(),
+            ),
+            True,
+        )
+
+    return nev.get_chunk_serial_df(), False
+
+
 def _emit_ns3_sidecar(ns3_path, nev_chunk_serial_df, output_dir, task_name, logger):
     """Slice all NS3 channels by the NEV TimeStamp range and write an HDF5 sidecar.
 
@@ -86,7 +114,7 @@ def _find_overlapping_camera_timestamps(
 ):
     """Return camera groups overlapping the NEV window.
 
-    Calibrated UTC bounds are preferred when a first-NEV reference is
+    Calibrated UTC bounds are preferred when a timestamp reference is
     available. Otherwise, preserve the serial-range fallback without assuming
     that serials are monotonic across recording-date folders.
     """
@@ -273,22 +301,22 @@ def main():
                 else:
                     return
 
+            # Open the paired NS5 before NEV timestamp calibration so raw flat
+            # sessions can use its header and first packet as their UTC anchor.
+            ns5_path = datapool.get_ns5_path()
+            ns5 = Nsx(ns5_path)
+
             # 1. Get NEV serial start and end
             nsp1_nev_path = datapool.get_nev_path()
             nev = Nev(nsp1_nev_path)
             first_nev_path = pathutils.first_nev_path
-            if first_nev_path:
-                logger.info(
-                    f"Calibrating stitched timestamps with first raw NEV: "
-                    f"{first_nev_path}"
-                )
-                first_nev = Nev(first_nev_path)
-                nev_chunk_serial_df = nev.get_chunk_serial_df(
-                    reference_time_origin=first_nev.get_time_origin(),
-                    reference_start_timestamp=first_nev.get_start_timestamp(),
-                )
-            else:
-                nev_chunk_serial_df = nev.get_chunk_serial_df()
+            nev_chunk_serial_df, utc_calibrated = _get_nev_chunk_serial_df(
+                nev,
+                ns5,
+                first_nev_path,
+                pathutils.is_flat_batch_mode(),
+                logger,
+            )
             logger.info(f"NEV dataframe\n: {nev_chunk_serial_df}")
             nev_start_serial, nev_end_serial = get_column_min_max(
                 nev_chunk_serial_df, "chunk_serial"
@@ -326,12 +354,12 @@ def main():
             # 3. Find camera groups overlapping the calibrated NEV time window.
             # Fall back to a full serial-range scan for legacy configurations.
             nev_start_utc = (
-                nev_chunk_serial_df["UTCTimeStamp"].min() if first_nev_path else None
+                nev_chunk_serial_df["UTCTimeStamp"].min() if utc_calibrated else None
             )
             nev_end_utc = (
-                nev_chunk_serial_df["UTCTimeStamp"].max() if first_nev_path else None
+                nev_chunk_serial_df["UTCTimeStamp"].max() if utc_calibrated else None
             )
-            if first_nev_path:
+            if utc_calibrated:
                 logger.info(
                     f"Calibrated NEV serial window: {nev_start_utc} to {nev_end_utc}"
                 )
@@ -381,10 +409,6 @@ def main():
                     continue
                 else:
                     return
-
-            # process NS5 channel data
-            ns5_path = datapool.get_ns5_path()
-            ns5 = Nsx(ns5_path)
 
             # 5. Go through the timestamps and process the videos
             for camera_serial in camera_serials:

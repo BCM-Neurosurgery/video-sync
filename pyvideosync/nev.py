@@ -172,11 +172,12 @@ class Nev:
             timestamp_byte (str, optional): Which byte's timestamp to use ('first' or 'last').
                 Defaults to 'first'. Use 'last' if you want the timestamp representing
                 the full completion of the serial transmission (recommended for accurate synchronization).
-            reference_time_origin (datetime, optional): Time origin from the first raw
-                NEV used to build a stitched file.
-            reference_start_timestamp (int, optional): First digital-event timestamp
-                from that raw NEV. When both reference values are supplied, UTC is
-                calculated from the timestamp offset to this anchor.
+            reference_time_origin (datetime, optional): UTC time origin for a shared
+                timestamp anchor, such as the paired raw NS5 or the first raw NEV
+                used to build a stitched file.
+            reference_start_timestamp (int, optional): Timestamp at that shared
+                anchor. When both reference values are supplied, UTC is calculated
+                from the current NEV timestamp's offset to this anchor.
 
         Returns:
             pd.DataFrame: A DataFrame containing:

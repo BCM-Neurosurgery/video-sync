@@ -60,14 +60,15 @@ To establish the valid time range for synchronization, the script determines **t
 ### 4. Identifying Relevant Video and Metadata Files for Synchronization
 
 To ensure proper alignment between neural and video data, the script identifies
-which camera recordings overlap with the neural event window. When
-`first_nev_path` is configured, the first raw NEV anchors the stitched NSP
-timestamps to UTC and camera JSON `real_times` select the candidate recordings.
-Chunk serials then provide the exact frame-level join.
+which camera recordings overlap with the neural event window. In flat raw-data
+mode, the paired NS5 header time and first packet timestamp anchor each NEV to
+UTC. For stitched NSP data, a configured `first_nev_path` supplies the anchor
+instead. Camera JSON `real_times` select the candidate recordings, and chunk
+serials then provide the exact frame-level join.
 
-Without a first-NEV reference, the script scans every JSON serial range as a
-legacy fallback. It does not assume serial values are monotonic across date
-folders. Discovery is recomputed from the configured inputs on every run; no
+Without either reference, the script scans every JSON serial range as a legacy
+fallback. It does not assume serial values are monotonic across date folders.
+Discovery is recomputed from the configured inputs on every run; no
 `timestamps.json` cache is written.
 
 ```python
