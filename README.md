@@ -50,6 +50,17 @@ A sample configuration is provided:
 cp config.example.yaml config.yaml
 ```
 
+Choose the example closest to the intended workflow:
+
+| Workflow | Example |
+| --- | --- |
+| One exact MP4 and its JSON | [`config.single-mp4.example.yaml`](config.single-mp4.example.yaml) |
+| One raw NEV/NS5 pair | [`config.raw-pair.example.yaml`](config.raw-pair.example.yaml) |
+| One stitched NEV/NS5 pair | [`config.stitched-pair.example.yaml`](config.stitched-pair.example.yaml) |
+| Explicit mixed batch | [`config.mixed-batch.example.yaml`](config.mixed-batch.example.yaml) |
+| Every raw pair in one directory | [`config.flat.example.yaml`](config.flat.example.yaml) |
+| Stitched task directories | [`config.batch.example.yaml`](config.batch.example.yaml) |
+
 New configurations should use the canonical `sessions` structure below. Shared
 run options stay at the top level, `video` supplies the default camera
 selection, and every session explicitly names its neural files and timestamp

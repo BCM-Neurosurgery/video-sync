@@ -1,0 +1,18 @@
+# Synchronize one raw NEV/NS5 pair using automatic camera-file discovery.
+output_dir: "/path/to/output"
+channel_name: "RoomMic2"
+keep_intermediates: false
+
+video:
+  kind: discover
+  recording_dir: "/path/to/VIDEO"
+  # Optional; omit to auto-detect every overlapping camera.
+  camera_serials: ["18486638", "23512014"]
+
+sessions:
+  - name: "NSP1-20260217-091906-001"
+    nev_path: "/path/to/NSP1-20260217-091906-001.nev"
+    ns5_path: "/path/to/NSP1-20260217-091906-001.ns5"
+    time_anchor:
+      # UTC comes from this NS5 header and its first data packet.
+      kind: paired_ns5
