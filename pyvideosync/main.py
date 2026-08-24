@@ -515,7 +515,6 @@ def main():
                 if frame_mapping.empty:
                     logger.warning(f"No frame mapping rows for {camera_serial}")
                     continue
-                frame_mappings.append(frame_mapping)
                 os.makedirs(video_output_dir, exist_ok=True)
                 session_uuid = str(uuid.uuid4())[:8]
                 subclip_paths = []
@@ -586,17 +585,29 @@ def main():
                     if not os.listdir(cam_dir):
                         os.rmdir(cam_dir)
 
-            if frame_mappings:
-                combined_mapping = combine_frame_mappings(frame_mappings)
-                mapping_path = os.path.join(
-                    current_output_dir, f"{task_name}_frame_mapping.csv"
+                frame_mappings.append(frame_mapping)
+
+            if not frame_mappings:
+                raise RuntimeError(f"No camera outputs produced for {task_name}")
+
+            combined_mapping = combine_frame_mappings(frame_mappings)
+            completed_cameras = set(combined_mapping["camera_serial"])
+            missing_cameras = {
+                str(camera_serial) for camera_serial in camera_serials
+            } - completed_cameras
+            if missing_cameras:
+                raise RuntimeError(
+                    f"No outputs produced for cameras: {sorted(missing_cameras)}"
                 )
-                combined_mapping.to_csv(mapping_path, index=False)
-                logger.info(
-                    f"Wrote frame mapping: {mapping_path} "
-                    f"({len(combined_mapping)} synced frames across "
-                    f"{combined_mapping['camera_serial'].nunique()} cameras)"
-                )
+            mapping_path = os.path.join(
+                current_output_dir, f"{task_name}_frame_mapping.csv"
+            )
+            combined_mapping.to_csv(mapping_path, index=False)
+            logger.info(
+                f"Wrote frame mapping: {mapping_path} "
+                f"({len(combined_mapping)} synced frames across "
+                f"{combined_mapping['camera_serial'].nunique()} cameras)"
+            )
 
             # Track success for batch modes
             if is_batch:
@@ -615,6 +626,11 @@ def main():
         logger.info(
             f"Batch processing complete. Successfully processed {success_count}/{len(sessions)} sessions"
         )
+        if success_count != len(sessions):
+            raise RuntimeError(
+                f"Batch failed for {len(sessions) - success_count}/{len(sessions)} "
+                "sessions; see the log for details"
+            )
 
 
 if __name__ == "__main__":

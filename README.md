@@ -77,7 +77,8 @@ stitch-videos --config path/to/config.yaml
 
 The camera directory is indexed once and reused across all pairs. Outputs are
 written directly under `<output_dir>/<NSP basename>/`; no per-pair configs or
-post-processing moves are needed.
+post-processing moves are needed. The batch continues past individual failures
+but exits nonzero after the summary if any requested pair did not complete.
 
 ## 🚀 Usage
 Activate conda environment and run `stitch-videos` with the path to configuration in terminal:
