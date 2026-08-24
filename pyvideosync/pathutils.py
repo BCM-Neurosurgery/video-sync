@@ -116,6 +116,11 @@ class PathUtils:
         return self._ns5_channel
 
     @property
+    def first_nev_path(self):
+        """Optional first raw NEV used to calibrate stitched timestamps."""
+        return self._config.get("first_nev_path")
+
+    @property
     def ns3_sidecar(self):
         """Return True if an NS3 HDF5 sidecar should be emitted per session."""
         return bool(self._config.get("ns3_sidecar", False))

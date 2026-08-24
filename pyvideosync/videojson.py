@@ -61,6 +61,16 @@ class Videojson:
     def get_time_origin(self):
         return self.timeOrigin
 
+    def get_realtime_bounds(self):
+        """Return the first and last camera real times as datetimes."""
+        real_times = self.dic.get("real_times") if self.dic else None
+        if not real_times:
+            return None, None
+        return (
+            datetime.fromisoformat(real_times[0]),
+            datetime.fromisoformat(real_times[-1]),
+        )
+
     def get_num_cameras(self):
         return len(self.dic["serials"])
 

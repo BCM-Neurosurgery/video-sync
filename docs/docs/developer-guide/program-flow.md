@@ -59,54 +59,28 @@ To establish the valid time range for synchronization, the script determines **t
 
 ### 4. Identifying Relevant Video and Metadata Files for Synchronization
 
-To ensure proper alignment between neural and video data, the script identifies which camera recordings overlap with the neural event (NEV) time range. Each video recording has an associated JSON metadata file containing start and end chunk serials, which are extracted and compared against the NEV serial range.
+To ensure proper alignment between neural and video data, the script identifies
+which camera recordings overlap with the neural event window. In flat raw-data
+mode, the paired NS5 header time and first packet timestamp anchor each NEV to
+UTC. For stitched NSP data, a configured `first_nev_path` supplies the anchor
+instead. Camera JSON `real_times` select the candidate recordings, and chunk
+serials then provide the exact frame-level join.
 
-To optimize performance, the script first checks if previously computed timestamps exist in `timestamps.json`. If found, these timestamps are used directly to skip redundant processing. Otherwise, the script iterates through all available JSON metadata files, extracting their chunk serials and determining whether they overlap with the neural recording. If a video’s serial range falls within the NEV range, its timestamp is added to the processing list.
-
-Once all relevant timestamps are identified, they are saved to `timestamps.json` for future runs and **sorted** to maintain chronological order. This approach ensures that only the necessary video files are processed, reducing computational overhead while maintaining precise synchronization.
+Without either reference, the script scans every JSON serial range as a legacy
+fallback. It does not assume serial values are monotonic across date folders.
+Discovery is recomputed from the configured inputs on every run; no
+`timestamps.json` cache is written.
 
 ```python
-# 3. load camera serials from the config file
-camera_serials = pathutils.cam_serial
-logger.info(f"Camera serials loaded from config: {camera_serials}")
-
-# 4. Go through all JSON files and find the ones that
-# are within the NEV serial range
-# read timestamps if available
-timestamps_path = os.path.join(pathutils.output_dir, "timestamps.json")
-timestamps = load_timestamps(timestamps_path, logger)
-if timestamps:
-    logger.info(f"Loaded timestamps: {timestamps}")
-else:
-    logger.info("No timestamps found")
-    timestamps = []
-    for timestamp, camera_file_group in camera_files.items():
-
-        json_path = get_json_file(camera_file_group, pathutils)
-        if json_path is None:
-            logger.error(f"No JSON file found in group {timestamp}")
-            continue
-        videojson = Videojson(json_path)
-        start_serial, end_serial = videojson.get_min_max_chunk_serial()
-        if start_serial is None or end_serial is None:
-            logger.error(f"No chunk serials found in JSON file: {json_path}")
-            continue
-
-        if end_serial < nev_start_serial:
-            logger.info(f"No overlap found: {timestamp}")
-            continue
-
-        elif start_serial <= nev_end_serial:
-            logger.info(f"Overlap found, timestamp: {timestamp}")
-            timestamps.append(timestamp)
-
-        else:
-            logger.info(f"Break: {timestamp}")
-            break
-    logger.info(f"timestamps: {timestamps}")
-    save_timestamps(timestamps_path, timestamps)
-
-sorted_timestamps = sort_timestamps(timestamps)
+sorted_timestamps = _find_overlapping_camera_timestamps(
+    camera_files,
+    pathutils.cam_serial,
+    nev_start_serial,
+    nev_end_serial,
+    logger,
+    nev_start_utc=nev_start_utc,
+    nev_end_utc=nev_end_utc,
+)
 ```
 
 ### 5. Processing Videos for Synchronization

@@ -2,8 +2,31 @@ import os
 import subprocess
 from scipy.io.wavfile import write as wav_write
 import numpy as np
-from moviepy import VideoFileClip, VideoClip, AudioFileClip, CompositeAudioClip
+from moviepy import VideoFileClip, VideoClip
 from tqdm import tqdm
+
+
+def _mux_video_audio(video_path, audio_path, output_path):
+    """Attach audio without re-encoding or changing the video frames."""
+    cmd = [
+        "ffmpeg",
+        "-y",
+        "-i",
+        video_path,
+        "-i",
+        audio_path,
+        "-c:v",
+        "copy",
+        "-c:a",
+        "aac",
+        "-b:a",
+        "192k",
+        "-shortest",
+        output_path,
+    ]
+    print("Running FFmpeg mux:")
+    print(" ".join(cmd))
+    subprocess.run(cmd, check=True)
 
 
 def ffmpeg_concat_mp4s(mp4_paths, output_path):
@@ -194,25 +217,7 @@ def make_synced_subclip_ffmpeg(
     # 5) Mux the extracted video (no audio) with the new WAV
     #    We'll copy video (-c:v copy) and encode audio as AAC (-c:a aac).
     #    -shortest ensures it stops if one track is shorter.
-    ffmpeg_cmd_mux = [
-        "ffmpeg",
-        "-y",
-        "-i",
-        subclip_video_path,  # video
-        "-i",
-        audio_wav_path,  # audio
-        "-c:v",
-        "copy",
-        "-c:a",
-        "aac",
-        "-b:a",
-        "192k",
-        "-shortest",
-        final_path,
-    ]
-    print("Running FFmpeg mux:")
-    print(" ".join(ffmpeg_cmd_mux))
-    subprocess.run(ffmpeg_cmd_mux, check=True)
+    _mux_video_audio(subclip_video_path, audio_wav_path, final_path)
 
     # (Optional) Clean up intermediate subclip video and WAV
     # os.remove(subclip_video_path)
@@ -277,22 +282,8 @@ def make_synced_subclip_moviepy(
         )
         clip.close()
 
-    # 4. Mux video and audio
-    video_clip = VideoFileClip(subclip_video_path)
-    audio_clip = AudioFileClip(audio_wav_path)
-    new_audioclip = CompositeAudioClip([audio_clip])
-    video_clip.audio = new_audioclip
-    video_clip.write_videofile(
-        final_path,
-        codec="libx264",
-        audio_codec="aac",
-        fps=fps_video,
-        preset="ultrafast",
-        threads=2,
-        logger=None,
-    )
-    video_clip.close()
-    audio_clip.close()
+    # 4. Mux audio while preserving the exact encoded video frame sequence.
+    _mux_video_audio(subclip_video_path, audio_wav_path, final_path)
 
     # Optionally clean up intermediates
     # os.remove(subclip_video_path)
@@ -386,26 +377,8 @@ def make_synced_subclip_moviepy_gpu(
         )
         clip.close()
 
-    # 5. Mux video and audio with GPU encoding for final output
-    video_clip = VideoFileClip(subclip_video_path)
-    audio_clip = AudioFileClip(audio_wav_path)
-    new_audioclip = CompositeAudioClip([audio_clip])
-    video_clip.audio = new_audioclip
-
-    # Use GPU encoding for final output
-    final_ffmpeg_params = codec_params if gpu_enabled else ["-preset", "ultrafast"]
-
-    video_clip.write_videofile(
-        final_path,
-        codec=codec,
-        audio_codec="aac",
-        fps=fps_video,
-        ffmpeg_params=final_ffmpeg_params,
-        threads=2,
-        logger=None,
-    )
-    video_clip.close()
-    audio_clip.close()
+    # 5. Mux audio while preserving the exact encoded video frame sequence.
+    _mux_video_audio(subclip_video_path, audio_wav_path, final_path)
 
     # Optionally clean up intermediates
     # os.remove(subclip_video_path)
