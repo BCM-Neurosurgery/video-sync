@@ -2,7 +2,14 @@
 
 Before running `video-sync`, you need to configure it using a YAML configuration file.
 
-A sample configuration file is provided in the repo and is also available to download below. Rename the example template to `config.yaml` and replace the paths to your desired paths
+A sample configuration file is provided in the repo and is also available to
+download below. Rename the example template to `config.yaml` and replace its
+placeholder paths.
+
+New configurations should use the `sessions` list shown in the example. The
+`flat_dir` and `base_dir` forms remain available as directory-discovery
+shortcuts; all forms are normalized to the same run and session model before
+processing.
 
 The following command renames the example config file to `config.yaml`
 ```sh

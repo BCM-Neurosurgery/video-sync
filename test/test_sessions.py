@@ -7,7 +7,12 @@ import yaml
 
 from pyvideosync.pathutils import PathUtils
 from pyvideosync.main import _get_video_file_pool
-from pyvideosync.sessions import TimeAnchor, VideoSelection, resolve_run_spec
+from pyvideosync.sessions import (
+    SessionSpec,
+    TimeAnchor,
+    VideoSelection,
+    resolve_run_spec,
+)
 
 
 def _write_config(tmp_path: Path, config: dict) -> Path:
@@ -42,7 +47,7 @@ def test_explicit_session_selects_one_mp4_and_json(tmp_path):
                     "name": "raw-001",
                     "nev_path": str(nev_path),
                     "ns5_path": str(ns5_path),
-                    "time_anchor": "paired_ns5",
+                    "time_anchor": {"kind": "paired_ns5"},
                 }
             ],
         },
@@ -149,6 +154,33 @@ def test_stitched_batch_resolves_a_distinct_anchor_per_session(tmp_path):
     ]
 
 
+def test_stitched_batch_rejects_missing_per_session_anchor(tmp_path):
+    stitched_root = tmp_path / "stitched"
+    video_dir = tmp_path / "video"
+    video_dir.mkdir()
+    for name in ["task-a", "task-b"]:
+        task_dir = stitched_root / name
+        _touch(task_dir / f"{name}-NSP-1.nev")
+        _touch(task_dir / f"{name}-NSP-1.ns5")
+    config_path = _write_config(
+        tmp_path,
+        {
+            "base_dir": str(stitched_root),
+            "keywords": ["task-"],
+            "first_nev_path": str(_touch(tmp_path / "raw" / "legacy-global.nev")),
+            "first_nev_paths": {
+                "task-a": str(_touch(tmp_path / "raw" / "raw-001.nev"))
+            },
+            "cam_recording_dir": str(video_dir),
+            "output_dir": str(tmp_path / "output"),
+            "channel_name": "RoomMic2",
+        },
+    )
+
+    with pytest.raises(ValueError, match="missing selected stitched sessions: task-b"):
+        resolve_run_spec(PathUtils(str(config_path), timestamp=None))
+
+
 def test_explicit_session_rejects_missing_video_file(tmp_path):
     nev_path = _touch(tmp_path / "NSP1-session.nev")
     ns5_path = _touch(tmp_path / "NSP1-session.ns5")
@@ -165,8 +197,10 @@ def test_explicit_session_rejects_missing_video_file(tmp_path):
                     "time_anchor": "paired_ns5",
                     "video": {
                         "kind": "explicit",
-                        "json_path": str(tmp_path / "missing.json"),
-                        "mp4_paths": [str(tmp_path / "missing.mp4")],
+                        "json_path": str(tmp_path / "YFVDatafile_20260217_091320.json"),
+                        "mp4_paths": [
+                            str(tmp_path / "YFVDatafile_20260217_091320.18486638.mp4")
+                        ],
                     },
                 }
             ],
@@ -180,6 +214,92 @@ def test_explicit_session_rejects_missing_video_file(tmp_path):
 def test_first_raw_nev_anchor_requires_reference_path():
     with pytest.raises(ValueError, match="requires reference_path"):
         TimeAnchor(kind="first_raw_nev")
+
+
+@pytest.mark.parametrize(
+    "name",
+    ["../outside", "/outside", ".", "..", "group/session", "group\\session", " "],
+)
+def test_session_name_must_be_one_safe_path_component(tmp_path, name):
+    with pytest.raises(ValueError, match="path-safe"):
+        SessionSpec(
+            name=name,
+            nev_path=tmp_path / "session.nev",
+            ns5_path=tmp_path / "session.ns5",
+            time_anchor=TimeAnchor(kind="paired_ns5"),
+            video=VideoSelection(kind="discover", recording_dir=tmp_path),
+        )
+
+
+def test_explicit_mp4_list_infers_selected_camera_serials(tmp_path):
+    config_path = _write_config(
+        tmp_path,
+        {
+            "output_dir": str(tmp_path / "output"),
+            "channel_name": "RoomMic2",
+            "sessions": [
+                {
+                    "name": "raw",
+                    "nev_path": str(_touch(tmp_path / "raw.nev")),
+                    "ns5_path": str(_touch(tmp_path / "raw.ns5")),
+                    "time_anchor": {"kind": "paired_ns5"},
+                    "video": {
+                        "kind": "explicit",
+                        "json_path": str(
+                            _touch(tmp_path / "YFVDatafile_20260217_091320.json")
+                        ),
+                        "mp4_paths": [
+                            str(
+                                _touch(
+                                    tmp_path
+                                    / "YFVDatafile_20260217_091320.18486638.mp4"
+                                )
+                            )
+                        ],
+                    },
+                }
+            ],
+        },
+    )
+
+    run_spec = resolve_run_spec(PathUtils(str(config_path), timestamp=None))
+
+    assert run_spec.sessions[0].video.camera_serials == ("18486638",)
+
+
+def test_explicit_mp4_mapping_rejects_mismatched_camera_key(tmp_path):
+    config_path = _write_config(
+        tmp_path,
+        {
+            "output_dir": str(tmp_path / "output"),
+            "channel_name": "RoomMic2",
+            "sessions": [
+                {
+                    "name": "raw",
+                    "nev_path": str(_touch(tmp_path / "raw.nev")),
+                    "ns5_path": str(_touch(tmp_path / "raw.ns5")),
+                    "time_anchor": {"kind": "paired_ns5"},
+                    "video": {
+                        "kind": "explicit",
+                        "json_path": str(
+                            _touch(tmp_path / "YFVDatafile_20260217_091320.json")
+                        ),
+                        "mp4_paths": {
+                            "23512014": str(
+                                _touch(
+                                    tmp_path
+                                    / "YFVDatafile_20260217_091320.18486638.mp4"
+                                )
+                            )
+                        },
+                    },
+                }
+            ],
+        },
+    )
+
+    with pytest.raises(ValueError, match="key 23512014 does not match"):
+        resolve_run_spec(PathUtils(str(config_path), timestamp=None))
 
 
 def test_explicit_video_selection_rejects_wrong_file_types(tmp_path):

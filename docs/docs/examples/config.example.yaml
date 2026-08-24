@@ -1,21 +1,16 @@
-# Camera serial number
-# Refer to README for available camera serial numbers
-# Has to be a list of one or multiple camera serial numbers
-cam_serial: ["23512014"]
-
-# Absolute paths to stitched directory and camera recording directory
-# The stitched directory contains the stitched NSP files
-# The camera recording directory contains date folders with camera recordings
-# On Linux, use single forward slashes as shown below
-# On Windows, use double backslashes e.g. "C:\\Users\\user\\Desktop\\data"
-nsp_dir: "/mnt/lake-database/stitched/YFK/EMU-0036_urge"
-cam_recording_dir: "/mnt/datalake/data/emu/YFKDatafile/VIDEO"
-
-# Paths for the output files
-# Final outputs: <output_dir>/<task>/<task>_<camera_serial>.mp4 and one combined
-# <output_dir>/<task>/<task>_frame_mapping.csv containing all processed cameras.
-output_dir: "/home/auto/CODE/utils/video-sync/Testing/YFKTesting"
-
-# Channel name for the audio data
-# Do not change this
+# Canonical configuration for one raw NEV/NS5 pair.
+output_dir: "/path/to/output"
 channel_name: "RoomMic2"
+keep_intermediates: false
+
+video:
+  kind: discover
+  recording_dir: "/path/to/VIDEO"
+  camera_serials: ["18486638", "23512014"]
+
+sessions:
+  - name: "raw-001"
+    nev_path: "/path/to/NSP1-001.nev"
+    ns5_path: "/path/to/NSP1-001.ns5"
+    time_anchor:
+      kind: paired_ns5

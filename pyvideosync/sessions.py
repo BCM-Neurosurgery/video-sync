@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Literal
 
 from pyvideosync.data_pool import resolve_nsp_file
+from pyvideosync.utils import extract_cam_serial
 
 AnchorKind = Literal[
     "paired_ns5",
@@ -106,8 +107,17 @@ class SessionSpec:
         object.__setattr__(self, "ns5_path", Path(self.ns5_path))
         if self.ns3_path is not None:
             object.__setattr__(self, "ns3_path", Path(self.ns3_path))
-        if not self.name:
+        if not isinstance(self.name, str) or not self.name:
             raise ValueError("session name cannot be empty")
+        if (
+            self.name != self.name.strip()
+            or self.name in {".", ".."}
+            or "/" in self.name
+            or "\\" in self.name
+        ):
+            raise ValueError(
+                "session name must be a single path-safe output directory name"
+            )
         if self.nev_path.suffix.lower() != ".nev":
             raise ValueError(f"Expected a NEV path: {self.nev_path}")
         if self.ns5_path.suffix.lower() != ".ns5":
@@ -184,11 +194,32 @@ def _parse_video_selection(config) -> VideoSelection:
         raise ValueError("video.json_paths must be a list")
     mp4_paths = config.get("mp4_paths")
     if isinstance(mp4_paths, dict):
+        mapped_serials = tuple(str(serial) for serial in mp4_paths)
+        mapped_paths = tuple(Path(path) for path in mp4_paths.values())
+        for mapped_serial, path in zip(mapped_serials, mapped_paths):
+            actual_serial = _extract_mp4_camera_serial(path)
+            if actual_serial != mapped_serial:
+                raise ValueError(
+                    f"video.mp4_paths key {mapped_serial} does not match "
+                    f"camera serial {actual_serial} in {path.name}"
+                )
         if camera_serials is None:
-            camera_serials = list(mp4_paths)
-        mp4_paths = list(mp4_paths.values())
+            camera_serials = list(mapped_serials)
+        mp4_paths = list(mapped_paths)
     if mp4_paths is not None and not isinstance(mp4_paths, list):
         raise ValueError("video.mp4_paths must be a list or camera mapping")
+    if isinstance(mp4_paths, list):
+        inferred_serials = tuple(
+            dict.fromkeys(_extract_mp4_camera_serial(path) for path in mp4_paths)
+        )
+        if camera_serials is None:
+            camera_serials = list(inferred_serials)
+        missing_serials = sorted(set(map(str, camera_serials)) - set(inferred_serials))
+        if missing_serials:
+            raise ValueError(
+                "video.camera_serials have no matching explicit MP4: "
+                + ", ".join(missing_serials)
+            )
 
     return VideoSelection(
         kind=kind,
@@ -200,6 +231,15 @@ def _parse_video_selection(config) -> VideoSelection:
         json_paths=tuple(Path(path) for path in json_paths or []),
         mp4_paths=tuple(Path(path) for path in mp4_paths or []),
     )
+
+
+def _extract_mp4_camera_serial(path) -> str:
+    try:
+        return extract_cam_serial(str(path))
+    except ValueError as exc:
+        raise ValueError(
+            f"cannot infer camera serial from explicit MP4 filename: {path}"
+        ) from exc
 
 
 def _legacy_video_selection(config: dict) -> VideoSelection:
@@ -275,13 +315,25 @@ def _legacy_sessions(pathutils, video: VideoSelection) -> list[SessionSpec]:
         anchor_paths = config.get("first_nev_paths", {})
         if not isinstance(anchor_paths, dict):
             raise ValueError("first_nev_paths must map session names to NEV paths")
+        task_names = [Path(task_dir).name for task_dir in task_dirs]
+        if "first_nev_paths" in config:
+            missing_anchors = sorted(set(task_names) - set(anchor_paths))
+            if missing_anchors:
+                raise ValueError(
+                    "first_nev_paths is missing selected stitched sessions: "
+                    + ", ".join(missing_anchors)
+                )
         sessions = []
         for task_dir in task_dirs:
             name = Path(task_dir).name
             nev_path = resolve_nsp_file(task_dir, ".nev")
             ns5_path = resolve_nsp_file(task_dir, ".ns5")
             ns3_path = resolve_nsp_file(task_dir, ".ns3")
-            reference_path = anchor_paths.get(name, config.get("first_nev_path"))
+            reference_path = (
+                anchor_paths[name]
+                if "first_nev_paths" in config
+                else config.get("first_nev_path")
+            )
             anchor = (
                 TimeAnchor(kind="first_raw_nev", reference_path=Path(reference_path))
                 if reference_path
