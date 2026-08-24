@@ -18,14 +18,18 @@ class PathUtils:
         self._timestamp = timestamp
         self._config = self.load_config(config_path)
         self._output_dir = self.config["output_dir"]
-        # cam_serial is now optional - will be auto-detected if not provided
+        # Legacy camera fields remain available while SessionSpec configs use
+        # top-level/per-session `video` mappings instead.
         self._cam_serial = self.config.get("cam_serial", None)
-        # Handle batch (base_dir), flat-batch (flat_dir), and single (nsp_dir) modes
-        if "base_dir" in self._config or "flat_dir" in self._config:
+        if (
+            "sessions" in self._config
+            or "base_dir" in self._config
+            or "flat_dir" in self._config
+        ):
             self._nsp_dir = None  # Will be set dynamically in batch modes
         else:
             self._nsp_dir = self.config["nsp_dir"]
-        self._cam_recording_dir = self.config["cam_recording_dir"]
+        self._cam_recording_dir = self.config.get("cam_recording_dir")
         self._ns5_channel = self.config["channel_name"]
         self._video_to_process = None
         self._video_output_dir = None
@@ -56,7 +60,9 @@ class PathUtils:
 
     def is_config_valid(self):
         """Return True if config has all the required fields"""
-        if "base_dir" in self._config and "keywords" in self._config:
+        if "sessions" in self._config:
+            required_fields = ["sessions", "output_dir", "channel_name"]
+        elif "base_dir" in self._config and "keywords" in self._config:
             # Subdir batch mode
             required_fields = [
                 "base_dir",
@@ -139,11 +145,6 @@ class PathUtils:
     def gpu_enabled(self):
         """Return whether GPU acceleration is enabled"""
         return self._config.get("gpu_enabled", False)
-
-    @property
-    def gpu_type(self):
-        """Return GPU type for acceleration"""
-        return self._config.get("gpu_type", "nvidia")
 
     @property
     def gpu_type(self):
@@ -277,7 +278,7 @@ class PathUtils:
         # Convert keywords to lowercase for case-insensitive matching
         keywords_lower = [keyword.lower() for keyword in keywords]
 
-        for item in os.listdir(base_dir):
+        for item in sorted(os.listdir(base_dir)):
             item_path = os.path.join(base_dir, item)
             if os.path.isdir(item_path):
                 # Check if directory name contains any of the keywords

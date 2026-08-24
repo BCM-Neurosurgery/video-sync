@@ -31,19 +31,21 @@ from pyvideosync.sidecar import (
     combine_frame_mappings,
     write_ns3_sidecar,
 )
+from pyvideosync.sessions import TimeAnchor, VideoSelection, resolve_run_spec
 import argparse
 import glob
 import shutil
 import uuid
 
 
-def _get_nev_chunk_serial_df(nev, ns5, first_nev_path, is_flat_batch_mode, logger):
-    """Build the serial mapping with the appropriate UTC timestamp anchor."""
-    if first_nev_path:
+def _get_nev_chunk_serial_df(nev, ns5, time_anchor: TimeAnchor, logger):
+    """Build the serial mapping using the session's explicit time anchor."""
+    if time_anchor.kind == "first_raw_nev":
         logger.info(
-            f"Calibrating stitched timestamps with first raw NEV: {first_nev_path}"
+            "Calibrating stitched timestamps with first raw NEV: "
+            f"{time_anchor.reference_path}"
         )
-        first_nev = Nev(first_nev_path)
+        first_nev = Nev(str(time_anchor.reference_path))
         return (
             nev.get_chunk_serial_df(
                 reference_time_origin=first_nev.get_time_origin(),
@@ -52,7 +54,7 @@ def _get_nev_chunk_serial_df(nev, ns5, first_nev_path, is_flat_batch_mode, logge
             True,
         )
 
-    if is_flat_batch_mode:
+    if time_anchor.kind == "paired_ns5":
         logger.info(f"Calibrating raw timestamps with paired NS5: {ns5.path}")
         return (
             nev.get_chunk_serial_df(
@@ -62,7 +64,27 @@ def _get_nev_chunk_serial_df(nev, ns5, first_nev_path, is_flat_batch_mode, logge
             True,
         )
 
-    return nev.get_chunk_serial_df(), False
+    return (
+        nev.get_chunk_serial_df(),
+        time_anchor.kind == "embedded",
+    )
+
+
+def _get_video_file_pool(
+    selection: VideoSelection,
+    cache: dict[VideoSelection, VideoFilesPool],
+) -> VideoFilesPool:
+    """Build each immutable video selection index at most once per run."""
+    if selection not in cache:
+        if selection.kind == "discover":
+            cache[selection] = VideoFilesPool.from_directory(
+                str(selection.recording_dir)
+            )
+        else:
+            cache[selection] = VideoFilesPool.from_files(
+                (*selection.json_paths, *selection.mp4_paths)
+            )
+    return cache[selection]
 
 
 def _emit_ns3_sidecar(ns3_path, nev_chunk_serial_df, output_dir, task_name, logger):
@@ -222,81 +244,43 @@ def main():
         logger.error("Config not valid, exiting to inital screen...")
         return
 
-    # Build the list of sessions to process. Each entry is a tuple:
-    #   (task_name, nsp_dir, nev_path_or_None, ns5_path_or_None, ns3_path_or_None)
-    # Explicit paths are populated only in flat-batch mode (where multiple
-    # chunks coexist in one directory). In single/subdir modes the slots stay
-    # None and DataPool resolves files from `nsp_dir`.
-    sessions: list[tuple[str, str, str | None, str | None, str | None]] = []
-    if pathutils.is_batch_mode():
-        logger.info("Running in subdir batch processing mode")
-        base_dir = pathutils._config.get("base_dir")
-        keywords = pathutils._config.get(
-            "keywords", pathutils._config.get("keyword", [])
-        )
-        matching_dirs = pathutils.get_matching_task_dirs(base_dir, keywords)
-        if not matching_dirs:
-            logger.error("No matching task directories found")
-            return
-        logger.info(f"Found {len(matching_dirs)} matching directories:")
-        for dir_path in matching_dirs:
-            logger.info(f"  - {dir_path}")
-        sessions = [(os.path.basename(d), d, None, None, None) for d in matching_dirs]
-    elif pathutils.is_flat_batch_mode():
-        logger.info("Running in flat-file batch processing mode")
-        flat_dir = pathutils._config.get("flat_dir")
-        keywords = pathutils._config.get(
-            "keywords", pathutils._config.get("keyword", None)
-        )
-        flat_sessions = pathutils.get_flat_nev_session_files(flat_dir, keywords)
-        if not flat_sessions:
-            logger.error("No nev/ns5 sessions found in flat_dir")
-            return
-        logger.info(f"Found {len(flat_sessions)} sessions in {flat_dir}:")
-        for task_name, _, _, ns3 in flat_sessions:
-            logger.info(f"  - {task_name}{' (no ns3)' if ns3 is None else ''}")
-        sessions = [
-            (name, flat_dir, nev, ns5, ns3) for name, nev, ns5, ns3 in flat_sessions
-        ]
-    else:
-        logger.info("Running in single directory mode")
-        sessions = [
-            (
-                os.path.basename(pathutils.nsp_dir),
-                pathutils.nsp_dir,
-                None,
-                None,
-                None,
-            )
-        ]
+    run_spec = resolve_run_spec(pathutils)
+    sessions = run_spec.sessions
+    logger.info(f"Resolved {len(sessions)} session(s):")
+    for session in sessions:
+        logger.info(f"  - {session.name}")
 
-    is_batch = pathutils.is_batch_mode() or pathutils.is_flat_batch_mode()
+    is_batch = len(sessions) > 1
     success_count = 0
+    video_file_pool_cache: dict[VideoSelection, VideoFilesPool] = {}
 
-    video_file_pool = VideoFilesPool.from_directory(pathutils.cam_recording_dir)
-    camera_group_count = len(video_file_pool.list_groups())
-    if not camera_group_count:
-        logger.error("No camera files found")
-        return
-    logger.info(f"Indexed {camera_group_count} camera recording groups")
-
-    for task_name, nsp_dir, nev_path, ns5_path, ns3_path in sessions:
+    for session in sessions:
+        task_name = session.name
         if is_batch:
             logger.info(f"Processing session: {task_name}")
 
         try:
-            # Create datapool for this session (explicit paths used in flat mode).
+            video_file_pool = _get_video_file_pool(session.video, video_file_pool_cache)
+            camera_group_count = len(video_file_pool.list_groups())
+            if not camera_group_count:
+                raise RuntimeError(f"No camera files found for {task_name}")
+            logger.info(f"Using {camera_group_count} indexed camera recording groups")
+
             datapool = DataPool(
-                nsp_dir,
-                pathutils.cam_recording_dir,
-                nev_path=nev_path,
-                ns5_path=ns5_path,
-                ns3_path=ns3_path,
+                str(session.nev_path.parent),
+                (
+                    str(session.video.recording_dir)
+                    if session.video.recording_dir is not None
+                    else None
+                ),
+                nev_path=str(session.nev_path),
+                ns5_path=str(session.ns5_path),
+                ns3_path=str(session.ns3_path) if session.ns3_path else None,
                 video_file_pool=video_file_pool,
             )
 
             # Create output directory named after the session (task) name
-            current_output_dir = os.path.join(pathutils.output_dir, task_name)
+            current_output_dir = os.path.join(str(run_spec.output_dir), task_name)
 
             os.makedirs(current_output_dir, exist_ok=True)
 
@@ -318,12 +302,10 @@ def main():
             # 1. Get NEV serial start and end
             nsp1_nev_path = datapool.get_nev_path()
             nev = Nev(nsp1_nev_path)
-            first_nev_path = pathutils.first_nev_path
             nev_chunk_serial_df, utc_calibrated = _get_nev_chunk_serial_df(
                 nev,
                 ns5,
-                first_nev_path,
-                pathutils.is_flat_batch_mode(),
+                session.time_anchor,
                 logger,
             )
             logger.info(f"NEV dataframe\n: {nev_chunk_serial_df}")
@@ -336,7 +318,7 @@ def main():
 
             # Optional NS3 sidecar: all-channel HDF5 sliced by the NEV TimeStamps
             # range. Emitted once per session, before per-camera processing.
-            if pathutils.ns3_sidecar:
+            if run_spec.ns3_sidecar:
                 ns3_resolved = datapool.get_ns3_path()
                 if ns3_resolved:
                     _emit_ns3_sidecar(
@@ -374,7 +356,7 @@ def main():
                 )
             sorted_timestamps = _find_overlapping_camera_timestamps(
                 camera_files,
-                pathutils.cam_serial,
+                session.video.camera_serials,
                 nev_start_serial,
                 nev_end_serial,
                 logger,
@@ -390,8 +372,8 @@ def main():
                 raise RuntimeError(message)
 
             # 4. Get available camera serials from overlapping JSON files only
-            if pathutils.cam_serial:
-                camera_serials = pathutils.cam_serial
+            if session.video.camera_serials:
+                camera_serials = session.video.camera_serials
                 logger.info(f"Camera serials loaded from config: {camera_serials}")
             else:
                 # Auto-detect camera serials from JSON files with overlapping timestamps
@@ -456,7 +438,7 @@ def main():
 
                     logger.info("Processing ns5 filtered channel df...")
                     ns5_slice = ns5.get_filtered_channel_df(
-                        pathutils.ns5_channel,
+                        run_spec.channel_name,
                         chunk_serial_joined.iloc[0]["TimeStamps"],
                         chunk_serial_joined.iloc[-1]["TimeStamps"],
                     )
@@ -523,14 +505,14 @@ def main():
 
                     # Build a subclip from the relevant frames, attach audio
                     # Use GPU acceleration if enabled
-                    if pathutils.gpu_enabled:
+                    if run_spec.gpu_enabled:
                         subclip = make_synced_subclip_moviepy_gpu(
                             df_sub,
                             mp4_path,
                             video_output_dir,
                             session_uuid,
-                            gpu_enabled=pathutils.gpu_enabled,
-                            gpu_type=pathutils.gpu_type,
+                            gpu_enabled=run_spec.gpu_enabled,
+                            gpu_type=run_spec.gpu_type,
                         )
                     else:
                         subclip = make_synced_subclip_moviepy(
@@ -549,19 +531,19 @@ def main():
                     shutil.move(subclip_paths[0], final_path)
                 else:
                     # Use GPU-accelerated concat if enabled
-                    if pathutils.gpu_enabled:
+                    if run_spec.gpu_enabled:
                         ffmpeg_concat_mp4s_gpu(
                             subclip_paths,
                             final_path,
-                            gpu_enabled=pathutils.gpu_enabled,
-                            gpu_type=pathutils.gpu_type,
+                            gpu_enabled=run_spec.gpu_enabled,
+                            gpu_type=run_spec.gpu_type,
                         )
                     else:
                         ffmpeg_concat_mp4s(subclip_paths, final_path)
 
                 logger.info(f"Saved {camera_serial} to {final_path}")
 
-                if not pathutils.keep_intermediates:
+                if not run_spec.keep_intermediates:
                     cam_dir = video_output_dir
                     patterns = [
                         "*_subclip_*.mp4",

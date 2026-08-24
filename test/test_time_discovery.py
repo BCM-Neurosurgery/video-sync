@@ -16,6 +16,7 @@ from pyvideosync.main import (
 )
 from pyvideosync.nev import Nev
 from pyvideosync.pathutils import PathUtils
+from pyvideosync.sessions import TimeAnchor
 
 LOGGER = logging.getLogger(__name__)
 
@@ -66,7 +67,9 @@ def test_flat_raw_utc_uses_paired_ns5_anchor():
     ns5.get_timeOrigin.return_value = datetime(2026, 2, 17, 15, 19, 6, 735000)
     ns5.get_start_timestamp.return_value = 1319438729
 
-    result, utc_calibrated = _get_nev_chunk_serial_df(nev, ns5, None, True, LOGGER)
+    result, utc_calibrated = _get_nev_chunk_serial_df(
+        nev, ns5, TimeAnchor(kind="paired_ns5"), LOGGER
+    )
 
     assert result is expected
     assert utc_calibrated is True
@@ -81,10 +84,26 @@ def test_legacy_mode_without_anchor_preserves_nev_timestamps():
     nev = Mock()
     nev.get_chunk_serial_df.return_value = expected
 
-    result, utc_calibrated = _get_nev_chunk_serial_df(nev, Mock(), None, False, LOGGER)
+    result, utc_calibrated = _get_nev_chunk_serial_df(
+        nev, Mock(), TimeAnchor(kind="serial_only"), LOGGER
+    )
 
     assert result is expected
     assert utc_calibrated is False
+    nev.get_chunk_serial_df.assert_called_once_with()
+
+
+def test_embedded_anchor_uses_nev_header_for_utc_discovery():
+    expected = pd.DataFrame({"chunk_serial": [123]})
+    nev = Mock()
+    nev.get_chunk_serial_df.return_value = expected
+
+    result, utc_calibrated = _get_nev_chunk_serial_df(
+        nev, Mock(), TimeAnchor(kind="embedded"), LOGGER
+    )
+
+    assert result is expected
+    assert utc_calibrated is True
     nev.get_chunk_serial_df.assert_called_once_with()
 
 

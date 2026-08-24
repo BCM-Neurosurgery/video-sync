@@ -5,6 +5,28 @@ from pyvideosync.utils import extract_timestamp, extract_cam_serial
 from pathlib import Path
 
 
+def resolve_nsp_file(nsp_dir: str, extension: str) -> str:
+    """Resolve one NSP file by extension from a single-session directory."""
+    ext = extension.lower()
+    suffix_match = []
+    any_match = []
+    for filename in sorted(os.listdir(nsp_dir)):
+        full_path = os.path.join(nsp_dir, filename)
+        if not os.path.isfile(full_path):
+            continue
+        lower = filename.lower()
+        if lower.endswith(ext):
+            any_match.append(full_path)
+            if lower.endswith(f"nsp-1{ext}"):
+                suffix_match.append(full_path)
+
+    if len(suffix_match) == 1:
+        return suffix_match[0]
+    if not suffix_match and len(any_match) == 1:
+        return any_match[0]
+    return ""
+
+
 class DataPool:
     """Manages NSP and video data for integrity verification and statistics.
 
@@ -21,7 +43,7 @@ class DataPool:
     def __init__(
         self,
         nsp_dir: str,
-        cam_recording_dir: str,
+        cam_recording_dir: str | None,
         nev_path: str | None = None,
         ns5_path: str | None = None,
         ns3_path: str | None = None,
@@ -32,7 +54,8 @@ class DataPool:
         Args:
             nsp_dir (str): Path to the NSP directory (used for file discovery
                 when explicit per-extension paths are not provided).
-            cam_recording_dir (str): Path to the camera recording directory.
+            cam_recording_dir (str, optional): Path to the camera recording
+                directory. Not required when ``video_file_pool`` is supplied.
             nev_path (str, optional): Explicit NEV file path. When set,
                 directory-based discovery for the NEV is bypassed.
             ns5_path (str, optional): Explicit NS5 file path. When set,
@@ -51,11 +74,13 @@ class DataPool:
             ".ns5": ns5_path,
             ".ns3": ns3_path,
         }
-        self.video_file_pool = (
-            video_file_pool
-            if video_file_pool is not None
-            else VideoFilesPool.from_directory(self.cam_recording_dir)
-        )
+        if video_file_pool is None:
+            if self.cam_recording_dir is None:
+                raise ValueError(
+                    "cam_recording_dir is required without a pre-indexed video pool"
+                )
+            video_file_pool = VideoFilesPool.from_directory(self.cam_recording_dir)
+        self.video_file_pool = video_file_pool
 
     def _resolve_nsp_file(self, extension: str) -> str:
         """Pick a single NSP file by extension.
@@ -64,24 +89,7 @@ class DataPool:
         NSP-1 and NSP-2 files resolve to NSP-1. Falls back to any single file
         with the given extension (TRD-style single-file dirs).
         """
-        ext = extension.lower()
-        suffix_match = []
-        any_match = []
-        for file in os.listdir(self.nsp_dir):
-            full_path = os.path.join(self.nsp_dir, file)
-            if not os.path.isfile(full_path):
-                continue
-            lower = file.lower()
-            if lower.endswith(ext):
-                any_match.append(full_path)
-                if lower.endswith(f"nsp-1{ext}"):
-                    suffix_match.append(full_path)
-
-        if len(suffix_match) == 1:
-            return suffix_match[0]
-        if not suffix_match and len(any_match) == 1:
-            return any_match[0]
-        return ""
+        return resolve_nsp_file(self.nsp_dir, extension)
 
     def verify_integrity(self) -> bool:
         """Verifies a NEV and NS5 file are resolvable for this session.
@@ -149,6 +157,14 @@ class VideoFilesPool:
                     pool.add_file(str(file_path.resolve()))
                 except ValueError:
                     continue
+        return pool
+
+    @classmethod
+    def from_files(cls, files) -> "VideoFilesPool":
+        """Index an explicit set of camera JSON/MP4 files."""
+        pool = cls()
+        for file_path in files:
+            pool.add_file(str(Path(file_path).resolve()))
         return pool
 
     def add_file(self, file: str):

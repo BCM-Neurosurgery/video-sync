@@ -12,6 +12,13 @@ base_dir: "/mnt/stitched/EMU-18112/YFK/"
 # Current example - matches tasks with "convo" OR "Conversations" in the name
 keywords: ["convo"]
 
+# Optional per-session first raw NEV anchors for stitched batches. Keys must
+# match task-directory names. This replaces using one first_nev_path for every
+# stitched session.
+# first_nev_paths:
+#   EMU-0036_urge: "/mnt/datalake/data/emu/YFKDatafile/DATA/.../NSP1-...-001.nev"
+#   EMU-0042_convo: "/mnt/datalake/data/emu/YFKDatafile/DATA/.../NSP1-...-017.nev"
+
 # Directory of Cam Recordings
 cam_recording_dir: "/mnt/datalake/data/emu/YFKDatafile/VIDEO"
 
