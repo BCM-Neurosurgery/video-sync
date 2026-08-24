@@ -4,7 +4,7 @@ and aligning the audio with the video.
 """
 
 import os
-from pyvideosync.data_pool import DataPool
+from pyvideosync.data_pool import DataPool, VideoFilesPool
 import pandas as pd
 from pyvideosync.logging_config import (
     get_current_ts,
@@ -273,6 +273,13 @@ def main():
     is_batch = pathutils.is_batch_mode() or pathutils.is_flat_batch_mode()
     success_count = 0
 
+    video_file_pool = VideoFilesPool.from_directory(pathutils.cam_recording_dir)
+    camera_group_count = len(video_file_pool.list_groups())
+    if not camera_group_count:
+        logger.error("No camera files found")
+        return
+    logger.info(f"Indexed {camera_group_count} camera recording groups")
+
     for task_name, nsp_dir, nev_path, ns5_path, ns3_path in sessions:
         if is_batch:
             logger.info(f"Processing session: {task_name}")
@@ -285,6 +292,7 @@ def main():
                 nev_path=nev_path,
                 ns5_path=ns5_path,
                 ns3_path=ns3_path,
+                video_file_pool=video_file_pool,
             )
 
             # Create output directory named after the session (task) name

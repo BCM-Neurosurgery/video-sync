@@ -56,6 +56,29 @@ output begins inside the first raw chunk, set `first_nev_path` to that raw NSP1
 NEV instead. The calibrated UTC selects the camera files; chunk serials provide
 the exact frame-level alignment.
 
+To process a directory of raw NSP files, use one configuration for the whole
+directory:
+
+```yaml
+flat_dir: "/path/to/DATA/session"
+cam_recording_dir: "/path/to/VIDEO"
+output_dir: "/path/to/output"
+channel_name: "RoomMic2"
+keywords: ["NSP1-"]  # optional; omit to process every paired NEV/NS5
+cam_serial: ["18486638", "23512014"]  # optional; omit to auto-detect
+keep_intermediates: false
+```
+
+One invocation discovers and processes every same-basename NEV/NS5 pair:
+
+```sh
+stitch-videos --config path/to/config.yaml
+```
+
+The camera directory is indexed once and reused across all pairs. Outputs are
+written directly under `<output_dir>/<NSP basename>/`; no per-pair configs or
+post-processing moves are needed.
+
 ## 🚀 Usage
 Activate conda environment and run `stitch-videos` with the path to configuration in terminal:
 

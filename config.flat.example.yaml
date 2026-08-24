@@ -13,13 +13,15 @@
 flat_dir: "/mnt/datalake/data/emu/YFWDatafile/DATA/20260501-091328"
 
 # Optional case-insensitive substrings; only nev basenames containing any
-# keyword are processed. Omit (or set to []) to process every pair.
-# keywords: ["NSP1-"]
+# keyword are processed. Use this to select NSP1 files when the directory also
+# contains other NSPs. Omit (or set to []) to process every paired NEV/NS5.
+keywords: ["NSP1-"]
 
 # Directory of camera recordings (date-grouped subfolders)
 cam_recording_dir: "/mnt/datalake/data/emu/YFWDatafile/VIDEO"
 
-# Output root; one subdirectory per pair, named after the nev basename
+# Output root; one subdirectory per pair, named after the NEV basename. Final
+# artifacts are written there directly; no post-processing move is required.
 output_dir: "/home/auto/CODE/utils/video-sync/Testing/YFWTesting"
 
 # NS5 audio channel name (must exist in the NS5 extended headers)

@@ -25,6 +25,7 @@ class DataPool:
         nev_path: str | None = None,
         ns5_path: str | None = None,
         ns3_path: str | None = None,
+        video_file_pool: VideoFilesPool | None = None,
     ) -> None:
         """Initializes the DataPool class.
 
@@ -38,6 +39,8 @@ class DataPool:
                 directory-based discovery for the NS5 is bypassed.
             ns3_path (str, optional): Explicit NS3 file path. When set,
                 directory-based discovery for the NS3 is bypassed.
+            video_file_pool (VideoFilesPool, optional): Pre-indexed camera
+                files shared across batch sessions.
         """
         self.nsp_dir = nsp_dir
         self.cam_recording_dir = cam_recording_dir
@@ -48,18 +51,11 @@ class DataPool:
             ".ns5": ns5_path,
             ".ns3": ns3_path,
         }
-        self.video_file_pool = VideoFilesPool()
-        self.init_pools()
-
-    def init_pools(self):
-        """Initializes the pools by:
-
-        Grouping the files in the video pool by timestamp.
-        """
-        for datefolder_path in Path(self.cam_recording_dir).iterdir():
-            if datefolder_path.is_dir():
-                for file_path in datefolder_path.iterdir():
-                    self.video_file_pool.add_file(str(file_path.resolve()))
+        self.video_file_pool = (
+            video_file_pool
+            if video_file_pool is not None
+            else VideoFilesPool.from_directory(self.cam_recording_dir)
+        )
 
     def _resolve_nsp_file(self, extension: str) -> str:
         """Pick a single NSP file by extension.
@@ -135,6 +131,25 @@ class VideoFilesPool:
 
     def __init__(self) -> None:
         self.files = defaultdict(list)
+
+    @classmethod
+    def from_directory(cls, camera_dir: str) -> "VideoFilesPool":
+        """Index camera JSON/MP4 files once from a root or date subdirectories."""
+        pool = cls()
+        root = Path(camera_dir)
+        for entry in sorted(root.iterdir()):
+            candidates = sorted(entry.iterdir()) if entry.is_dir() else [entry]
+            for file_path in candidates:
+                if not file_path.is_file() or file_path.suffix.lower() not in {
+                    ".json",
+                    ".mp4",
+                }:
+                    continue
+                try:
+                    pool.add_file(str(file_path.resolve()))
+                except ValueError:
+                    continue
+        return pool
 
     def add_file(self, file: str):
         """Adds a video-related file to the pool.
