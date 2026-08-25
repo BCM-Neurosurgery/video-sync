@@ -54,74 +54,87 @@ Choose the example closest to the intended workflow:
 
 | Workflow | Example |
 | --- | --- |
-| One exact MP4 and its JSON | [`config.single-mp4.example.yaml`](config.single-mp4.example.yaml) |
+| One MP4 defining the output window | [`config.single-mp4.example.yaml`](config.single-mp4.example.yaml) |
 | One raw NEV/NS5 pair | [`config.raw-pair.example.yaml`](config.raw-pair.example.yaml) |
 | One stitched NEV/NS5 pair | [`config.stitched-pair.example.yaml`](config.stitched-pair.example.yaml) |
 | Explicit mixed batch | [`config.mixed-batch.example.yaml`](config.mixed-batch.example.yaml) |
 | Every raw pair in one directory | [`config.flat.example.yaml`](config.flat.example.yaml) |
 | Stitched task directories | [`config.batch.example.yaml`](config.batch.example.yaml) |
 
-New configurations should use the canonical `sessions` structure below. Shared
-run options stay at the top level, `video` supplies the default camera
-selection, and every session explicitly names its neural files and timestamp
-anchor:
+New configurations should use `jobs`. One job produces one final synchronized
+output window. `window: neural` starts from one neural pair and discovers
+overlapping camera recordings. `window: video` starts from an exact video and
+discovers every overlapping neural pair:
 
 ```yaml
 output_dir: "/path/to/output"
 channel_name: "RoomMic2"
 keep_intermediates: false
-video:
-  kind: discover
-  recording_dir: "/path/to/VIDEO"
-  camera_serials: ["18486638", "23512014"]
-sessions:
+jobs:
   - name: "raw-001"
-    nev_path: "/path/to/NSP1-001.nev"
-    ns5_path: "/path/to/NSP1-001.ns5"
-    time_anchor:
-      kind: paired_ns5
-  - name: "stitched-convo"
-    nev_path: "/path/to/convo-NSP-1.nev"
-    ns5_path: "/path/to/convo-NSP-1.ns5"
-    time_anchor:
-      kind: first_raw_nev
-      reference_path: "/path/to/first-raw.nev"
+    window: neural
+    neural:
+      kind: pair
+      nev_path: "/path/to/NSP1-001.nev"
+      ns5_path: "/path/to/NSP1-001.ns5"
+      time_anchor:
+        kind: paired_ns5
+    video:
+      kind: directory
+      directory: "/path/to/VIDEO"
+      camera_serials: ["18486638", "23512014"]
 ```
 
 Use `paired_ns5` for raw pairs. Use `first_raw_nev` for stitched pairs and
-provide the first raw NEV used by that stitched timeline. A session can override
-the shared video selection. To select exact camera files, key each MP4 by its
-camera serial; the JSON remains required for frame/serial metadata:
+provide the first raw NEV used by that stitched timeline. To make one camera
+MP4 define the output window, use `video.kind: file` and a neural directory:
 
 ```yaml
-video:
-  kind: explicit
-  json_path: "/path/to/YFVDatafile_20260217_091320.json"
-  mp4_paths:
-    "18486638": "/path/to/YFVDatafile_20260217_091320.18486638.mp4"
+jobs:
+  - name: "YFVDatafile_20260217_091320"
+    window: video
+    video:
+      kind: file
+      mp4_path: "/path/to/YFVDatafile_20260217_091320.18486638.mp4"
+    neural:
+      kind: directory
+      directory: "/path/to/DATA"
+      recursive: true
+      include: ["NSP1-*"]
+      time_anchor:
+        kind: paired_ns5
+    coverage: require_full
 ```
 
-For raw directory batches, `flat_dir` is a discovery shortcut that expands into
-the same session model. Each same-basename NEV/NS5 pair is anchored to its
-paired NS5 automatically:
+The sibling JSON is inferred deterministically from the MP4 filename and remains
+required for frame serials and realtime bounds. `coverage: require_full` fails
+instead of silently shortening the requested video window.
+
+For raw directory batches, a neural-directory job automatically expands into
+one output per same-basename NEV/NS5 pair:
 
 ```yaml
-flat_dir: "/path/to/DATA/session"
-keywords: ["NSP1-"]  # optional; omit to process every paired NEV/NS5
-cam_recording_dir: "/path/to/VIDEO"
 output_dir: "/path/to/output"
 channel_name: "RoomMic2"
-cam_serial: ["18486638", "23512014"]  # optional
 keep_intermediates: false
+jobs:
+  - window: neural
+    neural:
+      kind: directory
+      directory: "/path/to/DATA/session"
+      include: ["NSP1-*"]
+      time_anchor:
+        kind: paired_ns5
+    video:
+      kind: directory
+      directory: "/path/to/VIDEO"
+      camera_serials: ["18486638", "23512014"]
 ```
 
-The camera directory is indexed once and reused across every discovered pair.
-Unpaired files fail preflight. Stitched-directory `base_dir` batches remain
-supported, but when `first_nev_paths` is present it must contain an anchor for
-every selected task. Existing `nsp_dir`, `flat_dir`, and `base_dir` configs are
-compatibility inputs; all are normalized to `RunSpec`/`SessionSpec` before any
-processing starts. See `config.example.yaml`, `config.flat.example.yaml`, and
-`config.batch.example.yaml`.
+Directory inputs are indexed once and reused. Unpaired neural files and missing
+stitched anchors fail preflight. Existing `sessions`, `nsp_dir`, `flat_dir`, and
+`base_dir` configurations remain compatibility inputs and normalize to the same
+`RunSpec`/`SyncJobSpec` model.
 
 ## 🚀 Usage
 Activate conda environment and run `stitch-videos` with the path to configuration in terminal:

@@ -3,14 +3,16 @@ output_dir: "/path/to/output"
 channel_name: "RoomMic2"
 keep_intermediates: false
 
-video:
-  kind: discover
-  recording_dir: "/path/to/VIDEO"
-  camera_serials: ["18486638", "23512014"]
-
-sessions:
+jobs:
   - name: "raw-001"
-    nev_path: "/path/to/NSP1-001.nev"
-    ns5_path: "/path/to/NSP1-001.ns5"
-    time_anchor:
-      kind: paired_ns5
+    window: neural
+    neural:
+      kind: pair
+      nev_path: "/path/to/NSP1-001.nev"
+      ns5_path: "/path/to/NSP1-001.ns5"
+      time_anchor:
+        kind: paired_ns5
+    video:
+      kind: directory
+      directory: "/path/to/VIDEO"
+      camera_serials: ["18486638", "23512014"]

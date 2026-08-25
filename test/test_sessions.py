@@ -8,7 +8,9 @@ import yaml
 from pyvideosync.pathutils import PathUtils
 from pyvideosync.main import _get_video_file_pool
 from pyvideosync.sessions import (
+    NeuralSegmentSpec,
     SessionSpec,
+    SyncJobSpec,
     TimeAnchor,
     VideoSelection,
     resolve_run_spec,
@@ -216,6 +218,24 @@ def test_first_raw_nev_anchor_requires_reference_path():
         TimeAnchor(kind="first_raw_nev")
 
 
+def test_neural_window_rejects_full_coverage_policy(tmp_path):
+    with pytest.raises(ValueError, match="support only coverage: overlap"):
+        SyncJobSpec(
+            name="raw",
+            window="neural",
+            neural_segments=(
+                NeuralSegmentSpec(
+                    name="raw",
+                    nev_path=tmp_path / "raw.nev",
+                    ns5_path=tmp_path / "raw.ns5",
+                    time_anchor=TimeAnchor(kind="paired_ns5"),
+                ),
+            ),
+            video=VideoSelection(kind="discover", recording_dir=tmp_path),
+            coverage="require_full",
+        )
+
+
 @pytest.mark.parametrize(
     "name",
     ["../outside", "/outside", ".", "..", "group/session", "group\\session", " "],
@@ -336,3 +356,155 @@ def test_explicit_video_selection_builds_and_reuses_one_index(tmp_path):
 
     assert first is second
     assert list(first.list_groups().values()) == [[str(json_path), str(mp4_path)]]
+
+
+def test_video_window_job_discovers_all_candidate_neural_pairs(tmp_path):
+    neural_root = tmp_path / "DATA"
+    for stem in ["NSP1-session-001", "NSP1-session-002"]:
+        _touch(neural_root / "recording" / f"{stem}.nev")
+        _touch(neural_root / "recording" / f"{stem}.ns5")
+    mp4_path = _touch(tmp_path / "video" / "YFVDatafile_20260217_091320.18486638.mp4")
+    json_path = _touch(tmp_path / "video" / "YFVDatafile_20260217_091320.json")
+    config_path = _write_config(
+        tmp_path,
+        {
+            "output_dir": str(tmp_path / "output"),
+            "channel_name": "RoomMic2",
+            "jobs": [
+                {
+                    "name": "ten-minute-video",
+                    "window": "video",
+                    "video": {"kind": "file", "mp4_path": str(mp4_path)},
+                    "neural": {
+                        "kind": "directory",
+                        "directory": str(neural_root),
+                        "recursive": True,
+                        "include": ["NSP1-*"],
+                        "time_anchor": {"kind": "paired_ns5"},
+                    },
+                }
+            ],
+        },
+    )
+
+    run_spec = resolve_run_spec(PathUtils(str(config_path), timestamp=None))
+
+    assert len(run_spec.jobs) == 1
+    job = run_spec.jobs[0]
+    assert job.name == "ten-minute-video"
+    assert job.window == "video"
+    assert job.coverage == "require_full"
+    assert [segment.name for segment in job.neural_segments] == [
+        "NSP1-session-001",
+        "NSP1-session-002",
+    ]
+    assert job.video.json_paths == (json_path,)
+    assert job.video.mp4_paths == (mp4_path,)
+    assert job.video.camera_serials == ("18486638",)
+
+
+def test_video_window_rejects_mismatched_mp4_and_json_groups(tmp_path):
+    neural_path = tmp_path / "NSP1-session-001"
+    mp4_path = _touch(tmp_path / "YFVDatafile_20260217_091320.18486638.mp4")
+    json_path = _touch(tmp_path / "YFVDatafile_20260217_091321.json")
+    config_path = _write_config(
+        tmp_path,
+        {
+            "output_dir": str(tmp_path / "output"),
+            "channel_name": "RoomMic2",
+            "jobs": [
+                {
+                    "name": "video",
+                    "window": "video",
+                    "video": {
+                        "kind": "file",
+                        "mp4_path": str(mp4_path),
+                        "json_path": str(json_path),
+                    },
+                    "neural": {
+                        "kind": "pair",
+                        "nev_path": str(_touch(neural_path.with_suffix(".nev"))),
+                        "ns5_path": str(_touch(neural_path.with_suffix(".ns5"))),
+                        "time_anchor": {"kind": "paired_ns5"},
+                    },
+                }
+            ],
+        },
+    )
+
+    with pytest.raises(ValueError, match="one recording timestamp"):
+        resolve_run_spec(PathUtils(str(config_path), timestamp=None))
+
+
+def test_neural_directory_job_expands_to_one_output_per_pair(tmp_path):
+    neural_root = tmp_path / "DATA"
+    for stem in ["NSP1-session-001", "NSP1-session-002"]:
+        _touch(neural_root / f"{stem}.nev")
+        _touch(neural_root / f"{stem}.ns5")
+    video_root = tmp_path / "VIDEO"
+    video_root.mkdir()
+    config_path = _write_config(
+        tmp_path,
+        {
+            "output_dir": str(tmp_path / "output"),
+            "channel_name": "RoomMic2",
+            "jobs": [
+                {
+                    "window": "neural",
+                    "neural": {
+                        "kind": "directory",
+                        "directory": str(neural_root),
+                        "include": ["NSP1-*"],
+                        "time_anchor": {"kind": "paired_ns5"},
+                    },
+                    "video": {
+                        "kind": "directory",
+                        "directory": str(video_root),
+                    },
+                }
+            ],
+        },
+    )
+
+    run_spec = resolve_run_spec(PathUtils(str(config_path), timestamp=None))
+
+    assert [job.name for job in run_spec.jobs] == [
+        "NSP1-session-001",
+        "NSP1-session-002",
+    ]
+    assert all(job.window == "neural" for job in run_spec.jobs)
+    assert all(len(job.neural_segments) == 1 for job in run_spec.jobs)
+
+
+def test_expanding_directory_job_rejects_one_shared_output_name(tmp_path):
+    neural_root = tmp_path / "DATA"
+    for stem in ["NSP1-session-001", "NSP1-session-002"]:
+        _touch(neural_root / f"{stem}.nev")
+        _touch(neural_root / f"{stem}.ns5")
+    video_root = tmp_path / "VIDEO"
+    video_root.mkdir()
+    config_path = _write_config(
+        tmp_path,
+        {
+            "output_dir": str(tmp_path / "output"),
+            "channel_name": "RoomMic2",
+            "jobs": [
+                {
+                    "name": "ambiguous-batch-name",
+                    "window": "neural",
+                    "neural": {
+                        "kind": "directory",
+                        "directory": str(neural_root),
+                        "time_anchor": {"kind": "paired_ns5"},
+                    },
+                    "video": {
+                        "kind": "directory",
+                        "directory": str(video_root),
+                    },
+                }
+            ],
+        },
+    )
+
+    with pytest.raises(ValueError, match="must omit job.name"):
+        resolve_run_spec(PathUtils(str(config_path), timestamp=None))

@@ -18,11 +18,12 @@ class PathUtils:
         self._timestamp = timestamp
         self._config = self.load_config(config_path)
         self._output_dir = self.config["output_dir"]
-        # Legacy camera fields remain available while SessionSpec configs use
-        # top-level/per-session `video` mappings instead.
+        # Legacy camera fields remain available while normalized configs use
+        # top-level or per-job `video` mappings instead.
         self._cam_serial = self.config.get("cam_serial", None)
         if (
-            "sessions" in self._config
+            "jobs" in self._config
+            or "sessions" in self._config
             or "base_dir" in self._config
             or "flat_dir" in self._config
         ):
@@ -60,7 +61,9 @@ class PathUtils:
 
     def is_config_valid(self):
         """Return True if config has all the required fields"""
-        if "sessions" in self._config:
+        if "jobs" in self._config:
+            required_fields = ["jobs", "output_dir", "channel_name"]
+        elif "sessions" in self._config:
             required_fields = ["sessions", "output_dir", "channel_name"]
         elif "base_dir" in self._config and "keywords" in self._config:
             # Subdir batch mode

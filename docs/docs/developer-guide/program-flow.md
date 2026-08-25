@@ -1,231 +1,95 @@
-# 🔄 Program Flow
+# Program flow
 
-This section explains the **data processing flow** of `video-sync`.
+`video-sync` normalizes every supported configuration into the same internal
+model before it opens the large NS5 payloads:
 
-### 1. Configuration
-
-In main.py, we load and validate the configuration using the `PathUtils` class.
-
-```python
-timestamp = get_current_ts()
-
-pathutils = PathUtils(config_path, timestamp)
-logger = configure_logging(pathutils.output_dir)
-
-if not pathutils.is_config_valid():
-    logger.error("Config not valid, exiting to inital screen...")
-    return
+```text
+YAML -> RunSpec -> SyncJobSpec[] -> selected neural segments -> camera outputs
 ```
 
-This ensures the configuration is valid before proceeding with synchronization.
+## 1. Normalize configuration
 
-### 2. Data Integrity Check
+`PathUtils` loads the YAML. `resolve_run_spec()` then converts canonical `jobs`
+and the older `sessions`, `nsp_dir`, `flat_dir`, or `base_dir` forms into one
+`RunSpec`.
 
-The DataPool class ensures all required neural and camera files are present.
+Each `SyncJobSpec` represents one final output window:
 
-If files are missing, the process stops.
+- `window: neural` resolves to one NEV/NS5 pair. Its neural interval selects
+  the overlapping camera recordings.
+- `window: video` resolves to one explicit camera recording group. Its JSON
+  realtime bounds select every overlapping NEV/NS5 segment.
 
-```python
-datapool = DataPool(pathutils.nsp_dir, pathutils.cam_recording_dir)
+Directory selectors expand during normalization. A neural directory used with
+`window: neural` creates one job per same-basename NEV/NS5 pair. A video
+directory used with `window: video` creates one job per JSON recording group.
 
-if not datapool.verify_integrity():
-    logger.error(
-        "File integrity check failed: Missing or duplicate NSP files detected. "
-        "Please verify the directory structure and try again. Returning to the initial screen."
-    )
-    return
-```
+Preflight validation checks all selected paths, duplicate output names,
+unpaired NEV/NS5 files, missing stitched anchors, and malformed selections
+before processing starts.
 
-### 3. Extracting Neural Data (NEV)
+## 2. Establish a UTC window
 
-This step extracts and reconstructs chunk serial data in the format of a dataframe from the stitched NSP-1 `.nev` file, which contains event-based neural data. The chunk serial values are reconstructed by combining **five split chunks** of serial communication sent from an Arduino.
+Raw data uses `time_anchor: paired_ns5`. The UTC origin comes from the paired
+NS5 header and its first data-packet timestamp. Stitched data uses
+`time_anchor: first_raw_nev` with the first raw NEV used to construct the
+stitched timeline.
 
-```python
-# 1. Get NEV serial start and end
-nsp1_nev_path = datapool.get_nsp1_nev_path()
-nev = Nev(nsp1_nev_path)
-nev_chunk_serial_df = nev.get_chunk_serial_df()
-logger.info(f"NEV dataframe\n: {nev_chunk_serial_df}")
-nev_start_serial, nev_end_serial = get_column_min_max(
-    nev_chunk_serial_df, "chunk_serial"
-)
-logger.info(f"Start serial: {nev_start_serial}, End serial: {nev_end_serial}")
-```
+For a video-defined job, `read_nsx_time_bounds()` scans only NS5 packet headers
+to find candidate UTC intervals. It seeks over signal payloads, so unrelated
+NS5 files are not loaded into memory. The default `coverage: require_full`
+policy also verifies that the selected intervals continuously cover the JSON
+realtime window.
 
-The script first retrieves the NSP-1 `.nev` file path and initializes an instance of the Nev class to parse its contents. It then calls `get_chunk_serial_df()`, which reconstructs the chunk serials by combining the five split parts. This reconstructed DataFrame provides a sequential timeline of neural events, essential for aligning with video data.
+## 3. Load selected neural segments
 
-To establish the valid time range for synchronization, the script determines **the earliest and latest chunk serial values** from the NEV data using `get_column_min_max()`. These values define the window in which video frames should be extracted later to ensure proper alignment.
-
-
-### 4. Identifying Relevant Video and Metadata Files for Synchronization
-
-To ensure proper alignment between neural and video data, the script identifies
-which camera recordings overlap with the neural event window. In flat raw-data
-mode, the paired NS5 header time and first packet timestamp anchor each NEV to
-UTC. For stitched NSP data, a configured `first_nev_path` supplies the anchor
-instead. Camera JSON `real_times` select the candidate recordings, and chunk
-serials then provide the exact frame-level join.
-
-Without either reference, the script scans every JSON serial range as a legacy
-fallback. It does not assume serial values are monotonic across date folders.
-Discovery is recomputed from the configured inputs on every run; no
-`timestamps.json` cache is written.
+Only the selected segments are fully loaded. For each one,
+`_load_neural_context()` builds the calibrated NEV serial table and opens its
+paired NS5:
 
 ```python
-sorted_timestamps = _find_overlapping_camera_timestamps(
-    camera_files,
-    pathutils.cam_serial,
-    nev_start_serial,
-    nev_end_serial,
-    logger,
-    nev_start_utc=nev_start_utc,
-    nev_end_utc=nev_end_utc,
+chunk_serial_df, utc_calibrated = _get_nev_chunk_serial_df(
+    nev, ns5, segment.time_anchor, logger
 )
 ```
 
-### 5. Processing Videos for Synchronization
+Legacy stitched configurations without a UTC anchor retain serial-only camera
+discovery. Video-defined jobs reject `serial_only`, because selecting the right
+raw pair from a directory requires comparable UTC timestamps.
 
-Once the relevant timestamps are identified, this part of the script processes video files to align them with neural data. The workflow can be divided into two phases:
+## 4. Join neural events to camera frames
 
-- Before Processing Videos → Extract and merge neural and video data.
-- After Processing Videos → Generate subclips, add synchronized audio, and export the final video.
+For each camera and recording group, `Videojson.get_camera_df()` reconstructs
+the frame sequence. The processor joins it to the NEV serial table on
+`chunk_serial`, then slices the configured NS5 channel between the first and
+last matched NEV timestamps.
 
-#### Before Processing Videos: Extracting and Merging Data
+Each `(camera recording, neural segment)` overlap becomes an ordered fragment
+containing:
 
-The script iterates over each camera serial number and processes the corresponding video recordings. For each timestamp, it loads the associated camera metadata JSON file, extracts frame information, and filters the frames that overlap with the NEV chunk serial range.
+- the source MP4 path;
+- the NS5 audio samples used to render that fragment; and
+- frame-level NEV, camera, and NS5 mapping rows.
 
-```python
-# 5. Go through the timestamps and process the videos
-for camera_serial in camera_serials:
-    all_merged_list = []
+For `coverage: require_full`, the ordered mapped frames must exactly match the
+requested source video frames. A missing neural interval therefore fails the
+job instead of silently shortening the output.
 
-    for i, timestamp in enumerate(sorted_timestamps):
-        camera_file_group = camera_files[timestamp]
+## 5. Render and export
 
-        json_path = get_json_file(camera_file_group, pathutils)
-        if json_path is None:
-            logger.error(f"No JSON file found in group {timestamp}")
-            continue
+Fragments from the same MP4 are combined before rendering. If the requested
+window crosses MP4 files, the rendered subclips are concatenated in recording
+order. Neural fragments for one camera are also concatenated into one mapping,
+with `synced_frame_idx` renumbered from zero across the final MP4.
 
-        videojson = Videojson(json_path)
-        camera_df = videojson.get_camera_df(camera_serial)
-        camera_df["frame_ids_relative"] = (
-            camera_df["frame_ids_reconstructed"]
-            - camera_df["frame_ids_reconstructed"].iloc[0]
-            + 1
-        )
+All camera mappings are then combined into one task-level CSV:
 
-        camera_df = camera_df.loc[
-            (camera_df["chunk_serial_data"] >= nev_start_serial)
-            & (camera_df["chunk_serial_data"] <= nev_end_serial)
-        ]
+```text
+<output_dir>/<job>/
+├── <job>_<camera_serial>.mp4
+└── <job>_frame_mapping.csv
 ```
 
-The filtered camera frame data is then **merged with the NEV chunk serials on serial** to create a synchronized dataset. Next, the script extracts continuous neural/audio signals (NS5 data) for the same time window and merges them with the existing dataset. This results in a combined DataFrame containing timestamped neural/audio data, camera frame IDs, and amplitudes from the NS5 file.
-
-Note: the audio signal and the neural data are all arrays in the same format in NS5, so they can be processed in the same way.
-
-```python
-        chunk_serial_joined = nev_chunk_serial_df.merge(
-            camera_df,
-            left_on="chunk_serial",
-            right_on="chunk_serial_data",
-            how="inner",
-        )
-
-        logger.info("Processing ns5 filtered channel df...")
-        ns5_slice = ns5.get_filtered_channel_df(
-            pathutils.ns5_channel,
-            chunk_serial_joined.iloc[0]["TimeStamps"],
-            chunk_serial_joined.iloc[-1]["TimeStamps"],
-        )
-
-        logger.info("Merging ns5 and chunk serial df...")
-        all_merged = ns5_slice.merge(
-            chunk_serial_joined,
-            left_on="TimeStamp",
-            right_on="TimeStamps",
-            how="left",
-        )
-
-        all_merged = all_merged[
-            [
-                "TimeStamp",
-                "Amplitude",
-                "chunk_serial",
-                "frame_id",
-                "frame_ids_reconstructed",
-                "frame_ids_relative",
-            ]
-        ]
-```
-
-If a matching MP4 file is found for the timestamp, it is added to the processing list. After iterating through all timestamps, the merged data for the camera serial is stored and logged for validation.
-
-```python
-        mp4_path = get_mp4_file(camera_file_group, camera_serial, pathutils)
-        if mp4_path is None:
-            logger.error(f"No MP4 file found in group {timestamp}")
-            continue
-
-        all_merged["mp4_file"] = mp4_path
-        all_merged_list.append(all_merged)
-
-    if not all_merged_list:
-        logger.warning(f"No valid merged data for {camera_serial}")
-        continue
-
-    all_merged_df = pd.concat(all_merged_list, ignore_index=True)
-    logger.info(
-        f"Final merged DataFrame for {camera_serial} head:\n{all_merged_df.head()}"
-    )
-    logger.info(
-        f"Final merged DataFrame for {camera_serial} tail:\n{all_merged_df.tail()}"
-    )
-```
-
-#### After Processing Videos: Synchronizing and Exporting
-
-With the synchronized DataFrame ready, the script processes each camera's MP4 files and accumulates its frame mapping. Camera subdirectories are workspaces for intermediate clips; final MP4s and the combined mapping are written directly in the task directory.
-
-```python
-for camera_serial in camera_serials:
-    ...
-    video_output_dir = os.path.join(current_output_dir, camera_serial)
-    os.makedirs(video_output_dir, exist_ok=True)
-
-    frame_mapping = build_frame_mapping(
-        joined_frames_df,
-        camera_serial=camera_serial,
-        ns5_start_timestamp=ns5.timeStamp,
-        ns5_clk_per_sample=ns5.clk_per_samp,
-        ns5_path=ns5.path,
-    )
-    frame_mappings.append(frame_mapping)
-
-    subclip_paths = []
-    for mp4_path in all_merged_df["mp4_file"].unique():
-        df_sub = all_merged_df[all_merged_df["mp4_file"] == mp4_path]
-        subclip = make_synced_subclip_moviepy(
-            df_sub, mp4_path, video_output_dir, session_uuid
-        )
-        subclip_paths.append(subclip)
-```
-
-If multiple subclips are generated, they are concatenated into one camera-specific final video. After every camera is processed, the mappings are combined into one task-level CSV. The pair `(camera_serial, synced_frame_idx)` identifies a final video frame.
-
-```python
-    final_path = os.path.join(
-        current_output_dir, f"{task_name}_{camera_serial}.mp4"
-    )
-    if len(subclip_paths) == 1:
-        shutil.move(subclip_paths[0], final_path)
-    else:
-        ffmpeg_concat_mp4s(subclip_paths, final_path)
-
-combined_mapping = combine_frame_mappings(frame_mappings)
-combined_mapping.to_csv(
-    os.path.join(current_output_dir, f"{task_name}_frame_mapping.csv"),
-    index=False,
-)
-```
+The pair `(camera_serial, synced_frame_idx)` identifies one final video frame.
+`ns5_file` and `ns5_sample_idx` identify its sample in the original raw NS5,
+including when one video window spans several NS5 files.

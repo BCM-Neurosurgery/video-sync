@@ -10,6 +10,7 @@ from pyvideosync.sidecar import (
     FRAME_MAPPING_COLUMNS,
     build_frame_mapping,
     combine_frame_mappings,
+    concatenate_frame_mappings,
 )
 
 
@@ -105,6 +106,50 @@ def test_combine_frame_mappings_preserves_camera_order_and_frame_indices():
     ]
     assert combined["synced_frame_idx"].tolist() == [0, 1, 0]
     assert not combined.duplicated(["camera_serial", "synced_frame_idx"]).any()
+
+
+def test_concatenate_frame_mappings_renumbers_neural_fragments():
+    first = build_frame_mapping(
+        pd.DataFrame(
+            {
+                "TimeStamps": [100, 101],
+                "UTCTimeStamp": [datetime(2026, 1, 1)] * 2,
+                "chunk_serial": [500, 501],
+                "mp4_frame_idx": [0, 1],
+                "mp4_file": ["source.mp4"] * 2,
+            }
+        ),
+        camera_serial="18486638",
+        ns5_start_timestamp=100,
+        ns5_clk_per_sample=1,
+        ns5_path="first.ns5",
+    )
+    second = build_frame_mapping(
+        pd.DataFrame(
+            {
+                "TimeStamps": [200, 201],
+                "UTCTimeStamp": [datetime(2026, 1, 1)] * 2,
+                "chunk_serial": [502, 503],
+                "mp4_frame_idx": [2, 3],
+                "mp4_file": ["source.mp4"] * 2,
+            }
+        ),
+        camera_serial="18486638",
+        ns5_start_timestamp=200,
+        ns5_clk_per_sample=1,
+        ns5_path="second.ns5",
+    )
+
+    combined = concatenate_frame_mappings([first, second])
+
+    assert combined["synced_frame_idx"].tolist() == [0, 1, 2, 3]
+    assert combined["ns5_file"].tolist() == [
+        "first.ns5",
+        "first.ns5",
+        "second.ns5",
+        "second.ns5",
+    ]
+    assert combined["ns5_sample_idx"].tolist() == [0, 1, 0, 1]
 
 
 def test_build_frame_mapping_rejects_unaligned_ns5_timestamp():

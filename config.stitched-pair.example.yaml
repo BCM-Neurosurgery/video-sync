@@ -3,17 +3,19 @@ output_dir: "/path/to/output"
 channel_name: "RoomMic2"
 keep_intermediates: false
 
-video:
-  kind: discover
-  recording_dir: "/path/to/VIDEO"
-  # Optional; omit to auto-detect every overlapping camera.
-  camera_serials: ["18486638", "23512014"]
-
-sessions:
+jobs:
   - name: "EMU-0159_convo"
-    nev_path: "/path/to/EMU-0159_convo-NSP-1.nev"
-    ns5_path: "/path/to/EMU-0159_convo-NSP-1.ns5"
-    time_anchor:
-      # Use the first raw NEV that contributed to the stitched timeline.
-      kind: first_raw_nev
-      reference_path: "/path/to/NSP1-first-raw.nev"
+    window: neural
+    neural:
+      kind: pair
+      nev_path: "/path/to/EMU-0159_convo-NSP-1.nev"
+      ns5_path: "/path/to/EMU-0159_convo-NSP-1.ns5"
+      time_anchor:
+        # Use the first raw NEV that contributed to the stitched timeline.
+        kind: first_raw_nev
+        reference_path: "/path/to/NSP1-first-raw.nev"
+    video:
+      kind: directory
+      directory: "/path/to/VIDEO"
+      # Optional; omit to auto-detect every overlapping camera.
+      camera_serials: ["18486638", "23512014"]

@@ -13,11 +13,15 @@ Tests bypass NsxFile / brpylib by constructing an Nsx instance via __new__
 and populating only the attributes the slicing methods read.
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
+from io import BytesIO
+from struct import pack
+from unittest.mock import patch
+
 import numpy as np
 import pandas as pd
 
-from pyvideosync.nsx import Nsx
+from pyvideosync.nsx import Nsx, read_nsx_time_bounds
 
 
 def _make_nsx(period: int, num_samples: int, num_channels: int, ts_start: int = 1000):
@@ -191,6 +195,36 @@ def test_get_channel_df_full_recording():
     df = ns3.get_channel_df("ch1")
     assert len(df) == 10
     assert df["TimeStamp"].tolist() == list(range(1000, 1150, 15))
+
+
+def test_read_nsx_time_bounds_scans_headers_without_loading_samples():
+    header_size = 32
+    first_packet = b"\x01" + pack("<I", 900) + pack("<I", 3) + bytes(12)
+    second_packet = b"\x01" + pack("<I", 910) + pack("<I", 2) + bytes(8)
+    datafile = BytesIO(bytes(header_size) + first_packet + second_packet)
+    origin = datetime(2026, 2, 17, 9, 0, 0)
+
+    class FakeNsxFile:
+        def __init__(self, _):
+            self.datafile = datafile
+            self.basic_header = {
+                "FileSpec": "2.3",
+                "BytesInHeader": header_size,
+                "ChannelCount": 2,
+                "TimeOrigin": origin,
+                "TimeStampResolution": 30000,
+                "SampleResolution": 30000,
+                "Period": 1,
+            }
+
+    with patch("pyvideosync.nsx.NsxFile", FakeNsxFile):
+        bounds = read_nsx_time_bounds("recording.ns5")
+
+    assert bounds.start_timestamp == 900
+    assert bounds.end_timestamp == 911
+    assert bounds.clk_per_sample == 1
+    assert bounds.start_utc == origin + timedelta(seconds=900 / 30000)
+    assert bounds.end_utc == origin + timedelta(seconds=911 / 30000)
 
 
 if __name__ == "__main__":
