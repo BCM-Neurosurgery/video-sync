@@ -9,11 +9,14 @@ from unittest.mock import Mock, patch
 
 import pandas as pd
 
+from pyvideosync.data_pool import DataPool, VideoFilesPool
 from pyvideosync.main import (
     _find_overlapping_camera_timestamps,
     _get_nev_chunk_serial_df,
 )
 from pyvideosync.nev import Nev
+from pyvideosync.pathutils import PathUtils
+from pyvideosync.sessions import TimeAnchor
 
 LOGGER = logging.getLogger(__name__)
 
@@ -64,7 +67,9 @@ def test_flat_raw_utc_uses_paired_ns5_anchor():
     ns5.get_timeOrigin.return_value = datetime(2026, 2, 17, 15, 19, 6, 735000)
     ns5.get_start_timestamp.return_value = 1319438729
 
-    result, utc_calibrated = _get_nev_chunk_serial_df(nev, ns5, None, True, LOGGER)
+    result, utc_calibrated = _get_nev_chunk_serial_df(
+        nev, ns5, TimeAnchor(kind="paired_ns5"), LOGGER
+    )
 
     assert result is expected
     assert utc_calibrated is True
@@ -79,10 +84,26 @@ def test_legacy_mode_without_anchor_preserves_nev_timestamps():
     nev = Mock()
     nev.get_chunk_serial_df.return_value = expected
 
-    result, utc_calibrated = _get_nev_chunk_serial_df(nev, Mock(), None, False, LOGGER)
+    result, utc_calibrated = _get_nev_chunk_serial_df(
+        nev, Mock(), TimeAnchor(kind="serial_only"), LOGGER
+    )
 
     assert result is expected
     assert utc_calibrated is False
+    nev.get_chunk_serial_df.assert_called_once_with()
+
+
+def test_embedded_anchor_uses_nev_header_for_utc_discovery():
+    expected = pd.DataFrame({"chunk_serial": [123]})
+    nev = Mock()
+    nev.get_chunk_serial_df.return_value = expected
+
+    result, utc_calibrated = _get_nev_chunk_serial_df(
+        nev, Mock(), TimeAnchor(kind="embedded"), LOGGER
+    )
+
+    assert result is expected
+    assert utc_calibrated is True
     nev.get_chunk_serial_df.assert_called_once_with()
 
 
@@ -189,6 +210,85 @@ def test_time_discovery_binary_searches_camera_groups():
 
     assert result == [window_start]
     assert len(opened) < 20
+
+
+def test_video_file_pool_indexes_root_and_date_subdirectories_once():
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        camera_dir = Path(tmp_dir)
+        date_dir = camera_dir / "20260217"
+        date_dir.mkdir()
+        root_json = camera_dir / "YFVDatafile_20260217_091000.json"
+        nested_video = date_dir / "YFVDatafile_20260217_091000.18486638.mp4"
+        ignored_file = date_dir / "notes.txt"
+        root_json.touch()
+        nested_video.touch()
+        ignored_file.touch()
+
+        video_file_pool = VideoFilesPool.from_directory(str(camera_dir))
+        groups = video_file_pool.list_groups()
+
+        assert len(groups) == 1
+        assert next(iter(groups.values())) == sorted(
+            [str(root_json.resolve()), str(nested_video.resolve())]
+        )
+
+        with patch.object(
+            VideoFilesPool,
+            "from_directory",
+            side_effect=AssertionError("camera directory was indexed again"),
+        ):
+            datapool = DataPool(
+                str(camera_dir),
+                str(camera_dir),
+                nev_path="session.nev",
+                ns5_path="session.ns5",
+                video_file_pool=video_file_pool,
+            )
+
+        assert datapool.get_video_file_pool() is video_file_pool
+
+
+def test_flat_batch_discovers_every_matching_nev_ns5_pair():
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        flat_dir = Path(tmp_dir)
+        for filename in [
+            "NSP1-session-002.nev",
+            "NSP1-session-002.ns5",
+            "NSP1-session-001.nev",
+            "NSP1-session-001.ns5",
+            "NSP1-session-001.ns3",
+            "NSP2-session-001.nev",
+            "NSP2-session-001.ns5",
+        ]:
+            (flat_dir / filename).touch()
+
+        pathutils = PathUtils.__new__(PathUtils)
+        sessions = pathutils.get_flat_nev_session_files(
+            str(flat_dir), keywords=["NSP1-"]
+        )
+
+        assert [session[0] for session in sessions] == [
+            "NSP1-session-001",
+            "NSP1-session-002",
+        ]
+        assert sessions[0][3] == str(flat_dir / "NSP1-session-001.ns3")
+        assert sessions[1][3] is None
+
+
+def test_flat_batch_rejects_unpaired_nev_or_ns5_files():
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        flat_dir = Path(tmp_dir)
+        (flat_dir / "NSP1-missing-ns5.nev").touch()
+        (flat_dir / "NSP1-missing-nev.ns5").touch()
+
+        pathutils = PathUtils.__new__(PathUtils)
+        try:
+            pathutils.get_flat_nev_session_files(str(flat_dir), keywords=["NSP1-"])
+        except ValueError as exc:
+            assert "NSP1-missing-nev" in str(exc)
+            assert "NSP1-missing-ns5" in str(exc)
+            return
+        raise AssertionError("expected ValueError for unpaired NEV/NS5 files")
 
 
 if __name__ == "__main__":

@@ -4,7 +4,11 @@ and aligning the audio with the video.
 """
 
 import os
-from pyvideosync.data_pool import DataPool
+from collections import defaultdict
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+
+from pyvideosync.data_pool import VideoFilesPool
 import pandas as pd
 from pyvideosync.logging_config import (
     get_current_ts,
@@ -14,7 +18,6 @@ from pyvideosync.pathutils import PathUtils
 from pyvideosync.process import (
     ffmpeg_concat_mp4s,
     ffmpeg_concat_mp4s_gpu,
-    make_synced_subclip_ffmpeg,
     make_synced_subclip_moviepy,
     make_synced_subclip_moviepy_gpu,
 )
@@ -25,10 +28,19 @@ from pyvideosync.utils import (
 )
 from pyvideosync.videojson import Videojson
 from pyvideosync.nev import Nev
-from pyvideosync.nsx import Nsx
+from pyvideosync.nsx import Nsx, read_nsx_time_bounds
 from pyvideosync.sidecar import (
     build_frame_mapping,
+    combine_frame_mappings,
+    concatenate_frame_mappings,
     write_ns3_sidecar,
+)
+from pyvideosync.sessions import (
+    NeuralSegmentSpec,
+    SyncJobSpec,
+    TimeAnchor,
+    VideoSelection,
+    resolve_run_spec,
 )
 import argparse
 import glob
@@ -36,13 +48,14 @@ import shutil
 import uuid
 
 
-def _get_nev_chunk_serial_df(nev, ns5, first_nev_path, is_flat_batch_mode, logger):
-    """Build the serial mapping with the appropriate UTC timestamp anchor."""
-    if first_nev_path:
+def _get_nev_chunk_serial_df(nev, ns5, time_anchor: TimeAnchor, logger):
+    """Build the serial mapping using the session's explicit time anchor."""
+    if time_anchor.kind == "first_raw_nev":
         logger.info(
-            f"Calibrating stitched timestamps with first raw NEV: {first_nev_path}"
+            "Calibrating stitched timestamps with first raw NEV: "
+            f"{time_anchor.reference_path}"
         )
-        first_nev = Nev(first_nev_path)
+        first_nev = Nev(str(time_anchor.reference_path))
         return (
             nev.get_chunk_serial_df(
                 reference_time_origin=first_nev.get_time_origin(),
@@ -51,7 +64,7 @@ def _get_nev_chunk_serial_df(nev, ns5, first_nev_path, is_flat_batch_mode, logge
             True,
         )
 
-    if is_flat_batch_mode:
+    if time_anchor.kind == "paired_ns5":
         logger.info(f"Calibrating raw timestamps with paired NS5: {ns5.path}")
         return (
             nev.get_chunk_serial_df(
@@ -61,7 +74,27 @@ def _get_nev_chunk_serial_df(nev, ns5, first_nev_path, is_flat_batch_mode, logge
             True,
         )
 
-    return nev.get_chunk_serial_df(), False
+    return (
+        nev.get_chunk_serial_df(),
+        time_anchor.kind == "embedded",
+    )
+
+
+def _get_video_file_pool(
+    selection: VideoSelection,
+    cache: dict[VideoSelection, VideoFilesPool],
+) -> VideoFilesPool:
+    """Build each immutable video selection index at most once per run."""
+    if selection not in cache:
+        if selection.kind == "discover":
+            cache[selection] = VideoFilesPool.from_directory(
+                str(selection.recording_dir)
+            )
+        else:
+            cache[selection] = VideoFilesPool.from_files(
+                (*selection.json_paths, *selection.mp4_paths)
+            )
+    return cache[selection]
 
 
 def _emit_ns3_sidecar(ns3_path, nev_chunk_serial_df, output_dir, task_name, logger):
@@ -197,6 +230,397 @@ def _bisect_first_camera_overlap(camera_items, window_start):
     return lo
 
 
+@dataclass
+class _NeuralContext:
+    segment: NeuralSegmentSpec
+    ns5: Nsx
+    chunk_serial_df: pd.DataFrame
+    start_serial: int
+    end_serial: int
+    start_utc: datetime
+    end_utc: datetime
+    utc_calibrated: bool
+
+
+@dataclass
+class _AlignedFragment:
+    mp4_path: str
+    all_merged: pd.DataFrame
+    frame_mapping: pd.DataFrame
+
+
+def _segment_utc_bounds(segment: NeuralSegmentSpec, logger):
+    """Return inexpensive candidate UTC bounds for overlap discovery."""
+    if segment.time_anchor.kind == "paired_ns5":
+        bounds = read_nsx_time_bounds(segment.ns5_path)
+        return (
+            bounds.start_utc,
+            bounds.end_utc,
+            timedelta(seconds=bounds.clk_per_sample / bounds.timestamp_resolution),
+        )
+    if segment.time_anchor.kind == "serial_only":
+        raise ValueError(
+            f"video-window discovery requires a UTC anchor: {segment.name}"
+        )
+
+    nev = Nev(str(segment.nev_path))
+    chunk_serial_df, calibrated = _get_nev_chunk_serial_df(
+        nev, None, segment.time_anchor, logger
+    )
+    if not calibrated or chunk_serial_df.empty:
+        raise ValueError(f"cannot derive UTC bounds for neural segment: {segment.name}")
+    return (
+        chunk_serial_df["UTCTimeStamp"].min(),
+        chunk_serial_df["UTCTimeStamp"].max(),
+        timedelta(seconds=1 / 30),
+    )
+
+
+def _video_utc_bounds(video: VideoSelection):
+    starts = []
+    ends = []
+    for json_path in video.json_paths:
+        videojson = Videojson(str(json_path))
+        if not videojson.is_valid():
+            raise ValueError(f"Invalid JSON file: {json_path}")
+        start, end = videojson.get_realtime_bounds()
+        if start is None or end is None:
+            raise ValueError(f"camera JSON has no realtime bounds: {json_path}")
+        starts.append(start)
+        ends.append(end)
+    if not starts:
+        raise ValueError("video-window job has no JSON timing metadata")
+    return min(starts), max(ends)
+
+
+def _select_neural_segments(job: SyncJobSpec, logger):
+    if job.window == "neural":
+        return job.neural_segments
+
+    video_start, video_end = _video_utc_bounds(job.video)
+    candidates = []
+    for segment in job.neural_segments:
+        start, end, tolerance = _segment_utc_bounds(segment, logger)
+        if start <= video_end and end >= video_start:
+            candidates.append((start, end, tolerance, segment))
+    if not candidates:
+        raise RuntimeError(f"No neural data overlaps the video window for {job.name}")
+    candidates.sort(key=lambda row: row[0])
+    selected = tuple(segment for _, _, _, segment in candidates)
+    if job.coverage == "require_full":
+        covered_until = video_start
+        for start, end, tolerance, _ in candidates:
+            if start > covered_until + tolerance:
+                raise RuntimeError(
+                    f"Neural data has a UTC coverage gap for video job {job.name}: "
+                    f"{covered_until} to {start}"
+                )
+            covered_until = max(covered_until, end)
+        final_tolerance = candidates[-1][2]
+        if covered_until + final_tolerance < video_end:
+            raise RuntimeError(
+                f"Neural data ends before video job {job.name}: "
+                f"{covered_until} before {video_end}"
+            )
+    logger.info(
+        f"Selected {len(selected)} of {len(job.neural_segments)} neural segments "
+        f"for video window {video_start} to {video_end}"
+    )
+    return selected
+
+
+def _load_neural_context(segment: NeuralSegmentSpec, logger) -> _NeuralContext:
+    ns5 = Nsx(str(segment.ns5_path))
+    nev = Nev(str(segment.nev_path))
+    chunk_serial_df, utc_calibrated = _get_nev_chunk_serial_df(
+        nev, ns5, segment.time_anchor, logger
+    )
+    if chunk_serial_df.empty:
+        raise RuntimeError(f"NEV contains no camera serial events: {segment.nev_path}")
+    start_serial, end_serial = get_column_min_max(chunk_serial_df, "chunk_serial")
+    return _NeuralContext(
+        segment=segment,
+        ns5=ns5,
+        chunk_serial_df=chunk_serial_df,
+        start_serial=start_serial,
+        end_serial=end_serial,
+        start_utc=chunk_serial_df["UTCTimeStamp"].min(),
+        end_utc=chunk_serial_df["UTCTimeStamp"].max(),
+        utc_calibrated=utc_calibrated,
+    )
+
+
+def _camera_timestamps(job, camera_files, context, logger):
+    if job.window == "video":
+        return sorted(camera_files)
+    return _find_overlapping_camera_timestamps(
+        camera_files,
+        job.video.camera_serials,
+        context.start_serial,
+        context.end_serial,
+        logger,
+        nev_start_utc=context.start_utc if context.utc_calibrated else None,
+        nev_end_utc=context.end_utc if context.utc_calibrated else None,
+    )
+
+
+def _camera_serials(job, camera_files, timestamps, logger):
+    if job.video.camera_serials:
+        return tuple(job.video.camera_serials)
+
+    available = set()
+    for timestamp in timestamps:
+        json_path = get_json_file(camera_files[timestamp], None)
+        if json_path is None:
+            continue
+        videojson = Videojson(json_path)
+        if videojson.is_valid():
+            available.update(str(serial) for serial in videojson.get_camera_serials())
+    serials = tuple(sorted(available))
+    logger.info(f"Auto-detected camera serials: {serials}")
+    return serials
+
+
+def _align_camera_fragments(
+    job,
+    contexts,
+    camera_files,
+    timestamps,
+    camera_serial,
+    channel_name,
+    logger,
+):
+    fragments = []
+    expected_frame_keys = []
+    for timestamp in timestamps:
+        camera_file_group = camera_files[timestamp]
+        json_path = get_json_file(camera_file_group, None)
+        if json_path is None:
+            raise RuntimeError(f"No JSON file found in group {timestamp}")
+        videojson = Videojson(json_path)
+        serial_lookup = {
+            str(serial): serial for serial in videojson.get_camera_serials()
+        }
+        if str(camera_serial) not in serial_lookup:
+            continue
+        camera_df = videojson.get_camera_df(serial_lookup[str(camera_serial)])
+        mp4_path = get_mp4_file(camera_file_group, str(camera_serial), None)
+        if mp4_path is None:
+            raise RuntimeError(
+                f"No MP4 file found for camera {camera_serial} in group {timestamp}"
+            )
+
+        if job.window == "video":
+            expected_frame_keys.extend(
+                (str(mp4_path), int(chunk_serial))
+                for chunk_serial in camera_df["chunk_serial_data"]
+            )
+
+        for context in contexts:
+            camera_slice = camera_df.loc[
+                (camera_df["chunk_serial_data"] >= context.start_serial)
+                & (camera_df["chunk_serial_data"] <= context.end_serial)
+            ]
+            joined_frames = context.chunk_serial_df.merge(
+                camera_slice,
+                left_on="chunk_serial",
+                right_on="chunk_serial_data",
+                how="inner",
+            )
+            if joined_frames.empty:
+                continue
+            joined_frames = joined_frames.sort_values("TimeStamps").assign(
+                mp4_file=mp4_path
+            )
+            ns5_slice = context.ns5.get_filtered_channel_df(
+                channel_name,
+                int(joined_frames.iloc[0]["TimeStamps"]),
+                int(joined_frames.iloc[-1]["TimeStamps"]),
+            )
+            if ns5_slice.empty:
+                raise RuntimeError(
+                    f"NS5 has no samples for matched frames: {context.segment.ns5_path}"
+                )
+            all_merged = ns5_slice.merge(
+                joined_frames,
+                left_on="TimeStamp",
+                right_on="TimeStamps",
+                how="left",
+            )[["TimeStamp", "Amplitude", "chunk_serial", "mp4_frame_idx"]]
+            all_merged["mp4_file"] = mp4_path
+            frame_mapping = build_frame_mapping(
+                joined_frames,
+                camera_serial=str(camera_serial),
+                ns5_start_timestamp=context.ns5.timeStamp,
+                ns5_clk_per_sample=context.ns5.clk_per_samp,
+                ns5_path=context.ns5.path,
+            )
+            fragments.append(
+                _AlignedFragment(
+                    mp4_path=str(mp4_path),
+                    all_merged=all_merged,
+                    frame_mapping=frame_mapping,
+                )
+            )
+
+    mapping = concatenate_frame_mappings(
+        [fragment.frame_mapping for fragment in fragments]
+    )
+    if job.window == "video" and job.coverage == "require_full":
+        actual_frame_keys = list(
+            zip(
+                mapping["source_mp4"].astype(str),
+                mapping["chunk_serial"].astype(int),
+            )
+        )
+        if actual_frame_keys != expected_frame_keys:
+            expected_set = set(expected_frame_keys)
+            actual_set = set(actual_frame_keys)
+            raise RuntimeError(
+                f"Neural data does not fully cover {job.name} camera "
+                f"{camera_serial}: expected {len(expected_frame_keys)} mapped "
+                f"frames, found {len(actual_frame_keys)} "
+                f"({len(expected_set - actual_set)} missing, "
+                f"{len(actual_set - expected_set)} unexpected)"
+            )
+    return fragments, mapping
+
+
+def _render_camera(
+    job,
+    camera_serial,
+    fragments,
+    output_dir,
+    run_spec,
+):
+    fragments_by_mp4 = defaultdict(list)
+    for fragment in fragments:
+        fragments_by_mp4[fragment.mp4_path].append(fragment.all_merged)
+
+    video_output_dir = os.path.join(output_dir, str(camera_serial))
+    os.makedirs(video_output_dir, exist_ok=True)
+    session_uuid = str(uuid.uuid4())[:8]
+    subclip_paths = []
+    for mp4_path, dataframes in fragments_by_mp4.items():
+        merged = pd.concat(dataframes, ignore_index=True)
+        if run_spec.gpu_enabled:
+            subclip = make_synced_subclip_moviepy_gpu(
+                merged,
+                mp4_path,
+                video_output_dir,
+                session_uuid,
+                gpu_enabled=run_spec.gpu_enabled,
+                gpu_type=run_spec.gpu_type,
+            )
+        else:
+            subclip = make_synced_subclip_moviepy(
+                merged, mp4_path, video_output_dir, session_uuid
+            )
+        subclip_paths.append(subclip)
+
+    final_path = os.path.join(output_dir, f"{job.name}_{camera_serial}.mp4")
+    if len(subclip_paths) == 1:
+        shutil.move(subclip_paths[0], final_path)
+    elif run_spec.gpu_enabled:
+        ffmpeg_concat_mp4s_gpu(
+            subclip_paths,
+            final_path,
+            gpu_enabled=run_spec.gpu_enabled,
+            gpu_type=run_spec.gpu_type,
+        )
+    else:
+        ffmpeg_concat_mp4s(subclip_paths, final_path)
+    return final_path, video_output_dir
+
+
+def _cleanup_intermediates(video_output_dir, logger):
+    patterns = [
+        "*_subclip_*.mp4",
+        "*_audio_*.wav",
+        "*_final_*.mp4",
+        "concat_filelist.txt",
+    ]
+    removed = 0
+    for pattern in patterns:
+        for path in glob.glob(os.path.join(video_output_dir, pattern)):
+            try:
+                os.remove(path)
+                removed += 1
+            except OSError as exc:
+                logger.warning(f"Could not remove {path}: {exc}")
+    logger.info(f"Cleaned {removed} intermediate file(s) from {video_output_dir}")
+    if os.path.isdir(video_output_dir) and not os.listdir(video_output_dir):
+        os.rmdir(video_output_dir)
+
+
+def _process_job(job, run_spec, video_file_pool_cache, logger):
+    video_file_pool = _get_video_file_pool(job.video, video_file_pool_cache)
+    camera_files = video_file_pool.list_groups()
+    if not camera_files:
+        raise RuntimeError(f"No camera files found for {job.name}")
+
+    selected_segments = _select_neural_segments(job, logger)
+    contexts = [_load_neural_context(segment, logger) for segment in selected_segments]
+    timestamps = _camera_timestamps(job, camera_files, contexts[0], logger)
+    if not timestamps:
+        raise RuntimeError(f"No camera recordings overlap the window for {job.name}")
+    camera_serials = _camera_serials(job, camera_files, timestamps, logger)
+    if not camera_serials:
+        raise RuntimeError(f"No cameras resolved for {job.name}")
+
+    output_dir = os.path.join(str(run_spec.output_dir), job.name)
+    os.makedirs(output_dir, exist_ok=True)
+    if run_spec.ns3_sidecar:
+        if job.window == "video":
+            logger.warning("NS3 sidecars are skipped for video-window jobs")
+        else:
+            segment = contexts[0].segment
+            if segment.ns3_path:
+                _emit_ns3_sidecar(
+                    str(segment.ns3_path),
+                    contexts[0].chunk_serial_df,
+                    output_dir,
+                    job.name,
+                    logger,
+                )
+
+    camera_mappings = []
+    for camera_serial in camera_serials:
+        fragments, mapping = _align_camera_fragments(
+            job,
+            contexts,
+            camera_files,
+            timestamps,
+            str(camera_serial),
+            run_spec.channel_name,
+            logger,
+        )
+        if not fragments or mapping.empty:
+            raise RuntimeError(
+                f"No synchronized fragments produced for camera {camera_serial}"
+            )
+        final_path, intermediate_dir = _render_camera(
+            job,
+            str(camera_serial),
+            fragments,
+            output_dir,
+            run_spec,
+        )
+        logger.info(f"Saved camera {camera_serial} to {final_path}")
+        if not run_spec.keep_intermediates:
+            _cleanup_intermediates(intermediate_dir, logger)
+        camera_mappings.append(mapping)
+
+    combined_mapping = combine_frame_mappings(camera_mappings)
+    mapping_path = os.path.join(output_dir, f"{job.name}_frame_mapping.csv")
+    combined_mapping.to_csv(mapping_path, index=False)
+    logger.info(
+        f"Wrote frame mapping: {mapping_path} "
+        f"({len(combined_mapping)} frames across "
+        f"{combined_mapping['camera_serial'].nunique()} cameras)"
+    )
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Video synchronization tool for neural data and camera recordings."
@@ -221,388 +645,41 @@ def main():
         logger.error("Config not valid, exiting to inital screen...")
         return
 
-    # Build the list of sessions to process. Each entry is a tuple:
-    #   (task_name, nsp_dir, nev_path_or_None, ns5_path_or_None, ns3_path_or_None)
-    # Explicit paths are populated only in flat-batch mode (where multiple
-    # chunks coexist in one directory). In single/subdir modes the slots stay
-    # None and DataPool resolves files from `nsp_dir`.
-    sessions: list[tuple[str, str, str | None, str | None, str | None]] = []
-    if pathutils.is_batch_mode():
-        logger.info("Running in subdir batch processing mode")
-        base_dir = pathutils._config.get("base_dir")
-        keywords = pathutils._config.get(
-            "keywords", pathutils._config.get("keyword", [])
-        )
-        matching_dirs = pathutils.get_matching_task_dirs(base_dir, keywords)
-        if not matching_dirs:
-            logger.error("No matching task directories found")
-            return
-        logger.info(f"Found {len(matching_dirs)} matching directories:")
-        for dir_path in matching_dirs:
-            logger.info(f"  - {dir_path}")
-        sessions = [(os.path.basename(d), d, None, None, None) for d in matching_dirs]
-    elif pathutils.is_flat_batch_mode():
-        logger.info("Running in flat-file batch processing mode")
-        flat_dir = pathutils._config.get("flat_dir")
-        keywords = pathutils._config.get(
-            "keywords", pathutils._config.get("keyword", None)
-        )
-        flat_sessions = pathutils.get_flat_nev_session_files(flat_dir, keywords)
-        if not flat_sessions:
-            logger.error("No nev/ns5 sessions found in flat_dir")
-            return
-        logger.info(f"Found {len(flat_sessions)} sessions in {flat_dir}:")
-        for task_name, _, _, ns3 in flat_sessions:
-            logger.info(f"  - {task_name}{' (no ns3)' if ns3 is None else ''}")
-        sessions = [
-            (name, flat_dir, nev, ns5, ns3) for name, nev, ns5, ns3 in flat_sessions
-        ]
-    else:
-        logger.info("Running in single directory mode")
-        sessions = [
-            (
-                os.path.basename(pathutils.nsp_dir),
-                pathutils.nsp_dir,
-                None,
-                None,
-                None,
-            )
-        ]
+    run_spec = resolve_run_spec(pathutils)
+    jobs = run_spec.jobs
+    logger.info(f"Resolved {len(jobs)} job(s):")
+    for job in jobs:
+        logger.info(f"  - {job.name} ({job.window} window)")
 
-    is_batch = pathutils.is_batch_mode() or pathutils.is_flat_batch_mode()
+    is_batch = len(jobs) > 1
     success_count = 0
+    video_file_pool_cache: dict[VideoSelection, VideoFilesPool] = {}
 
-    for task_name, nsp_dir, nev_path, ns5_path, ns3_path in sessions:
+    for job in jobs:
         if is_batch:
-            logger.info(f"Processing session: {task_name}")
-
+            logger.info(f"Processing job: {job.name}")
         try:
-            # Create datapool for this session (explicit paths used in flat mode).
-            datapool = DataPool(
-                nsp_dir,
-                pathutils.cam_recording_dir,
-                nev_path=nev_path,
-                ns5_path=ns5_path,
-                ns3_path=ns3_path,
-            )
-
-            # Create output directory named after the session (task) name
-            current_output_dir = os.path.join(pathutils.output_dir, task_name)
-
-            os.makedirs(current_output_dir, exist_ok=True)
-
-            if not datapool.verify_integrity():
-                logger.error(
-                    "File integrity check failed: Missing or duplicate NSP files detected. "
-                    "Please verify the directory structure and try again. Returning to the initial screen."
-                )
-                if is_batch:
-                    continue
-                else:
-                    return
-
-            # Open the paired NS5 before NEV timestamp calibration so raw flat
-            # sessions can use its header and first packet as their UTC anchor.
-            ns5_path = datapool.get_ns5_path()
-            ns5 = Nsx(ns5_path)
-
-            # 1. Get NEV serial start and end
-            nsp1_nev_path = datapool.get_nev_path()
-            nev = Nev(nsp1_nev_path)
-            first_nev_path = pathutils.first_nev_path
-            nev_chunk_serial_df, utc_calibrated = _get_nev_chunk_serial_df(
-                nev,
-                ns5,
-                first_nev_path,
-                pathutils.is_flat_batch_mode(),
-                logger,
-            )
-            logger.info(f"NEV dataframe\n: {nev_chunk_serial_df}")
-            nev_start_serial, nev_end_serial = get_column_min_max(
-                nev_chunk_serial_df, "chunk_serial"
-            )
-            logger.info(
-                f"Start serial: {nev_start_serial}, End serial: {nev_end_serial}"
-            )
-
-            # Optional NS3 sidecar: all-channel HDF5 sliced by the NEV TimeStamps
-            # range. Emitted once per session, before per-camera processing.
-            if pathutils.ns3_sidecar:
-                ns3_resolved = datapool.get_ns3_path()
-                if ns3_resolved:
-                    _emit_ns3_sidecar(
-                        ns3_resolved,
-                        nev_chunk_serial_df,
-                        current_output_dir,
-                        task_name,
-                        logger,
-                    )
-                else:
-                    logger.warning(
-                        f"ns3_sidecar enabled but no .ns3 resolved for {task_name}"
-                    )
-
-            # 2. Find all JSON files and MP4 files
-            camera_files = datapool.get_video_file_pool().list_groups()
-            if not camera_files:
-                logger.error("No camera files found")
-                if is_batch:
-                    continue
-                else:
-                    return
-
-            # 3. Find camera groups overlapping the calibrated NEV time window.
-            # Fall back to a full serial-range scan for legacy configurations.
-            nev_start_utc = (
-                nev_chunk_serial_df["UTCTimeStamp"].min() if utc_calibrated else None
-            )
-            nev_end_utc = (
-                nev_chunk_serial_df["UTCTimeStamp"].max() if utc_calibrated else None
-            )
-            if utc_calibrated:
-                logger.info(
-                    f"Calibrated NEV serial window: {nev_start_utc} to {nev_end_utc}"
-                )
-            sorted_timestamps = _find_overlapping_camera_timestamps(
-                camera_files,
-                pathutils.cam_serial,
-                nev_start_serial,
-                nev_end_serial,
-                logger,
-                nev_start_utc=nev_start_utc,
-                nev_end_utc=nev_end_utc,
-            )
-            logger.info(f"timestamps: {sorted_timestamps}")
-            if not sorted_timestamps:
-                message = f"No camera recordings overlap the NEV window for {task_name}"
-                logger.error(message)
-                if is_batch:
-                    continue
-                raise RuntimeError(message)
-
-            # 4. Get available camera serials from overlapping JSON files only
-            if pathutils.cam_serial:
-                camera_serials = pathutils.cam_serial
-                logger.info(f"Camera serials loaded from config: {camera_serials}")
-            else:
-                # Auto-detect camera serials from JSON files with overlapping timestamps
-                available_serials = set()
-                for timestamp in sorted_timestamps:
-                    camera_file_group = camera_files[timestamp]
-                    json_path = get_json_file(camera_file_group, pathutils)
-                    if json_path:
-                        videojson = Videojson(json_path)
-                        if videojson.is_valid():
-                            json_serials = videojson.get_camera_serials()
-                            available_serials.update(json_serials)
-
-                camera_serials = list(available_serials)
-                logger.info(
-                    f"Auto-detected camera serials from overlapping JSONs: {camera_serials}"
-                )
-
-            if not camera_serials:
-                logger.error(
-                    "No camera serials found (either in config or overlapping JSON files)"
-                )
-                if is_batch:
-                    continue
-                else:
-                    return
-
-            # 5. Go through the timestamps and process the videos
-            for camera_serial in camera_serials:
-                all_merged_list = []
-                joined_frames_list = []
-
-                for i, timestamp in enumerate(sorted_timestamps):
-                    camera_file_group = camera_files[timestamp]
-
-                    json_path = get_json_file(camera_file_group, pathutils)
-                    if json_path is None:
-                        logger.error(f"No JSON file found in group {timestamp}")
-                        continue
-
-                    videojson = Videojson(json_path)
-                    camera_df = videojson.get_camera_df(camera_serial)
-
-                    camera_df = camera_df.loc[
-                        (camera_df["chunk_serial_data"] >= nev_start_serial)
-                        & (camera_df["chunk_serial_data"] <= nev_end_serial)
-                    ]
-
-                    chunk_serial_joined = nev_chunk_serial_df.merge(
-                        camera_df,
-                        left_on="chunk_serial",
-                        right_on="chunk_serial_data",
-                        how="inner",
-                    )
-                    if chunk_serial_joined.empty:
-                        logger.warning(
-                            f"No matching NEV/video serials for {camera_serial} "
-                            f"in {timestamp}"
-                        )
-                        continue
-
-                    logger.info("Processing ns5 filtered channel df...")
-                    ns5_slice = ns5.get_filtered_channel_df(
-                        pathutils.ns5_channel,
-                        chunk_serial_joined.iloc[0]["TimeStamps"],
-                        chunk_serial_joined.iloc[-1]["TimeStamps"],
-                    )
-
-                    logger.info("Merging ns5 and chunk serial df...")
-                    all_merged = ns5_slice.merge(
-                        chunk_serial_joined,
-                        left_on="TimeStamp",
-                        right_on="TimeStamps",
-                        how="left",
-                    )
-
-                    all_merged = all_merged[
-                        [
-                            "TimeStamp",
-                            "Amplitude",
-                            "chunk_serial",
-                            "mp4_frame_idx",  # we only need the mp4_frame_idx
-                        ]
-                    ]
-
-                    mp4_path = get_mp4_file(camera_file_group, camera_serial, pathutils)
-                    if mp4_path is None:
-                        logger.error(f"No MP4 file found in group {timestamp}")
-                        continue
-
-                    all_merged["mp4_file"] = mp4_path
-                    all_merged_list.append(all_merged)
-                    joined_frames_list.append(
-                        chunk_serial_joined.assign(mp4_file=mp4_path)
-                    )
-
-                if not all_merged_list or not joined_frames_list:
-                    logger.warning(f"No valid merged data for {camera_serial}")
-                    continue
-
-                all_merged_df = pd.concat(all_merged_list, ignore_index=True)
-                joined_frames_df = pd.concat(joined_frames_list, ignore_index=True)
-                logger.info(
-                    f"Final merged DataFrame for {camera_serial} head:\n{all_merged_df.head()}"
-                )
-                logger.info(
-                    f"Final merged DataFrame for {camera_serial} tail:\n{all_merged_df.tail()}"
-                )
-
-                # process the videos
-                video_output_dir = os.path.join(current_output_dir, camera_serial)
-                os.makedirs(video_output_dir, exist_ok=True)
-
-                frame_mapping = build_frame_mapping(
-                    joined_frames_df,
-                    camera_serial=camera_serial,
-                    ns5_start_timestamp=ns5.timeStamp,
-                    ns5_clk_per_sample=ns5.clk_per_samp,
-                    ns5_path=ns5.path,
-                )
-                if frame_mapping.empty:
-                    logger.warning(f"No frame mapping rows for {camera_serial}")
-                    continue
-                session_uuid = str(uuid.uuid4())[:8]
-                subclip_paths = []
-                for mp4_path in all_merged_df["mp4_file"].unique():
-                    df_sub = all_merged_df[all_merged_df["mp4_file"] == mp4_path]
-
-                    # Build a subclip from the relevant frames, attach audio
-                    # Use GPU acceleration if enabled
-                    if pathutils.gpu_enabled:
-                        subclip = make_synced_subclip_moviepy_gpu(
-                            df_sub,
-                            mp4_path,
-                            os.path.join(current_output_dir, camera_serial),
-                            session_uuid,
-                            gpu_enabled=pathutils.gpu_enabled,
-                            gpu_type=pathutils.gpu_type,
-                        )
-                    else:
-                        subclip = make_synced_subclip_moviepy(
-                            df_sub,
-                            mp4_path,
-                            os.path.join(current_output_dir, camera_serial),
-                            session_uuid,
-                        )
-                    subclip_paths.append(subclip)
-
-                # Final video name follows the session task name
-                final_video_name = f"{task_name}.mp4"
-
-                final_path = os.path.join(
-                    current_output_dir, camera_serial, final_video_name
-                )
-                # Now 'subclip_paths' has each final MP4 subclip
-                # If we have only one, just rename or copy it
-                if len(subclip_paths) == 1:
-                    shutil.move(subclip_paths[0], final_path)
-                else:
-                    # Use GPU-accelerated concat if enabled
-                    if pathutils.gpu_enabled:
-                        ffmpeg_concat_mp4s_gpu(
-                            subclip_paths,
-                            final_path,
-                            gpu_enabled=pathutils.gpu_enabled,
-                            gpu_type=pathutils.gpu_type,
-                        )
-                    else:
-                        ffmpeg_concat_mp4s(subclip_paths, final_path)
-
-                logger.info(f"Saved {camera_serial} to {final_path}")
-
-                mapping_path = os.path.join(
-                    video_output_dir, f"{task_name}_frame_mapping.csv"
-                )
-                frame_mapping.to_csv(mapping_path, index=False)
-                logger.info(
-                    f"Wrote frame mapping: {mapping_path} "
-                    f"({len(frame_mapping)} synced frames)"
-                )
-
-                if not pathutils.keep_intermediates:
-                    cam_dir = os.path.join(current_output_dir, camera_serial)
-                    patterns = [
-                        "*_subclip_*.mp4",
-                        "*_audio_*.wav",
-                        "*_final_*.mp4",
-                        "concat_filelist.txt",
-                    ]
-                    removed = 0
-                    for pat in patterns:
-                        for path in glob.glob(os.path.join(cam_dir, pat)):
-                            if path == final_path:
-                                continue
-                            try:
-                                os.remove(path)
-                                removed += 1
-                            except OSError as e:
-                                logger.warning(f"Could not remove {path}: {e}")
-                    logger.info(
-                        f"Cleaned {removed} intermediate file(s) from {cam_dir}"
-                    )
-
-            # Track success for batch modes
+            _process_job(job, run_spec, video_file_pool_cache, logger)
+            success_count += 1
             if is_batch:
-                success_count += 1
-                logger.info(f"Successfully processed: {task_name}")
-
-        except Exception as e:
+                logger.info(f"Successfully processed: {job.name}")
+        except Exception as exc:
             if is_batch:
-                logger.error(f"Error processing {task_name}: {str(e)}")
+                logger.error(f"Error processing {job.name}: {exc}")
             else:
-                logger.error(f"Error processing: {str(e)}")
+                logger.error(f"Error processing: {exc}")
                 raise
 
-    # Log batch processing results
     if is_batch:
         logger.info(
-            f"Batch processing complete. Successfully processed {success_count}/{len(sessions)} sessions"
+            f"Batch processing complete. Successfully processed "
+            f"{success_count}/{len(jobs)} jobs"
         )
+        if success_count != len(jobs):
+            raise RuntimeError(
+                f"Batch failed for {len(jobs) - success_count}/{len(jobs)} "
+                "jobs; see the log for details"
+            )
 
 
 if __name__ == "__main__":

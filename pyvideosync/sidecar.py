@@ -6,7 +6,6 @@ import h5py
 import numpy as np
 import pandas as pd
 
-
 FRAME_MAPPING_COLUMNS = [
     "synced_frame_idx",
     "camera_serial",
@@ -67,9 +66,9 @@ def build_frame_mapping(
             "synced_frame_idx": np.arange(len(frame_rows), dtype=np.int64),
             "camera_serial": str(camera_serial),
             "nev_serial_timestamp": nev_timestamps,
-            "nev_utc_time": pd.to_datetime(
-                frame_rows["UTCTimeStamp"], utc=True
-            ).map(lambda timestamp: timestamp.isoformat()),
+            "nev_utc_time": pd.to_datetime(frame_rows["UTCTimeStamp"], utc=True).map(
+                lambda timestamp: timestamp.isoformat()
+            ),
             "ns5_sample_idx": sample_offsets // ns5_clk_per_sample,
             "chunk_serial": frame_rows["chunk_serial"].astype("int64"),
             "source_mp4_frame_idx": frame_rows["mp4_frame_idx"].astype("int64"),
@@ -79,6 +78,42 @@ def build_frame_mapping(
     )
     mapping["source_frame_available"] = mapping["source_mp4_frame_idx"] >= 0
     return mapping[FRAME_MAPPING_COLUMNS]
+
+
+def combine_frame_mappings(frame_mappings: list[pd.DataFrame]) -> pd.DataFrame:
+    """Combine per-camera mappings into one task-level mapping."""
+    if not frame_mappings:
+        return pd.DataFrame(columns=FRAME_MAPPING_COLUMNS)
+
+    combined = pd.concat(frame_mappings, ignore_index=True)
+    missing = sorted(set(FRAME_MAPPING_COLUMNS) - set(combined.columns))
+    if missing:
+        raise ValueError(f"frame mapping is missing columns: {', '.join(missing)}")
+    if combined.duplicated(["camera_serial", "synced_frame_idx"]).any():
+        raise ValueError(
+            "frame mapping contains duplicate camera_serial/synced_frame_idx pairs"
+        )
+
+    return combined[FRAME_MAPPING_COLUMNS]
+
+
+def concatenate_frame_mappings(frame_mappings: list[pd.DataFrame]) -> pd.DataFrame:
+    """Concatenate ordered neural fragments for one camera and renumber frames."""
+    if not frame_mappings:
+        return pd.DataFrame(columns=FRAME_MAPPING_COLUMNS)
+
+    combined = pd.concat(frame_mappings, ignore_index=True)
+    missing = sorted(set(FRAME_MAPPING_COLUMNS) - set(combined.columns))
+    if missing:
+        raise ValueError(f"frame mapping is missing columns: {', '.join(missing)}")
+    cameras = combined["camera_serial"].astype(str).unique()
+    if len(cameras) != 1:
+        raise ValueError("ordered frame fragments must belong to one camera")
+    if combined.duplicated(["source_mp4", "chunk_serial"]).any():
+        raise ValueError("neural fragments map the same source video frame twice")
+
+    combined["synced_frame_idx"] = np.arange(len(combined), dtype=np.int64)
+    return combined[FRAME_MAPPING_COLUMNS]
 
 
 def write_ns3_sidecar(

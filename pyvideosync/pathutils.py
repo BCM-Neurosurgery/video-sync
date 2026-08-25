@@ -18,14 +18,19 @@ class PathUtils:
         self._timestamp = timestamp
         self._config = self.load_config(config_path)
         self._output_dir = self.config["output_dir"]
-        # cam_serial is now optional - will be auto-detected if not provided
+        # Legacy camera fields remain available while normalized configs use
+        # top-level or per-job `video` mappings instead.
         self._cam_serial = self.config.get("cam_serial", None)
-        # Handle batch (base_dir), flat-batch (flat_dir), and single (nsp_dir) modes
-        if "base_dir" in self._config or "flat_dir" in self._config:
+        if (
+            "jobs" in self._config
+            or "sessions" in self._config
+            or "base_dir" in self._config
+            or "flat_dir" in self._config
+        ):
             self._nsp_dir = None  # Will be set dynamically in batch modes
         else:
             self._nsp_dir = self.config["nsp_dir"]
-        self._cam_recording_dir = self.config["cam_recording_dir"]
+        self._cam_recording_dir = self.config.get("cam_recording_dir")
         self._ns5_channel = self.config["channel_name"]
         self._video_to_process = None
         self._video_output_dir = None
@@ -56,7 +61,11 @@ class PathUtils:
 
     def is_config_valid(self):
         """Return True if config has all the required fields"""
-        if "base_dir" in self._config and "keywords" in self._config:
+        if "jobs" in self._config:
+            required_fields = ["jobs", "output_dir", "channel_name"]
+        elif "sessions" in self._config:
+            required_fields = ["sessions", "output_dir", "channel_name"]
+        elif "base_dir" in self._config and "keywords" in self._config:
             # Subdir batch mode
             required_fields = [
                 "base_dir",
@@ -131,7 +140,7 @@ class PathUtils:
 
         Default True preserves historical behavior; set False in the YAML to
         delete `*_subclip_*.mp4`, `*_audio_*.wav`, `*_final_*.mp4`, and
-        `concat_filelist.txt` after the final MP4 and frame mapping are written.
+        `concat_filelist.txt` after the final MP4s and frame mapping are written.
         """
         return bool(self._config.get("keep_intermediates", True))
 
@@ -139,11 +148,6 @@ class PathUtils:
     def gpu_enabled(self):
         """Return whether GPU acceleration is enabled"""
         return self._config.get("gpu_enabled", False)
-
-    @property
-    def gpu_type(self):
-        """Return GPU type for acceleration"""
-        return self._config.get("gpu_type", "nvidia")
 
     @property
     def gpu_type(self):
@@ -277,7 +281,7 @@ class PathUtils:
         # Convert keywords to lowercase for case-insensitive matching
         keywords_lower = [keyword.lower() for keyword in keywords]
 
-        for item in os.listdir(base_dir):
+        for item in sorted(os.listdir(base_dir)):
             item_path = os.path.join(base_dir, item)
             if os.path.isdir(item_path):
                 # Check if directory name contains any of the keywords
@@ -305,9 +309,9 @@ class PathUtils:
     def get_flat_nev_session_files(self, flat_dir, keywords=None):
         """Group same-basename `.nev`/`.ns5`/`.ns3` files in `flat_dir`.
 
-        Each NEV becomes a session; the matching NS5 must exist (sessions
-        without one are skipped, since NS5 is required by the audio pipeline).
-        NS3 is optional and surfaced as `None` when absent.
+        Each NEV becomes a session; every selected basename must have both a
+        NEV and NS5. Unpaired files raise before processing begins. NS3 is
+        optional and surfaced as `None` when absent.
 
         Args:
             flat_dir: Directory containing nev/ns5/ns3 files at the top level.
@@ -333,16 +337,30 @@ class PathUtils:
             if ext_lower in by_ext:
                 by_ext[ext_lower][stem] = full
 
-        keywords_lower = (
-            [k.lower() for k in keywords] if isinstance(keywords, list) else None
-        )
+        if keywords is not None and not isinstance(keywords, list):
+            raise ValueError("keywords must be a list")
+        keywords_lower = [k.lower() for k in keywords] if keywords else None
+
+        selected_stems = sorted(set(by_ext[".nev"]) | set(by_ext[".ns5"]))
+        if keywords_lower:
+            selected_stems = [
+                stem
+                for stem in selected_stems
+                if any(keyword in stem.lower() for keyword in keywords_lower)
+            ]
+
+        unpaired = [
+            stem
+            for stem in selected_stems
+            if stem not in by_ext[".nev"] or stem not in by_ext[".ns5"]
+        ]
+        if unpaired:
+            raise ValueError(
+                "Unpaired NEV/NS5 files in flat_dir: " + ", ".join(unpaired)
+            )
 
         sessions = []
-        for stem in sorted(by_ext[".nev"]):
-            if stem not in by_ext[".ns5"]:
-                continue
-            if keywords_lower and not any(k in stem.lower() for k in keywords_lower):
-                continue
+        for stem in selected_stems:
             sessions.append(
                 (
                     stem,
