@@ -13,6 +13,9 @@ theme:
     - search.suggest
     - content.tabs.link
 
+exclude_docs: |
+  api/
+
 
 nav:
   - Home: index.md
@@ -26,15 +29,6 @@ nav:
       - Overview: developer-guide/index.md
       - Program Flow: developer-guide/program-flow.md
       - Contributing: developer-guide/contributing.md
-  - API Reference:
-      - Overview: api/index.md
-      - DataPool: api/datapool.md
-      - Nev: api/nev.md
-      - Nsx: api/nsx.md
-      - Video: api/video.md
-      - Videojson: api/videojson.md
-      - Pathutils: api/pathutils.md
-      - Utils: api/utils.md
   - Understanding Anomalies:
       - Discontinuity in JSON: understanding-anomalies/discontinuity-in-json.md
       - Discontinuity in Nev: understanding-anomalies/discontinuity-in-nev.md
