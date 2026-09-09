@@ -10,5 +10,4 @@ Welcome to the official documentation for `video-sync`. This tool allows you to 
 - [Usage Guide](usage.md)
 - [Features](features.md)
 - [EMU Camera Serials](emu-cameras.md)
-- [FAQ](faq.md)
 - [License](license.md)

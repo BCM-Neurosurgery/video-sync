@@ -1,0 +1,22 @@
+# Use one MP4 as the output window and discover every overlapping raw NSP pair.
+output_dir: "/path/to/output"
+channel_name: "RoomMic2"
+keep_intermediates: false
+
+jobs:
+  - name: "YFVDatafile_20260217_091320"
+    window: video
+    video:
+      kind: file
+      mp4_path: "/path/to/YFVDatafile_20260217_091320.18486638.mp4"
+      # The sibling JSON is inferred from the MP4 name. Set json_path only when
+      # it lives elsewhere.
+      # json_path: "/path/to/YFVDatafile_20260217_091320.json"
+    neural:
+      kind: directory
+      directory: "/mnt/datalake/data/emu/YFVDatafile/DATA"
+      recursive: true
+      include: ["NSP1-*"]
+      time_anchor:
+        kind: paired_ns5
+    coverage: require_full

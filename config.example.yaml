@@ -1,21 +1,37 @@
-# Camera serial number
-# Refer to README for available camera serial numbers
-# Has to be a list of one or multiple camera serial numbers
-cam_serial: ["23512014"]
-
-# Absolute paths to stitched directory and camera recording directory
-# The stitched directory contains the stitched NSP files
-# The camera recording directory contains date folders with camera recordings
-# On Linux, use single forward slashes as shown below
-# On Windows, use double backslashes e.g. "C:\\Users\\user\\Desktop\\data"
-nsp_dir: "/mnt/lake-database/stitched/YFK/EMU-0036_urge"
-cam_recording_dir: "/mnt/datalake/data/emu/YFKDatafile/VIDEO"
-
-# Paths for the output files
-# Subdirectories will be created in the output directory named after the camera serial number
-# The output files will be saved in the respective subdirectories
-output_dir: "/home/auto/CODE/utils/video-sync/Testing/YFKTesting"
-
-# Channel name for the audio data
-# Do not change this
+# Canonical configuration: one job produces one final synchronized window.
+output_dir: "/path/to/output"
 channel_name: "RoomMic2"
+keep_intermediates: false
+
+# Shared camera selection inherited by jobs without their own video block.
+video:
+  kind: directory
+  directory: "/path/to/VIDEO"
+  camera_serials: ["18486638", "23512014"]
+
+jobs:
+  # Raw pair: the paired NS5 header and first packet define UTC.
+  - name: "raw-001"
+    window: neural
+    neural:
+      kind: pair
+      nev_path: "/path/to/NSP1-001.nev"
+      ns5_path: "/path/to/NSP1-001.ns5"
+      time_anchor:
+        kind: paired_ns5
+
+  # Stitched pair: reference the first raw NEV used by the stitched timeline.
+  - name: "stitched-convo"
+    window: neural
+    neural:
+      kind: pair
+      nev_path: "/path/to/convo-NSP-1.nev"
+      ns5_path: "/path/to/convo-NSP-1.ns5"
+      time_anchor:
+        kind: first_raw_nev
+        reference_path: "/path/to/first-raw.nev"
+
+# Optional shared processing settings:
+# ns3_sidecar: true
+# gpu_enabled: true
+# gpu_type: "nvidia"

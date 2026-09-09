@@ -1,0 +1,7 @@
+Type,ElectrodeID,ElectrodeLabel,PhysicalConnector,ConnectorPin,MinDigitalValue,MaxDigitalValue,MinAnalogValue,MaxAnalogValue,Units,HighFreqCorner,HighFreqOrder,HighFreqType,LowFreqCorner,LowFreqOrder,LowFreqType
+CC,257,Photodiode,9,1,-32767,32767,-5000,5000,mV,0.0 Hz,0,none,0.0 Hz,0,none
+CC,258,Audio,9,2,-32767,32767,-5000,5000,mV,0.0 Hz,0,none,0.0 Hz,0,none
+CC,259,RoomMic1,9,3,-32767,32767,-5000,5000,mV,0.0 Hz,0,none,0.0 Hz,0,none
+CC,260,StimSync,9,4,-32767,32767,-5000,5000,mV,0.0 Hz,0,none,0.0 Hz,0,none
+CC,261,GSR,9,5,-32767,32767,-5000,5000,mV,0.0 Hz,0,none,0.0 Hz,0,none
+CC,262,LegaMemorySync,9,6,-32767,32767,-5000,5000,mV,0.0 Hz,0,none,0.0 Hz,0,none

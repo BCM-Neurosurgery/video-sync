@@ -1,0 +1,47 @@
+# Example configuration for flat-file batch processing.
+#
+# Use this layout when a single directory contains many `.nev` and `.ns5`
+# files at the top level (e.g., raw chunked NSP recordings like
+# `NSP1-<datetime>-001.nev` / `NSP1-<datetime>-001.ns5`, ..., `-NNN.{nev,ns5}`).
+# Each `.nev` is paired with a same-basename `.ns5` and processed as its own
+# sync session. Each pair produces one `<task>_<camera_serial>.mp4` per camera
+# and one `<task>_frame_mapping.csv` containing all cameras. UTC is automatically
+# anchored to the paired NS5 header and first data packet; `first_nev_path` is
+# only needed for stitched NSP files, not this raw layout.
+
+# Directory containing nev/ns5 files at the top level
+# Every selected basename must have both a .nev and .ns5 file.
+flat_dir: "/mnt/datalake/data/emu/YFWDatafile/DATA/20260501-091328"
+
+# Optional case-insensitive substrings; only nev basenames containing any
+# keyword are processed. Use this to select NSP1 files when the directory also
+# contains other NSPs. Omit (or set to []) to process every paired NEV/NS5.
+keywords: ["NSP1-"]
+
+# Directory of camera recordings (date-grouped subfolders)
+cam_recording_dir: "/mnt/datalake/data/emu/YFWDatafile/VIDEO"
+
+# Output root; one subdirectory per pair, named after the NEV basename. Final
+# artifacts are written there directly; no post-processing move is required.
+output_dir: "/home/auto/CODE/utils/video-sync/Testing/YFWTesting"
+
+# NS5 audio channel name (must exist in the NS5 extended headers)
+channel_name: "RoomMic2"
+
+# Emit an HDF5 sidecar with ALL NS3 channels per session, aligned to the NEV
+# TimeStamps range. Output: <output_dir>/<task>/<task>_ns3.h5
+# Layout: /timestamps (uint64), /amplitudes (int16, gzip), with channel_labels
+# attr on /amplitudes. Loadable in Python (h5py) and MATLAB (h5read) natively.
+# ns3_sidecar: true
+
+# Optional camera serials filter; omit to auto-detect from JSONs
+# cam_serial: ["23512014"]
+
+# Optional: keep per-camera intermediates. Default true. Set false to delete
+# `*_subclip_*.mp4`, `*_audio_*.wav`, `*_final_*.mp4`, `concat_filelist.txt`
+# after the final MP4s and combined frame-mapping CSV are written.
+# keep_intermediates: false
+
+# Optional GPU configuration
+# gpu_enabled: true
+# gpu_type: "nvidia"

@@ -453,61 +453,6 @@ def extract_basename(input_path: str) -> str:
     return splitted.replace(".", "_")
 
 
-def replace_zeros(df, column_name):
-    """
-    Replaces 0s in the specified column with the correct missing integer value
-    if the following conditions are met:
-
-    1. The previous number in the column is exactly 1 less than the expected number.
-    2. The next number in the column is exactly 1 greater than the expected number.
-
-    The function assumes that the column contains a series of continuously
-    increasing integers, with some missing values represented as 0.
-
-    Parameters:
-    -----------
-    df : pandas.DataFrame
-        The DataFrame containing the column to be processed.
-
-    column_name : str
-        The name of the column in the DataFrame that contains the series of integers
-        with possible missing values as 0.
-
-    Returns:
-    --------
-    pandas.DataFrame
-        The DataFrame with the specified column updated, where 0s have been replaced
-        with the correct missing integer values if they meet the specified conditions.
-
-    Example:
-    --------
-    >>> data = {'numbers': [1, 2, 3, 0, 5, 6, 7, 10, 11, 0, 13, 14]}
-    >>> df = pd.DataFrame(data)
-    >>> df = replace_zeros(df, 'numbers')
-    >>> print(df)
-       numbers
-    0        1
-    1        2
-    2        3
-    3        4
-    4        5
-    5        6
-    6        7
-    7       10
-    8       11
-    9       12
-    10      13
-    11      14
-    """
-    col = df[column_name].copy()
-    for i in range(1, len(col) - 1):
-        if col[i] == 0:
-            if col[i - 1] + 1 == col[i + 1] - 1:
-                col[i] = col[i - 1] + 1
-    df[column_name] = col
-    return df
-
-
 def fill_missing_serials_with_gap(data):
     """
     Fills in missing chunk serial numbers where the gap is greater than 1.
@@ -795,3 +740,36 @@ def get_mp4_file(files: list, camera_serial: str, pathutils) -> str:
     ]
 
     return mp4_files[0] if len(mp4_files) == 1 else None
+
+
+def is_incrementally_increasing(arr: np.ndarray) -> bool:
+    """Checks if a 1-D integer array is strictly incrementally increasing.
+
+    Determines if each element in the input array is exactly one greater than
+    the preceding element. Returns `True` only if this condition is met for every
+    consecutive pair of elements.
+
+    Args:
+        arr (Union[List[int], np.ndarray]): 1-D array of integers to check.
+
+    Returns:
+        bool: `True` if the array is strictly incrementally increasing by 1,
+            otherwise `False`.
+
+    Examples:
+        >>> is_incrementally_increasing([1, 2, 3, 4, 5])
+        True
+
+        >>> is_incrementally_increasing([1, 2, 4, 5])
+        False
+
+        >>> is_incrementally_increasing([1])
+        True
+
+        >>> is_incrementally_increasing([])
+        True
+    """
+    arr = np.asarray(arr)
+    if len(arr) <= 1:
+        return True
+    return np.all(np.diff(arr) == 1)

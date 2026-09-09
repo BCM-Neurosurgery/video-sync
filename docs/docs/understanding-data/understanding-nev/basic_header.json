@@ -1,0 +1,9 @@
+{
+    "FileTypeID": "BREVENTS",
+    "FileSpec": "3.0",
+    "AddFlags": 1,
+    "BytesInHeader": 26512,
+    "BytesInDataPackets": 108,
+    "TimeStampResolution": 30000,
+    "SampleTimeResolution": 30000,
+    "TimeOrigin": 

@@ -1,9 +1,32 @@
-from pyvideosync.video import Video
 import os
 import subprocess
-import uuid
 from scipy.io.wavfile import write as wav_write
 import numpy as np
+from moviepy import VideoFileClip, VideoClip
+from tqdm import tqdm
+
+
+def _mux_video_audio(video_path, audio_path, output_path):
+    """Attach audio without re-encoding or changing the video frames."""
+    cmd = [
+        "ffmpeg",
+        "-y",
+        "-i",
+        video_path,
+        "-i",
+        audio_path,
+        "-c:v",
+        "copy",
+        "-c:a",
+        "aac",
+        "-b:a",
+        "192k",
+        "-shortest",
+        output_path,
+    ]
+    print("Running FFmpeg mux:")
+    print(" ".join(cmd))
+    subprocess.run(cmd, check=True)
 
 
 def ffmpeg_concat_mp4s(mp4_paths, output_path):
@@ -47,14 +70,88 @@ def ffmpeg_concat_mp4s(mp4_paths, output_path):
     return output_path
 
 
-def make_synced_subclip_ffmpeg(df_sub, mp4_path, fps_audio=30000, out_dir="/tmp"):
+def ffmpeg_concat_mp4s_gpu(
+    mp4_paths, output_path, gpu_enabled=False, gpu_type="nvidia"
+):
+    """
+    GPU-accelerated version of ffmpeg_concat_mp4s.
+    Concatenates MP4 files with optional GPU re-encoding for optimization.
+    """
+    # 1) Write a temporary filelist
+    list_file = os.path.join(os.path.dirname(output_path), "concat_filelist.txt")
+    with open(list_file, "w") as f:
+        for p in mp4_paths:
+            f.write(f"file '{p}'\n")
+
+    # 2) Choose encoding strategy
+    if gpu_enabled:
+        # Re-encode with GPU for potentially better compatibility
+        if gpu_type == "nvidia":
+            codec = "h264_nvenc"
+            codec_params = ["-preset", "fast", "-cq", "20"]
+        elif gpu_type == "amd":
+            codec = "h264_amf"
+            codec_params = ["-quality", "balanced"]
+        elif gpu_type == "intel":
+            codec = "h264_qsv"
+            codec_params = ["-preset", "fast"]
+        else:
+            codec = "libx264"
+            codec_params = ["-preset", "fast", "-crf", "20"]
+
+        cmd = [
+            "ffmpeg",
+            "-y",  # overwrite
+            "-f",
+            "concat",
+            "-safe",
+            "0",
+            "-i",
+            list_file,
+            "-c:v",
+            codec,
+            *codec_params,
+            "-c:a",
+            "copy",  # copy audio without re-encoding
+            output_path,
+        ]
+    else:
+        # Use stream copy (no re-encoding) for speed
+        cmd = [
+            "ffmpeg",
+            "-y",  # overwrite
+            "-f",
+            "concat",
+            "-safe",
+            "0",
+            "-i",
+            list_file,
+            "-c",
+            "copy",
+            output_path,
+        ]
+
+    print("Running FFmpeg concat with GPU acceleration:")
+    print(" ".join(cmd))
+    subprocess.run(cmd, check=True)
+
+    # Remove the temporary filelist
+    os.remove(list_file)
+
+    print(f"Concatenated video written to: {output_path}")
+    return output_path
+
+
+def make_synced_subclip_ffmpeg(
+    df_sub, mp4_path, out_dir, session_uuid, fps_video: int = 30
+):
     """
     Given:
         - df_sub: DataFrame that has columns ['frame_ids_relative', 'Amplitude'].
         - mp4_path: Path to the input video file (MP4).
         - fps_video: Frame rate of the video (used to convert frames -> seconds).
-        - fps_audio: Sampling rate for the exported WAV.
         - out_dir: Directory where intermediate and final files will be written.
+        - session_uuid: A shared UUID for all subclips in the session.
 
     Steps:
         1) Determine subclip time range (start_sec, end_sec).
@@ -63,86 +160,229 @@ def make_synced_subclip_ffmpeg(df_sub, mp4_path, fps_audio=30000, out_dir="/tmp"
         4) Mux the extracted video and new WAV into a final MP4, re-encoding audio if needed.
         5) Return the path to the final MP4.
     """
-    video = Video(mp4_path)
-
-    # 1) Identify which frames we need
-    min_frame = df_sub["frame_ids_relative"].min()
-    max_frame = df_sub["frame_ids_relative"].max()
-
-    # 2) Convert frames to seconds
-    start_sec = min_frame / video.fps
-    # +1 so we include the last frame—ffmpeg’s -to is inclusive enough, but let’s be explicit
-    end_sec = (max_frame + 1) / video.fps
-    duration_sec = end_sec - start_sec
-
-    print(
-        f"Subclip frames: [{min_frame}, {max_frame}] => times: [{start_sec:.3f}, {end_sec:.3f}] => {duration_sec:.3f}s"
-    )
-
-    # Create output paths
+    # 1) Create output paths
     base_name = os.path.splitext(os.path.basename(mp4_path))[0]  # e.g. 'myvideo'
-    unique_id = str(uuid.uuid4())[:8]  # random suffix to avoid collisions
-    subclip_video_path = os.path.join(out_dir, f"{base_name}_subclip_{unique_id}.mp4")
-    audio_wav_path = os.path.join(out_dir, f"{base_name}_audio_{unique_id}.wav")
-    final_path = os.path.join(out_dir, f"{base_name}_final_{unique_id}.mp4")
+    subclip_video_path = os.path.join(
+        out_dir, f"{base_name}_subclip_{session_uuid}.mp4"
+    )
+    audio_wav_path = os.path.join(out_dir, f"{base_name}_audio_{session_uuid}.wav")
+    final_path = os.path.join(out_dir, f"{base_name}_final_{session_uuid}.mp4")
 
-    # 3) Extract video subclip with FFmpeg
-    ffmpeg_cmd_subclip = [
+    # 2) Drop NaNs and grab the exact frame list
+    df_frames = df_sub.dropna(subset=["mp4_frame_idx"])
+    frames = df_frames["mp4_frame_idx"].astype(int).tolist()
+    if not frames:
+        raise ValueError("No frames to extract!")
+
+    # 3) Write the amplitude array to a WAV file.
+    # we should calculate the FPS of the audio from the data based on video duration
+    # because it's not exactly 30khz
+    audio_samples = df_sub["Amplitude"].values.astype(np.int16)
+    exported_video_duration_s = len(frames) / fps_video
+    fps_audio = int(len(audio_samples) / exported_video_duration_s)
+    print(f"Writing {len(audio_samples)} audio samples to WAV at {fps_audio} Hz.")
+    wav_write(audio_wav_path, fps_audio, audio_samples)
+
+    # 4) For very large frame lists, write frame numbers to file
+    # and use select_file
+    frames_file_path = os.path.join(out_dir, f"{base_name}_frames_{session_uuid}.txt")
+
+    # Write one frame number per line
+    with open(frames_file_path, "w") as f:
+        for frame in frames:
+            f.write(f"{frame}\n")
+
+    vf_filter = f"select_file='{frames_file_path}',setpts=N/{fps_video}/TB"
+
+    ffmpeg_sub = [
         "ffmpeg",
-        "-y",  # Overwrite existing output
+        "-y",
         "-i",
-        mp4_path,  # Input video file
+        mp4_path,
         "-vf",
-        f"select='between(n,{min_frame},{max_frame})',setpts=N/30/TB",  # Select frames & set timing
-        "-vsync",
-        "cfr",  # Constant frame rate (CFR)
+        vf_filter,
+        "-fps_mode",
+        "cfr",
         "-r",
-        "30",  # Force 30 FPS
+        str(fps_video),
         "-c:v",
-        "libx264",  # Re-encode as H.264
+        "libx264",
         subclip_video_path,
     ]
 
-    print("Running FFmpeg subclip extraction:")
-    print(" ".join(ffmpeg_cmd_subclip))
-    subprocess.run(ffmpeg_cmd_subclip, check=True)
-
-    # 4) Write the amplitude array to a WAV file
-    #    Double-check shape and sample rate so final audio is correct length.
-    audio_samples = df_sub["Amplitude"].values.astype(np.int16)
-
-    # For a 206s audio track at 30,000 Hz (mono), you'd expect:
-    # num_samples = 206 * 30000 = 6,180,000 samples
-    # If you see double that, you might need to fix shape or fps_audio.
-    print(f"Writing {len(audio_samples)} audio samples to WAV at {fps_audio} Hz.")
-    wav_write(audio_wav_path, fps_audio, audio_samples)
+    print("Extracting frames with FFmpeg:")
+    print(f"Using frame list file: {frames_file_path}")
+    subprocess.run(ffmpeg_sub, check=True)
 
     # 5) Mux the extracted video (no audio) with the new WAV
     #    We'll copy video (-c:v copy) and encode audio as AAC (-c:a aac).
     #    -shortest ensures it stops if one track is shorter.
-    ffmpeg_cmd_mux = [
-        "ffmpeg",
-        "-y",
-        "-i",
-        subclip_video_path,  # video
-        "-i",
-        audio_wav_path,  # audio
-        "-c:v",
-        "copy",
-        "-c:a",
-        "aac",
-        "-b:a",
-        "192k",
-        "-shortest",
-        final_path,
-    ]
-    print("Running FFmpeg mux:")
-    print(" ".join(ffmpeg_cmd_mux))
-    subprocess.run(ffmpeg_cmd_mux, check=True)
+    _mux_video_audio(subclip_video_path, audio_wav_path, final_path)
 
     # (Optional) Clean up intermediate subclip video and WAV
     # os.remove(subclip_video_path)
     # os.remove(audio_wav_path)
 
     print(f"Final subclip with audio: {final_path}")
+    return final_path
+
+
+def make_synced_subclip_moviepy(
+    df_sub, mp4_path, out_dir, session_uuid, fps_video: int = 30
+):
+    """
+    Memory-efficient MoviePy version: extracts frames by index and muxes with custom audio.
+    """
+    base_name = os.path.splitext(os.path.basename(mp4_path))[0]
+    subclip_video_path = os.path.join(
+        out_dir, f"{base_name}_subclip_{session_uuid}.mp4"
+    )
+    audio_wav_path = os.path.join(out_dir, f"{base_name}_audio_{session_uuid}.wav")
+    final_path = os.path.join(out_dir, f"{base_name}_final_{session_uuid}.mp4")
+
+    # 1. Get frame indices
+    df_frames = df_sub.dropna(subset=["mp4_frame_idx"])
+    frames = df_frames["mp4_frame_idx"].astype(int).tolist()
+    if not frames:
+        raise ValueError("No frames to extract!")
+
+    # 2. Write audio to WAV
+    audio_samples = df_sub["Amplitude"].values.astype(np.int16)
+    exported_video_duration_s = len(frames) / fps_video
+    fps_audio = int(len(audio_samples) / exported_video_duration_s)
+    wav_write(audio_wav_path, fps_audio, audio_samples)
+
+    # 3. Stream frames lazily using a custom VideoClip
+    with VideoFileClip(mp4_path) as video:
+        input_fps = video.fps
+        print(f"Input video FPS: {input_fps}")
+        frame_shape = video.get_frame(0).shape
+        blank_frame = np.zeros(frame_shape, dtype=np.uint8)
+
+        # Pre-calculate times for each frame index
+        time_lookup = [(idx / input_fps if idx != -1 else None) for idx in frames]
+
+        def make_frame(t):
+            frame_idx = int(t * fps_video)
+            actual_time = time_lookup[frame_idx]
+            if actual_time is None:
+                return blank_frame
+            return video.get_frame(actual_time)
+
+        # Lazy video generation
+        clip = VideoClip(make_frame, duration=exported_video_duration_s)
+        clip.fps = fps_video
+        clip.write_videofile(
+            subclip_video_path,
+            codec="libx264",
+            audio=False,
+            fps=fps_video,
+            preset="ultrafast",
+            threads=2,
+        )
+        clip.close()
+
+    # 4. Mux audio while preserving the exact encoded video frame sequence.
+    _mux_video_audio(subclip_video_path, audio_wav_path, final_path)
+
+    # Optionally clean up intermediates
+    # os.remove(subclip_video_path)
+    # os.remove(audio_wav_path)
+
+    print(f"Final subclip with audio: {final_path}")
+    return final_path
+
+
+def make_synced_subclip_moviepy_gpu(
+    df_sub,
+    mp4_path,
+    out_dir,
+    session_uuid,
+    fps_video: int = 30,
+    gpu_enabled=False,
+    gpu_type="nvidia",
+):
+    """
+    GPU-accelerated MoviePy version: extracts frames by index and muxes with custom audio.
+    """
+    base_name = os.path.splitext(os.path.basename(mp4_path))[0]
+    subclip_video_path = os.path.join(
+        out_dir, f"{base_name}_subclip_{session_uuid}.mp4"
+    )
+    audio_wav_path = os.path.join(out_dir, f"{base_name}_audio_{session_uuid}.wav")
+    final_path = os.path.join(out_dir, f"{base_name}_final_{session_uuid}.mp4")
+
+    # 1. Get frame indices
+    df_frames = df_sub.dropna(subset=["mp4_frame_idx"])
+    frames = df_frames["mp4_frame_idx"].astype(int).tolist()
+    if not frames:
+        raise ValueError("No frames to extract!")
+
+    # 2. Write audio to WAV
+    audio_samples = df_sub["Amplitude"].values.astype(np.int16)
+    exported_video_duration_s = len(frames) / fps_video
+    fps_audio = int(len(audio_samples) / exported_video_duration_s)
+    wav_write(audio_wav_path, fps_audio, audio_samples)
+
+    # 3. Determine encoding parameters
+    if gpu_enabled:
+        if gpu_type == "nvidia":
+            codec = "h264_nvenc"
+            codec_params = ["-preset", "fast", "-cq", "20"]
+        elif gpu_type == "amd":
+            codec = "h264_amf"
+            codec_params = ["-quality", "balanced"]
+        elif gpu_type == "intel":
+            codec = "h264_qsv"
+            codec_params = ["-preset", "fast"]
+        else:
+            codec = "libx264"
+            codec_params = ["-preset", "ultrafast"]
+    else:
+        codec = "libx264"
+        codec_params = ["-preset", "ultrafast"]
+
+    # 4. Stream frames lazily using a custom VideoClip
+    with VideoFileClip(mp4_path) as video:
+        input_fps = video.fps
+        print(f"Input video FPS: {input_fps}")
+        frame_shape = video.get_frame(0).shape
+        blank_frame = np.zeros(frame_shape, dtype=np.uint8)
+
+        # Pre-calculate times for each frame index
+        time_lookup = [(idx / input_fps if idx != -1 else None) for idx in frames]
+
+        def make_frame(t):
+            frame_idx = int(t * fps_video)
+            actual_time = time_lookup[frame_idx]
+            if actual_time is None:
+                return blank_frame
+            return video.get_frame(actual_time)
+
+        # Lazy video generation with GPU encoding
+        clip = VideoClip(make_frame, duration=exported_video_duration_s)
+        clip.fps = fps_video
+
+        # Use custom ffmpeg_params for GPU acceleration
+        ffmpeg_params = codec_params if gpu_enabled else ["-preset", "ultrafast"]
+
+        clip.write_videofile(
+            subclip_video_path,
+            codec=codec,
+            audio=False,
+            fps=fps_video,
+            ffmpeg_params=ffmpeg_params,
+            threads=2,
+            logger=None,
+        )
+        clip.close()
+
+    # 5. Mux audio while preserving the exact encoded video frame sequence.
+    _mux_video_audio(subclip_video_path, audio_wav_path, final_path)
+
+    # Optionally clean up intermediates
+    # os.remove(subclip_video_path)
+    # os.remove(audio_wav_path)
+
+    print(f"Final GPU-accelerated subclip with audio: {final_path}")
     return final_path

@@ -2,8 +2,29 @@ from __future__ import annotations
 import os
 from collections import defaultdict
 from pyvideosync.utils import extract_timestamp, extract_cam_serial
-import fnmatch
 from pathlib import Path
+
+
+def resolve_nsp_file(nsp_dir: str, extension: str) -> str:
+    """Resolve one NSP file by extension from a single-session directory."""
+    ext = extension.lower()
+    suffix_match = []
+    any_match = []
+    for filename in sorted(os.listdir(nsp_dir)):
+        full_path = os.path.join(nsp_dir, filename)
+        if not os.path.isfile(full_path):
+            continue
+        lower = filename.lower()
+        if lower.endswith(ext):
+            any_match.append(full_path)
+            if lower.endswith(f"nsp-1{ext}"):
+                suffix_match.append(full_path)
+
+    if len(suffix_match) == 1:
+        return suffix_match[0]
+    if not suffix_match and len(any_match) == 1:
+        return any_match[0]
+    return ""
 
 
 class DataPool:
@@ -19,92 +40,90 @@ class DataPool:
         video_file_pool (VideoFilesPool): Stores all video-related files.
     """
 
-    def __init__(self, nsp_dir: str, cam_recording_dir: str) -> None:
+    def __init__(
+        self,
+        nsp_dir: str,
+        cam_recording_dir: str | None,
+        nev_path: str | None = None,
+        ns5_path: str | None = None,
+        ns3_path: str | None = None,
+        video_file_pool: VideoFilesPool | None = None,
+    ) -> None:
         """Initializes the DataPool class.
 
         Args:
-            nsp_dir (str): Path to the NSP directory.
-            cam_recording_dir (str): Path to the camera recording directory.
+            nsp_dir (str): Path to the NSP directory (used for file discovery
+                when explicit per-extension paths are not provided).
+            cam_recording_dir (str, optional): Path to the camera recording
+                directory. Not required when ``video_file_pool`` is supplied.
+            nev_path (str, optional): Explicit NEV file path. When set,
+                directory-based discovery for the NEV is bypassed.
+            ns5_path (str, optional): Explicit NS5 file path. When set,
+                directory-based discovery for the NS5 is bypassed.
+            ns3_path (str, optional): Explicit NS3 file path. When set,
+                directory-based discovery for the NS3 is bypassed.
+            video_file_pool (VideoFilesPool, optional): Pre-indexed camera
+                files shared across batch sessions.
         """
         self.nsp_dir = nsp_dir
         self.cam_recording_dir = cam_recording_dir
-        self.nev_pool = NevPool()
-        self.nsx_pool = NsxPool()
-        self.video_pool = VideoPool()
-        self.video_json_pool = VideoJsonPool()
-        self.video_file_pool = VideoFilesPool()
-        self.init_pools()
+        # Per-extension overrides; when an entry is set, get_nsp_path(ext)
+        # returns it directly without scanning the directory.
+        self._explicit_paths: dict[str, str | None] = {
+            ".nev": nev_path,
+            ".ns5": ns5_path,
+            ".ns3": ns3_path,
+        }
+        if video_file_pool is None:
+            if self.cam_recording_dir is None:
+                raise ValueError(
+                    "cam_recording_dir is required without a pre-indexed video pool"
+                )
+            video_file_pool = VideoFilesPool.from_directory(self.cam_recording_dir)
+        self.video_file_pool = video_file_pool
 
-    def init_pools(self):
-        """Initializes the pools by:
+    def _resolve_nsp_file(self, extension: str) -> str:
+        """Pick a single NSP file by extension.
 
-        1. Populating NEV and NSX pools with corresponding files.
-        2. Grouping the files in the video pool by timestamp.
+        Prefers files ending in `NSP-1.<ext>` so stitched dirs containing both
+        NSP-1 and NSP-2 files resolve to NSP-1. Falls back to any single file
+        with the given extension (TRD-style single-file dirs).
         """
-        for file_path in Path(self.nsp_dir).iterdir():
-            if file_path.suffix == ".nev":
-                self.nev_pool.add_file(file_path.name)
-            elif file_path.suffix in {".ns5", ".ns3"}:
-                self.nsx_pool.add_file(file_path.name)
-
-        for datefolder_path in Path(self.cam_recording_dir).iterdir():
-            if datefolder_path.is_dir():
-                for file_path in datefolder_path.iterdir():
-                    self.video_file_pool.add_file(str(file_path.resolve()))
+        return resolve_nsp_file(self.nsp_dir, extension)
 
     def verify_integrity(self) -> bool:
-        """Verifies the integrity of the directory by ensuring it contains exactly one of each required file.
+        """Verifies a NEV and NS5 file are resolvable for this session.
 
-        Required files:
-            - One file matching pattern `*NSP-1.nev`
-            - One file matching pattern `*NSP-1.ns3`
-            - One file matching pattern `*NSP-1.ns5`
-            - One file matching pattern `*NSP-2.nev`
-
-        Returns:
-            bool: True if exactly one of each required file is found, otherwise False.
+        Accepts stitched naming (`*NSP-1.nev` / `*NSP-1.ns5`, possibly
+        alongside NSP-2 siblings), a single arbitrarily-named `.nev` + `.ns5`,
+        or explicit paths supplied via the constructor. NS3 is optional and
+        not part of the integrity check.
         """
-        required_files = {
-            "*NSP-1.nev": 0,
-            "*NSP-1.ns3": 0,
-            "*NSP-1.ns5": 0,
-            "*NSP-2.nev": 0,
-        }
+        return bool(self.get_nev_path()) and bool(self.get_ns5_path())
 
-        for file in os.listdir(self.nsp_dir):
-            for pattern in required_files.keys():
-                if fnmatch.fnmatch(file, pattern):
-                    required_files[pattern] += 1
+    def get_nsp_path(self, ext: str) -> str:
+        """Resolve the NSP file with the given extension.
 
-        return all(count == 1 for count in required_files.values())
-
-    def get_nsp1_nev_path(self) -> str:
-        """Finds the NSP-1 NEV file path.
-
-        Returns:
-            str: The full path of the matching file if found, otherwise an empty string.
+        Honors any explicit-path override passed to the constructor first,
+        then falls back to suffix-aware directory discovery.
+        Returns an empty string if no file resolves.
         """
-        pattern = "*NSP-1.nev"
+        explicit = self._explicit_paths.get(ext)
+        if explicit:
+            return explicit
+        return self._resolve_nsp_file(ext)
 
-        for file in os.listdir(self.nsp_dir):
-            if fnmatch.fnmatch(file, pattern):
-                return os.path.join(self.nsp_dir, file)
+    def get_nev_path(self) -> str:
+        """Resolved NEV file path, or empty string if none."""
+        return self.get_nsp_path(".nev")
 
-        return ""
+    def get_ns5_path(self) -> str:
+        """Resolved NS5 file path, or empty string if none."""
+        return self.get_nsp_path(".ns5")
 
-    def get_nsp1_ns5_path(self) -> str:
-        """Finds the NSP-1 NS5 file path.
-
-        Returns:
-            str: The full path of the matching file if found, otherwise an empty string.
-        """
-        pattern = "*NSP-1.ns5"
-
-        for file in os.listdir(self.nsp_dir):
-            if fnmatch.fnmatch(file, pattern):
-                return os.path.join(self.nsp_dir, file)
-
-        return ""
+    def get_ns3_path(self) -> str:
+        """Resolved NS3 file path, or empty string if none."""
+        return self.get_nsp_path(".ns3")
 
     def get_video_file_pool(self) -> "VideoFilesPool":
         """Retrieves the video file pool.
@@ -115,79 +134,38 @@ class DataPool:
         return self.video_file_pool
 
 
-class NevPool:
-    """Stores NEV files grouped by suffix."""
-
-    def __init__(self) -> None:
-        self.files = defaultdict(list)
-
-    def add_file(self, file: str):
-        """Adds a NEV file to the pool.
-
-        Args:
-            file (str): File name to be added.
-        """
-        suffix = file.split("-")[-1]
-        self.files[suffix].append(file)
-
-
-class NsxPool:
-    """Stores NS5 and NS3 files grouped by suffix."""
-
-    def __init__(self) -> None:
-        self.files = defaultdict(list)
-
-    def add_file(self, file: str):
-        """Adds an NS5/NS3 file to the pool.
-
-        Args:
-            file (str): File name to be added.
-        """
-        suffix = file.split("-")[-1]
-        self.files[suffix].append(file)
-
-
-class VideoPool:
-    """Stores video files grouped by timestamp."""
-
-    def __init__(self) -> None:
-        self.files = defaultdict(list)
-
-    def add_file(self, file: str):
-        """Adds a video file to the pool.
-
-        Args:
-            file (str): File name to be added.
-        """
-        timestamp = file.split("_")[-1].split(".")[0]
-        self.files[timestamp].append(file)
-
-
-class VideoJsonPool:
-    """Stores video metadata JSON files grouped by timestamp."""
-
-    def __init__(self) -> None:
-        self.files = defaultdict(list)
-
-    def add_file(self, file: str):
-        timestamp = file.split("_")[-1].split(".")[0]
-        self.files[timestamp].append(file)
-
-    def list_groups(self) -> dict[str, list[str]]:
-        """Lists all groups of video metadata files.
-
-        Returns:
-            dict[str, list[str]]: A dictionary where keys are timestamps (str)
-            and values are lists of file names (str).
-        """
-        return {timestamp: files for timestamp, files in self.files.items()}
-
-
 class VideoFilesPool:
     """Stores all video-related files grouped by timestamp."""
 
     def __init__(self) -> None:
         self.files = defaultdict(list)
+
+    @classmethod
+    def from_directory(cls, camera_dir: str) -> "VideoFilesPool":
+        """Index camera JSON/MP4 files once from a root or date subdirectories."""
+        pool = cls()
+        root = Path(camera_dir)
+        for entry in sorted(root.iterdir()):
+            candidates = sorted(entry.iterdir()) if entry.is_dir() else [entry]
+            for file_path in candidates:
+                if not file_path.is_file() or file_path.suffix.lower() not in {
+                    ".json",
+                    ".mp4",
+                }:
+                    continue
+                try:
+                    pool.add_file(str(file_path.resolve()))
+                except ValueError:
+                    continue
+        return pool
+
+    @classmethod
+    def from_files(cls, files) -> "VideoFilesPool":
+        """Index an explicit set of camera JSON/MP4 files."""
+        pool = cls()
+        for file_path in files:
+            pool.add_file(str(Path(file_path).resolve()))
+        return pool
 
     def add_file(self, file: str):
         """Adds a video-related file to the pool.
@@ -231,6 +209,6 @@ class VideoFilesPool:
             for file in files:
                 if file.endswith(".mp4"):
                     serial = extract_cam_serial(file)
-                if serial:
-                    serials.add(serial)
+                    if serial:
+                        serials.add(serial)
         return serials

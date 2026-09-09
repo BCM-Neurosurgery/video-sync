@@ -18,9 +18,19 @@ class PathUtils:
         self._timestamp = timestamp
         self._config = self.load_config(config_path)
         self._output_dir = self.config["output_dir"]
-        self._cam_serial = self.config["cam_serial"]
-        self._nsp_dir = self.config["nsp_dir"]
-        self._cam_recording_dir = self.config["cam_recording_dir"]
+        # Legacy camera fields remain available while normalized configs use
+        # top-level or per-job `video` mappings instead.
+        self._cam_serial = self.config.get("cam_serial", None)
+        if (
+            "jobs" in self._config
+            or "sessions" in self._config
+            or "base_dir" in self._config
+            or "flat_dir" in self._config
+        ):
+            self._nsp_dir = None  # Will be set dynamically in batch modes
+        else:
+            self._nsp_dir = self.config["nsp_dir"]
+        self._cam_recording_dir = self.config.get("cam_recording_dir")
         self._ns5_channel = self.config["channel_name"]
         self._video_to_process = None
         self._video_output_dir = None
@@ -51,17 +61,44 @@ class PathUtils:
 
     def is_config_valid(self):
         """Return True if config has all the required fields"""
-        required_fields = [
-            "cam_serial",
-            "nsp_dir",
-            "cam_recording_dir",
-            "output_dir",
-            "channel_name",
-        ]
+        if "jobs" in self._config:
+            required_fields = ["jobs", "output_dir", "channel_name"]
+        elif "sessions" in self._config:
+            required_fields = ["sessions", "output_dir", "channel_name"]
+        elif "base_dir" in self._config and "keywords" in self._config:
+            # Subdir batch mode
+            required_fields = [
+                "base_dir",
+                "keywords",
+                "cam_recording_dir",
+                "output_dir",
+                "channel_name",
+            ]
+        elif "flat_dir" in self._config:
+            # Flat-file batch mode: pair every nev/ns5 in one directory
+            required_fields = [
+                "flat_dir",
+                "cam_recording_dir",
+                "output_dir",
+                "channel_name",
+            ]
+        else:
+            # Traditional single directory mode
+            required_fields = [
+                "nsp_dir",
+                "cam_recording_dir",
+                "output_dir",
+                "channel_name",
+            ]
         missing_fields = [
             field for field in required_fields if field not in self._config
         ]
         return missing_fields == []
+
+    def get_final_video_out_path(self):
+        """Return the final video output path"""
+        # TODO: get self._config["nsp_dir"]
+        return os.path.basename(self._config["nsp_dir"] + ".mp4")
 
     @property
     def config(self):
@@ -86,6 +123,36 @@ class PathUtils:
     @property
     def ns5_channel(self):
         return self._ns5_channel
+
+    @property
+    def first_nev_path(self):
+        """Optional first raw NEV used to calibrate stitched timestamps."""
+        return self._config.get("first_nev_path")
+
+    @property
+    def ns3_sidecar(self):
+        """Return True if an NS3 HDF5 sidecar should be emitted per session."""
+        return bool(self._config.get("ns3_sidecar", False))
+
+    @property
+    def keep_intermediates(self):
+        """Return True to retain per-camera subclip/audio/concat intermediates.
+
+        Default True preserves historical behavior; set False in the YAML to
+        delete `*_subclip_*.mp4`, `*_audio_*.wav`, `*_final_*.mp4`, and
+        `concat_filelist.txt` after the final MP4s and frame mapping are written.
+        """
+        return bool(self._config.get("keep_intermediates", True))
+
+    @property
+    def gpu_enabled(self):
+        """Return whether GPU acceleration is enabled"""
+        return self._config.get("gpu_enabled", False)
+
+    @property
+    def gpu_type(self):
+        """Return GPU type for acceleration"""
+        return self._config.get("gpu_type", "nvidia")
 
     @property
     def timestamp(self):
@@ -148,13 +215,6 @@ class PathUtils:
             f"audio_{self.cam_serial}_sliced_{self.timestamp}.wav",
         )
 
-    @property
-    def final_video_out_path(self):
-        return os.path.join(
-            self.video_output_dir,
-            f"final_{self.cam_serial}_aligned_{self.timestamp}.mp4",
-        )
-
     def make_frames_output_dir(self):
         os.makedirs(self.frames_output_dir, exist_ok=True)
 
@@ -194,3 +254,119 @@ class PathUtils:
         """Set ns5 paths"""
         self._ns5_rel_path = ns5_rel_path
         self._ns5_abs_path = os.path.join(self._nsp_dir, self._ns5_rel_path)
+
+    def get_matching_task_dirs(self, base_dir, keywords):
+        """
+        Find all subdirectories in base_dir that contain any of the specified keywords in their task name.
+
+        Args:
+            base_dir (str): Base directory to search in
+            keywords (list): List of keywords to search for in task names
+
+        Returns:
+            list: List of matching directory paths
+        """
+        import os
+
+        # Ensure keywords is always a list
+        if not isinstance(keywords, list):
+            raise ValueError("keywords must be a list")
+
+        matching_dirs = []
+
+        if not os.path.exists(base_dir):
+            print(f"Warning: Base directory does not exist: {base_dir}")
+            return matching_dirs
+
+        # Convert keywords to lowercase for case-insensitive matching
+        keywords_lower = [keyword.lower() for keyword in keywords]
+
+        for item in sorted(os.listdir(base_dir)):
+            item_path = os.path.join(base_dir, item)
+            if os.path.isdir(item_path):
+                # Check if directory name contains any of the keywords
+                item_lower = item.lower()
+
+                # Check if any keyword matches the directory name
+                if any(keyword in item_lower for keyword in keywords_lower):
+                    matching_dirs.append(item_path)
+
+        return matching_dirs
+
+    def is_batch_mode(self):
+        """Return True if using subdir batch processing mode"""
+        return "base_dir" in self._config and "keywords" in self._config
+
+    def is_flat_batch_mode(self):
+        """Return True if using flat-file batch processing mode.
+
+        In flat mode, `flat_dir` contains many `.nev` and `.ns5` files at the
+        top level; each `.nev` is paired with a same-basename `.ns5` and
+        processed as its own session.
+        """
+        return "flat_dir" in self._config
+
+    def get_flat_nev_session_files(self, flat_dir, keywords=None):
+        """Group same-basename `.nev`/`.ns5`/`.ns3` files in `flat_dir`.
+
+        Each NEV becomes a session; every selected basename must have both a
+        NEV and NS5. Unpaired files raise before processing begins. NS3 is
+        optional and surfaced as `None` when absent.
+
+        Args:
+            flat_dir: Directory containing nev/ns5/ns3 files at the top level.
+            keywords: Optional list of case-insensitive substrings; only nev
+                basenames containing any keyword are kept.
+
+        Returns:
+            list[tuple[str, str, str, str | None]]:
+                (task_name, nev_path, ns5_path, ns3_path_or_None), sorted by
+                task_name. task_name is the nev basename without extension.
+        """
+        if not os.path.exists(flat_dir):
+            print(f"Warning: flat_dir does not exist: {flat_dir}")
+            return []
+
+        by_ext: dict[str, dict[str, str]] = {".nev": {}, ".ns5": {}, ".ns3": {}}
+        for entry in os.listdir(flat_dir):
+            full = os.path.join(flat_dir, entry)
+            if not os.path.isfile(full):
+                continue
+            stem, ext = os.path.splitext(entry)
+            ext_lower = ext.lower()
+            if ext_lower in by_ext:
+                by_ext[ext_lower][stem] = full
+
+        if keywords is not None and not isinstance(keywords, list):
+            raise ValueError("keywords must be a list")
+        keywords_lower = [k.lower() for k in keywords] if keywords else None
+
+        selected_stems = sorted(set(by_ext[".nev"]) | set(by_ext[".ns5"]))
+        if keywords_lower:
+            selected_stems = [
+                stem
+                for stem in selected_stems
+                if any(keyword in stem.lower() for keyword in keywords_lower)
+            ]
+
+        unpaired = [
+            stem
+            for stem in selected_stems
+            if stem not in by_ext[".nev"] or stem not in by_ext[".ns5"]
+        ]
+        if unpaired:
+            raise ValueError(
+                "Unpaired NEV/NS5 files in flat_dir: " + ", ".join(unpaired)
+            )
+
+        sessions = []
+        for stem in selected_stems:
+            sessions.append(
+                (
+                    stem,
+                    by_ext[".nev"][stem],
+                    by_ext[".ns5"][stem],
+                    by_ext[".ns3"].get(stem),  # None if no matching .ns3
+                )
+            )
+        return sessions

@@ -1,8 +1,13 @@
 from brpylib import NevFile
 import pandas as pd
-from pyvideosync import utils
 import matplotlib.pyplot as plt
-from .utils import fill_missing_serials_with_gap
+from pyvideosync.utils import (
+    fill_missing_serials_with_gap,
+    ts2min,
+    ts2unix,
+    to_16bit_binary,
+    fill_missing_data,
+)
 
 
 class Nev:
@@ -44,7 +49,7 @@ class Nev:
         return self.duration_s
 
     def get_duration_readable(self):
-        return utils.ts2min(self.get_duration_s(), self.get_timestampResolution())
+        return ts2min(self.get_duration_s(), self.get_timestampResolution())
 
     def get_basic_header(self) -> dict:
         return self.basic_header
@@ -144,38 +149,89 @@ class Nev:
                 nums = [x for x in group["UnparsedData"]]
                 decimal_number = self.bits_to_decimal(nums)
                 timestamp = group["TimeStamps"].iloc[0]
-                unixTime = utils.ts2unix(
-                    self.timeOrigin, self.timestampResolution, timestamp
-                )
+                unixTime = ts2unix(self.timeOrigin, self.timestampResolution, timestamp)
                 results.append((timestamp, decimal_number, unixTime))
         return pd.DataFrame.from_records(
             results, columns=["TimeStamps", "chunk_serial", "UTCTimeStamp"]
         )
 
-    def get_chunk_serial_df(self):
-        """
-        From the cleaned digital_events_df, group by every 5 rows
-        and reconstruct
+    def get_chunk_serial_df(
+        self,
+        timestamp_byte: str = "first",
+        reference_time_origin=None,
+        reference_start_timestamp: int | None = None,
+    ):
+        """Reconstruct chunk serial numbers from grouped digital events.
+
+        Processes the cleaned digital events DataFrame by grouping every five consecutive rows,
+        reconstructing each chunk serial number from the grouped 7-bit encoded values, and
+        associating it with a corresponding timestamp. The timestamp used for each group
+        can be explicitly selected as either the first or last byte in the group.
+
+        Args:
+            timestamp_byte (str, optional): Which byte's timestamp to use ('first' or 'last').
+                Defaults to 'first'. Use 'last' if you want the timestamp representing
+                the full completion of the serial transmission (recommended for accurate synchronization).
+            reference_time_origin (datetime, optional): UTC time origin for a shared
+                timestamp anchor, such as the paired raw NS5 or the first raw NEV
+                used to build a stitched file.
+            reference_start_timestamp (int, optional): Timestamp at that shared
+                anchor. When both reference values are supplied, UTC is calculated
+                from the current NEV timestamp's offset to this anchor.
 
         Returns:
-            TimeStamps 	    chunk_serial 	UTCTimeStamp
-        0 	1345819 	    583208 	        2024-04-16 21:48:17.194633
-        1 	1346821 	    583209 	        2024-04-16 21:48:17.228033
+            pd.DataFrame: A DataFrame containing:
+                - `TimeStamps`: Timestamp from the NEV data (based on selected byte).
+                - `chunk_serial`: Reconstructed chunk serial number.
+                - `UTCTimeStamp`: Human-readable UTC timestamp.
+
+        Raises:
+            AssertionError: If unparsed data is unavailable or timestamp_byte parameter is invalid.
+
+        Example:
+            >>> nev.get_chunk_serial_df(timestamp_byte='last')
+                    TimeStamps  chunk_serial              UTCTimeStamp
+            0         1345819       583208  2024-04-16 21:48:17.195433
+            1         1346821       583209  2024-04-16 21:48:17.228833
         """
-        assert self.has_unparsed_data()
+        assert self.has_unparsed_data(), "No unparsed data available."
+        assert timestamp_byte in [
+            "first",
+            "last",
+        ], "timestamp_byte must be either 'first' or 'last'"
+        if (reference_time_origin is None) != (reference_start_timestamp is None):
+            raise ValueError(
+                "reference_time_origin and reference_start_timestamp must be "
+                "supplied together"
+            )
+
         df = self.get_cleaned_digital_events_df()
         results = []
+        time_origin = reference_time_origin or self.timeOrigin
+        timestamp_offset = int(reference_start_timestamp or 0)
+
         for i in range(0, len(df), 5):
             group = df.iloc[i : i + 5]
             if len(group) == 5:
-                nums = [x for x in group["UnparsedData"]]
+                nums = group["UnparsedData"].tolist()
                 decimal_number = self.bits_to_decimal(nums)
-                timestamp = group["TimeStamps"].iloc[0]
-                unixTime = utils.ts2unix(
-                    self.timeOrigin, self.timestampResolution, timestamp
+
+                # explicitly choose which byte's timestamp to use
+                if timestamp_byte == "first":
+                    timestamp = group["TimeStamps"].iloc[0]
+                else:  # timestamp_byte == 'last'
+                    timestamp = group["TimeStamps"].iloc[-1]
+
+                unix_time = ts2unix(
+                    time_origin,
+                    self.timestampResolution,
+                    int(timestamp) - timestamp_offset,
                 )
-                results.append((timestamp, decimal_number, unixTime))
+                results.append((timestamp, decimal_number, unix_time))
+
+        # Explicitly fill missing serials if necessary
         results = fill_missing_serials_with_gap(results)
+
         return pd.DataFrame.from_records(
             results, columns=["TimeStamps", "chunk_serial", "UTCTimeStamp"]
         )
@@ -222,14 +278,14 @@ class Nev:
         # Format UnparsedData to 16-bit
         digital_events_df_small.loc[:, "UnparsedDataBin"] = digital_events_df_small[
             "UnparsedData"
-        ].apply(lambda x: utils.to_16bit_binary(x))
+        ].apply(lambda x: to_16bit_binary(x))
 
         # plot
         if ax is None:
             fig, ax = plt.subplots(figsize=(15, 10))
 
         for i in range(16):
-            filled_df = utils.fill_missing_data(digital_events_df_small, bit_number=i)
+            filled_df = fill_missing_data(digital_events_df_small, bit_number=i)
             ax.plot(
                 filled_df["TimeStamps"], filled_df[f"Bit{i}"] + i, label=f"Bit{i}"
             )  # Offset each bit for stacking
