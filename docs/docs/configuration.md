@@ -1,20 +1,22 @@
 # ⚙️ Configuration
 
-Before running `video-sync`, you need to configure it using a YAML configuration file.
+Before running `video-sync`, choose the configuration that matches which data
+defines the synchronized output window:
 
-A sample configuration file is provided in the repo and is also available to
-download below. Rename the example template to `config.yaml` and replace its
-placeholder paths.
+| Workflow | Configuration |
+| --- | --- |
+| Raw NEV/NS5 pair | [Download `raw-neural-window.yaml`](https://raw.githubusercontent.com/BCM-Neurosurgery/video-sync/main/configs/raw-neural-window.yaml) |
+| Stitched NEV/NS5 pair | [Download `stitched-neural-window.yaml`](https://raw.githubusercontent.com/BCM-Neurosurgery/video-sync/main/configs/stitched-neural-window.yaml) |
+| Camera MP4 | [Download `video-window.yaml`](https://raw.githubusercontent.com/BCM-Neurosurgery/video-sync/main/configs/video-window.yaml) |
 
-New configurations should use the `jobs` list shown in the example. Each job
-defines one output window using either `window: neural` or `window: video`. The
-`flat_dir` and `base_dir` forms remain available as directory-discovery
-shortcuts; all forms are normalized to the same run and job model before
-processing.
+All three examples use the canonical `jobs` schema. Each job produces one final
+output window. A configuration can contain multiple jobs, and directory neural
+selections expand same-basename NEV/NS5 pairs into separate jobs.
 
-The following command renames the example config file to `config.yaml`
-```sh
-cp config.example.yaml config.yaml
-```
+Use `paired_ns5` for raw pairs. Stitched pairs require `first_raw_nev` plus the
+first raw NEV used to construct the stitched timeline. Video-window jobs use
+`coverage: require_full` so missing neural coverage fails rather than silently
+shortening the requested video.
 
-[📥 Download config.example.yaml](examples/config.example.yaml)
+Copy the closest example to `config.yaml`, replace its placeholder paths, and
+run `stitch-videos --config config.yaml`.

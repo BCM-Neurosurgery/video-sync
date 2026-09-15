@@ -43,98 +43,22 @@ pip install .
 ```
 
 ## ⚙️ Configuration
-Before running the tool, configure it properly using a YAML configuration file.
+Use one of the three canonical examples in [`configs/`](configs/):
 
-A sample configuration is provided:
-```sh
-cp config.example.yaml config.yaml
-```
-
-Choose the example closest to the intended workflow:
-
-| Workflow | Example |
+| Workflow | Configuration |
 | --- | --- |
-| One MP4 defining the output window | [`config.single-mp4.example.yaml`](config.single-mp4.example.yaml) |
-| One raw NEV/NS5 pair | [`config.raw-pair.example.yaml`](config.raw-pair.example.yaml) |
-| One stitched NEV/NS5 pair | [`config.stitched-pair.example.yaml`](config.stitched-pair.example.yaml) |
-| Explicit mixed batch | [`config.mixed-batch.example.yaml`](config.mixed-batch.example.yaml) |
-| Every raw pair in one directory | [`config.flat.example.yaml`](config.flat.example.yaml) |
-| Stitched task directories | [`config.batch.example.yaml`](config.batch.example.yaml) |
+| Raw NEV/NS5 pair defines the window | [`raw-neural-window.yaml`](configs/raw-neural-window.yaml) |
+| Stitched NEV/NS5 pair defines the window | [`stitched-neural-window.yaml`](configs/stitched-neural-window.yaml) |
+| Camera MP4 defines the window | [`video-window.yaml`](configs/video-window.yaml) |
 
-New configurations should use `jobs`. One job produces one final synchronized
-output window. `window: neural` starts from one neural pair and discovers
-overlapping camera recordings. `window: video` starts from an exact video and
-discovers every overlapping neural pair:
+For example:
 
-```yaml
-output_dir: "/path/to/output"
-channel_name: "RoomMic2"
-keep_intermediates: false
-jobs:
-  - name: "raw-001"
-    window: neural
-    neural:
-      kind: pair
-      nev_path: "/path/to/NSP1-001.nev"
-      ns5_path: "/path/to/NSP1-001.ns5"
-      time_anchor:
-        kind: paired_ns5
-    video:
-      kind: directory
-      directory: "/path/to/VIDEO"
-      camera_serials: ["18486638", "23512014"]
+```sh
+cp configs/raw-neural-window.yaml config.yaml
 ```
 
-Use `paired_ns5` for raw pairs. Use `first_raw_nev` for stitched pairs and
-provide the first raw NEV used by that stitched timeline. To make one camera
-MP4 define the output window, use `video.kind: file` and a neural directory:
-
-```yaml
-jobs:
-  - name: "YFVDatafile_20260217_091320"
-    window: video
-    video:
-      kind: file
-      mp4_path: "/path/to/YFVDatafile_20260217_091320.18486638.mp4"
-    neural:
-      kind: directory
-      directory: "/path/to/DATA"
-      recursive: true
-      include: ["NSP1-*"]
-      time_anchor:
-        kind: paired_ns5
-    coverage: require_full
-```
-
-The sibling JSON is inferred deterministically from the MP4 filename and remains
-required for frame serials and realtime bounds. `coverage: require_full` fails
-instead of silently shortening the requested video window.
-
-For raw directory batches, a neural-directory job automatically expands into
-one output per same-basename NEV/NS5 pair:
-
-```yaml
-output_dir: "/path/to/output"
-channel_name: "RoomMic2"
-keep_intermediates: false
-jobs:
-  - window: neural
-    neural:
-      kind: directory
-      directory: "/path/to/DATA/session"
-      include: ["NSP1-*"]
-      time_anchor:
-        kind: paired_ns5
-    video:
-      kind: directory
-      directory: "/path/to/VIDEO"
-      camera_serials: ["18486638", "23512014"]
-```
-
-Directory inputs are indexed once and reused. Unpaired neural files and missing
-stitched anchors fail preflight. Existing `sessions`, `nsp_dir`, `flat_dir`, and
-`base_dir` configurations remain compatibility inputs and normalize to the same
-`RunSpec`/`SyncJobSpec` model.
+Update the paths before running. See the [configuration guide](configs/README.md)
+for job batching, directory discovery, and compatibility notes.
 
 ## 🚀 Usage
 Activate conda environment and run `stitch-videos` with the path to configuration in terminal:

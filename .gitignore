@@ -165,3 +165,4 @@ data/
 test_runs/
 site/
 docs/site/
+/config.yaml
