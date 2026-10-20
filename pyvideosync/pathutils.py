@@ -31,7 +31,7 @@ class PathUtils:
         else:
             self._nsp_dir = self.config["nsp_dir"]
         self._cam_recording_dir = self.config.get("cam_recording_dir")
-        self._ns5_channel = self.config["channel_name"]
+        self._ns5_channel = self.config.get("channel_name")
         self._video_to_process = None
         self._video_output_dir = None
         self._video_path = None
@@ -90,6 +90,9 @@ class PathUtils:
                 "output_dir",
                 "channel_name",
             ]
+        if self._config.get("csv_only") is True:
+            required_fields.remove("channel_name")
+            required_fields.append("patient_dir")
         missing_fields = [
             field for field in required_fields if field not in self._config
         ]
