@@ -7,6 +7,7 @@ import os
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from math import ceil
 
 from pyvideosync.data_pool import VideoFilesPool
 import pandas as pd
@@ -28,6 +29,7 @@ from pyvideosync.utils import (
 )
 from pyvideosync.videojson import Videojson
 from pyvideosync.nev import Nev
+from pyvideosync.nev_timing import read_nev_recording_anchor
 from pyvideosync.nsx import Nsx, read_nsx_time_bounds
 from pyvideosync.sidecar import (
     build_frame_mapping,
@@ -51,20 +53,21 @@ import uuid
 def _get_nev_chunk_serial_df(nev, ns5, time_anchor: TimeAnchor, logger):
     """Build the serial mapping using the session's explicit time anchor."""
     if time_anchor.kind == "first_raw_nev":
-        logger.info(
-            "Calibrating stitched timestamps with first raw NEV: "
-            f"{time_anchor.reference_path}"
-        )
-        first_nev = Nev(str(time_anchor.reference_path))
+        logger.info(f"Using NEV recording-start reference: {time_anchor.reference_path}")
+        anchor = read_nev_recording_anchor(time_anchor.reference_path, nev.path)
+        anchor.validate_clock(nev.timestampResolution, nev.get_start_timestamp())
+        if ns5 is not None:
+            anchor.validate_clock(ns5.timestampResolution, ns5.get_start_timestamp())
         return (
             nev.get_chunk_serial_df(
-                reference_time_origin=first_nev.get_time_origin(),
-                reference_start_timestamp=first_nev.get_start_timestamp(),
+                reference_time_origin=anchor.time_origin,
+                reference_start_timestamp=anchor.start_timestamp,
             ),
             True,
         )
 
     if time_anchor.kind == "paired_ns5":
+        _require_legacy_paired_ns5(nev.get_basic_header()["FileSpec"])
         logger.info(f"Calibrating raw timestamps with paired NS5: {ns5.path}")
         return (
             nev.get_chunk_serial_df(
@@ -249,14 +252,50 @@ class _AlignedFragment:
     frame_mapping: pd.DataFrame
 
 
+def _require_legacy_paired_ns5(file_spec):
+    if int(str(file_spec).split(".")[0]) >= 3:
+        raise ValueError(
+            "paired_ns5 cannot establish UTC for Blackrock 3.0 split files; "
+            "use first_raw_nev with reference_path pointing to the recording's "
+            "first raw NEV containing a recording-start event"
+        )
+
+
 def _segment_utc_bounds(segment: NeuralSegmentSpec, logger):
     """Return inexpensive candidate UTC bounds for overlap discovery."""
     if segment.time_anchor.kind == "paired_ns5":
         bounds = read_nsx_time_bounds(segment.ns5_path)
+        _require_legacy_paired_ns5(bounds.file_spec)
+        # Round tolerance up: adjacent 30 kHz ticks can round to 34 us apart.
+        # Preserve the legacy paired convention consistently in both paths.
         return (
-            bounds.start_utc,
-            bounds.end_utc,
-            timedelta(seconds=bounds.clk_per_sample / bounds.timestamp_resolution),
+            bounds.time_origin,
+            bounds.time_origin
+            + timedelta(
+                seconds=(bounds.end_timestamp - bounds.start_timestamp)
+                / bounds.timestamp_resolution
+            ),
+            timedelta(
+                microseconds=ceil(
+                    1_000_000 * bounds.clk_per_sample / bounds.timestamp_resolution
+                )
+            ),
+        )
+    if segment.time_anchor.kind == "first_raw_nev":
+        anchor = read_nev_recording_anchor(
+            segment.time_anchor.reference_path, segment.nev_path
+        )
+        bounds = read_nsx_time_bounds(segment.ns5_path)
+        anchor.validate_clock(bounds.timestamp_resolution, bounds.start_timestamp)
+        return (
+            anchor.to_utc(bounds.start_timestamp),
+            anchor.to_utc(bounds.end_timestamp),
+            # Round up for microsecond quantization of the two UTC endpoints.
+            timedelta(
+                microseconds=ceil(
+                    1_000_000 * bounds.clk_per_sample / bounds.timestamp_resolution
+                )
+            ),
         )
     if segment.time_anchor.kind == "serial_only":
         raise ValueError(

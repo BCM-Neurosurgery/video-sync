@@ -11,8 +11,9 @@ jobs:
       nev_path: "/path/to/NSP1-20260217-091906-001.nev"
       ns5_path: "/path/to/NSP1-20260217-091906-001.ns5"
       time_anchor:
-        # Raw recordings use the paired NS5 header and first data packet.
-        kind: paired_ns5
+        # NEV 3.0: use the original recording start, including for later splits.
+        kind: first_raw_nev
+        reference_path: "/path/to/NSP1-20260217-091906-001.nev"
     video:
       kind: directory
       directory: "/path/to/VIDEO"

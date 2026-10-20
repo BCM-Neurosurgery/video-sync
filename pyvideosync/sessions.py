@@ -459,11 +459,17 @@ def _parse_neural_segments(config, default_name: str | None) -> list[NeuralSegme
     if not isinstance(reference_paths, dict):
         raise ValueError("neural.time_anchor.reference_paths must be a mapping")
 
+    shared_reference = (
+        anchor_config.get("reference_path") if isinstance(anchor_config, dict) else None
+    )
+    if shared_reference and reference_paths:
+        raise ValueError("use either reference_path or reference_paths, not both")
+
     segments = []
     for (parent, stem), files in selected:
         name = stem if name_from == "stem" else parent.name
         if anchor_kind == "first_raw_nev":
-            reference_path = reference_paths.get(name)
+            reference_path = shared_reference or reference_paths.get(name)
             if not reference_path:
                 raise ValueError(
                     "neural.time_anchor.reference_paths is missing selected "

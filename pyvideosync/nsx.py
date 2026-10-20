@@ -20,6 +20,7 @@ class NsxTimeBounds:
     period: int
     start_timestamp: int
     end_timestamp: int
+    file_spec: str
 
     @property
     def clk_per_sample(self) -> int:
@@ -68,6 +69,7 @@ def read_nsx_time_bounds(path) -> NsxTimeBounds:
                 raise ValueError(f"NSx file contains no samples: {path}")
             return NsxTimeBounds(
                 time_origin=time_origin,
+                file_spec=str(header["FileSpec"]),
                 timestamp_resolution=timestamp_resolution,
                 sample_resolution=sample_resolution,
                 period=period,
@@ -98,6 +100,10 @@ def read_nsx_time_bounds(path) -> NsxTimeBounds:
             if packet_end > file_size:
                 raise ValueError(f"NSx packet extends beyond end of file: {path}")
             if point_count:
+                if last_timestamp is not None and timestamp < last_timestamp:
+                    raise ValueError(
+                        f"NSx timestamp reset or overlapping packets: {path}"
+                    )
                 if first_timestamp is None:
                     first_timestamp = timestamp
                 last_timestamp = timestamp + (point_count - 1) * clk_per_sample
@@ -107,6 +113,7 @@ def read_nsx_time_bounds(path) -> NsxTimeBounds:
             raise ValueError(f"NSx file contains no non-empty data packets: {path}")
         return NsxTimeBounds(
             time_origin=time_origin,
+            file_spec=str(header["FileSpec"]),
             timestamp_resolution=timestamp_resolution,
             sample_resolution=sample_resolution,
             period=period,
