@@ -14,10 +14,12 @@ jobs:
       # json_path: "/path/to/YFVDatafile_20260217_091320.json"
     neural:
       kind: directory
-      directory: "/path/to/DATA"
-      recursive: true
+      directory: "/path/to/DATA/one-recording"
+      recursive: false
       include: ["NSP1-*"]
       time_anchor:
-        kind: paired_ns5
+        kind: first_raw_nev
+        # Every selected split must share this recording and NSP clock.
+        reference_path: "/path/to/DATA/one-recording/NSP1-20260217-091906-001.nev"
     # Fail rather than silently shorten the requested video window.
     coverage: require_full

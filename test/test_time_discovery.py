@@ -62,6 +62,7 @@ def test_flat_raw_utc_uses_paired_ns5_anchor():
     expected = pd.DataFrame({"chunk_serial": [123]})
     nev = Mock()
     nev.get_chunk_serial_df.return_value = expected
+    nev.get_basic_header.return_value = {"FileSpec": "2.3"}
     ns5 = Mock()
     ns5.path = "/data/NSP1-session-001.ns5"
     ns5.get_timeOrigin.return_value = datetime(2026, 2, 17, 15, 19, 6, 735000)

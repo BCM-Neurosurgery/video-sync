@@ -11,7 +11,8 @@ jobs:
       nev_path: "/path/to/EMU-0159_convo-NSP-1.nev"
       ns5_path: "/path/to/EMU-0159_convo-NSP-1.ns5"
       time_anchor:
-        # Point to the first raw NEV used to construct the stitched timeline.
+        # Use the original recording's first NEV 3.0 containing the start event.
+        # This requires the stitched files to preserve the original ticks.
         kind: first_raw_nev
         reference_path: "/path/to/NSP1-first-raw.nev"
     video:

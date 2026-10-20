@@ -508,3 +508,49 @@ def test_expanding_directory_job_rejects_one_shared_output_name(tmp_path):
 
     with pytest.raises(ValueError, match="must omit job.name"):
         resolve_run_spec(PathUtils(str(config_path), timestamp=None))
+
+
+@pytest.mark.parametrize("shared", [True, False])
+def test_directory_can_use_shared_or_per_segment_recording_reference(tmp_path, shared):
+    neural_root = tmp_path / "DATA"
+    stems = ["NSP1-session-001", "NSP1-session-002"]
+    for stem in stems:
+        _touch(neural_root / f"{stem}.nev")
+        _touch(neural_root / f"{stem}.ns5")
+    video_root = tmp_path / "VIDEO"
+    video_root.mkdir()
+    reference = neural_root / f"{stems[0]}.nev"
+    anchor = {"kind": "first_raw_nev"}
+    if shared:
+        anchor["reference_path"] = str(reference)
+    else:
+        anchor["reference_paths"] = {stem: str(reference) for stem in stems}
+    config = {
+        "output_dir": str(tmp_path / "output"),
+        "channel_name": "RoomMic2",
+        "jobs": [
+            {
+                "window": "neural",
+                "neural": {
+                    "kind": "directory",
+                    "directory": str(neural_root),
+                    "time_anchor": anchor,
+                },
+                "video": {"kind": "directory", "directory": str(video_root)},
+            }
+        ],
+    }
+    run = resolve_run_spec(
+        PathUtils(str(_write_config(tmp_path, config)), timestamp=None)
+    )
+    assert len(run.jobs) == 2
+    assert all(
+        job.neural_segments[0].time_anchor == TimeAnchor("first_raw_nev", reference)
+        for job in run.jobs
+    )
+    anchor["reference_path"] = str(reference)
+    anchor["reference_paths"] = {stem: str(reference) for stem in stems}
+    with pytest.raises(ValueError, match="either reference_path or reference_paths"):
+        resolve_run_spec(
+            PathUtils(str(_write_config(tmp_path, config)), timestamp=None)
+        )
