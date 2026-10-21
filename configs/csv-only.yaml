@@ -1,22 +1,24 @@
-# Write <output_dir>/<job.name>/<job.name>_serial_sync.csv.
+# Write one CSV per discovered video group, combining its cameras.
+# Output: <output_dir>/<group_name>/<group_name>_serial_sync.csv.
 # Paths in the CSV are relative to patient_dir; patient_id comes from its name.
 output_dir: "/path/to/output"
 csv_only: true
 patient_dir: "/path/to/EXAMPLEDatafile"
 
 jobs:
-  - name: "camera-demo"
-    window: video
+  - window: video
     video:
-      kind: file
-      mp4_path: "/path/to/EXAMPLEDatafile/VIDEO/20260101/EXAMPLEDatafile_20260101_120000.00000001.mp4"
+      kind: directory
+      directory: "/path/to/EXAMPLEDatafile/VIDEO"
     neural:
       kind: directory
-      directory: "/path/to/EXAMPLEDatafile/DATA/20260101-120000"
+      directory: "/path/to/EXAMPLEDatafile/DATA"
+      recursive: true
       include: ["NSP1-*"]
       time_anchor:
         kind: first_raw_nev
-        reference_path: "/path/to/EXAMPLEDatafile/DATA/20260101-120000/NSP1-20260101-120000-001.nev"
+        # Omit reference paths to find each raw split's matching -001.nev.
+        # Recording-start and clock validation still apply.
     coverage: require_full
 
 # Uses existing corrected serials and interpolated NEV timestamps.
