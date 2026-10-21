@@ -30,7 +30,8 @@ from pyvideosync.utils import (
 from pyvideosync.videojson import Videojson
 from pyvideosync.nev import Nev
 from pyvideosync.nev_timing import read_nev_recording_anchor
-from pyvideosync.nsx import Nsx, read_nsx_time_bounds
+from pyvideosync.nsx import Nsx, NsxTimeBounds, read_nsx_time_bounds
+from pyvideosync.serial_csv import build_serial_csv
 from pyvideosync.sidecar import (
     build_frame_mapping,
     combine_frame_mappings,
@@ -52,12 +53,22 @@ import uuid
 
 def _get_nev_chunk_serial_df(nev, ns5, time_anchor: TimeAnchor, logger):
     """Build the serial mapping using the session's explicit time anchor."""
+    if isinstance(ns5, NsxTimeBounds):
+        ns5_origin = ns5.time_origin
+        ns5_start = ns5.start_timestamp
+        ns5_resolution = ns5.timestamp_resolution
+    elif ns5 is not None and time_anchor.kind in {"first_raw_nev", "paired_ns5"}:
+        ns5_origin = ns5.get_timeOrigin()
+        ns5_start = ns5.get_start_timestamp()
+        ns5_resolution = ns5.timestampResolution
     if time_anchor.kind == "first_raw_nev":
-        logger.info(f"Using NEV recording-start reference: {time_anchor.reference_path}")
+        logger.info(
+            f"Using NEV recording-start reference: {time_anchor.reference_path}"
+        )
         anchor = read_nev_recording_anchor(time_anchor.reference_path, nev.path)
         anchor.validate_clock(nev.timestampResolution, nev.get_start_timestamp())
         if ns5 is not None:
-            anchor.validate_clock(ns5.timestampResolution, ns5.get_start_timestamp())
+            anchor.validate_clock(ns5_resolution, ns5_start)
         return (
             nev.get_chunk_serial_df(
                 reference_time_origin=anchor.time_origin,
@@ -68,11 +79,11 @@ def _get_nev_chunk_serial_df(nev, ns5, time_anchor: TimeAnchor, logger):
 
     if time_anchor.kind == "paired_ns5":
         _require_legacy_paired_ns5(nev.get_basic_header()["FileSpec"])
-        logger.info(f"Calibrating raw timestamps with paired NS5: {ns5.path}")
+        logger.info("Calibrating raw timestamps with paired NS5 metadata")
         return (
             nev.get_chunk_serial_df(
-                reference_time_origin=ns5.get_timeOrigin(),
-                reference_start_timestamp=ns5.get_start_timestamp(),
+                reference_time_origin=ns5_origin,
+                reference_start_timestamp=ns5_start,
             ),
             True,
         )
@@ -236,7 +247,7 @@ def _bisect_first_camera_overlap(camera_items, window_start):
 @dataclass
 class _NeuralContext:
     segment: NeuralSegmentSpec
-    ns5: Nsx
+    ns5: Nsx | NsxTimeBounds
     chunk_serial_df: pd.DataFrame
     start_serial: int
     end_serial: int
@@ -248,8 +259,9 @@ class _NeuralContext:
 @dataclass
 class _AlignedFragment:
     mp4_path: str
-    all_merged: pd.DataFrame
+    all_merged: pd.DataFrame | None
     frame_mapping: pd.DataFrame
+    serial_csv: pd.DataFrame | None = None
 
 
 def _require_legacy_paired_ns5(file_spec):
@@ -368,8 +380,14 @@ def _select_neural_segments(job: SyncJobSpec, logger):
     return selected
 
 
-def _load_neural_context(segment: NeuralSegmentSpec, logger) -> _NeuralContext:
-    ns5 = Nsx(str(segment.ns5_path))
+def _load_neural_context(
+    segment: NeuralSegmentSpec, logger, *, load_signals: bool = True
+) -> _NeuralContext:
+    ns5 = (
+        Nsx(str(segment.ns5_path))
+        if load_signals
+        else read_nsx_time_bounds(segment.ns5_path)
+    )
     nev = Nev(str(segment.nev_path))
     chunk_serial_df, utc_calibrated = _get_nev_chunk_serial_df(
         nev, ns5, segment.time_anchor, logger
@@ -428,6 +446,8 @@ def _align_camera_fragments(
     camera_serial,
     channel_name,
     logger,
+    *,
+    csv_patient_dir=None,
 ):
     fragments = []
     expected_frame_keys = []
@@ -471,34 +491,58 @@ def _align_camera_fragments(
             joined_frames = joined_frames.sort_values("TimeStamps").assign(
                 mp4_file=mp4_path
             )
-            ns5_slice = context.ns5.get_filtered_channel_df(
-                channel_name,
-                int(joined_frames.iloc[0]["TimeStamps"]),
-                int(joined_frames.iloc[-1]["TimeStamps"]),
-            )
-            if ns5_slice.empty:
-                raise RuntimeError(
-                    f"NS5 has no samples for matched frames: {context.segment.ns5_path}"
+            serial_csv = None
+            all_merged = None
+            if csv_patient_dir is not None:
+                serial_csv = build_serial_csv(
+                    joined_frames,
+                    str(camera_serial),
+                    videojson.dic["real_times"],
+                    videojson.get_frame_ids_list(serial_lookup[str(camera_serial)]),
+                    csv_patient_dir,
+                    context.segment.nev_path,
+                    context.segment.ns5_path,
                 )
-            all_merged = ns5_slice.merge(
-                joined_frames,
-                left_on="TimeStamp",
-                right_on="TimeStamps",
-                how="left",
-            )[["TimeStamp", "Amplitude", "chunk_serial", "mp4_frame_idx"]]
-            all_merged["mp4_file"] = mp4_path
+            else:
+                ns5_slice = context.ns5.get_filtered_channel_df(
+                    channel_name,
+                    int(joined_frames.iloc[0]["TimeStamps"]),
+                    int(joined_frames.iloc[-1]["TimeStamps"]),
+                )
+                if ns5_slice.empty:
+                    raise RuntimeError(
+                        f"NS5 has no samples for matched frames: {context.segment.ns5_path}"
+                    )
+                all_merged = ns5_slice.merge(
+                    joined_frames,
+                    left_on="TimeStamp",
+                    right_on="TimeStamps",
+                    how="left",
+                )[["TimeStamp", "Amplitude", "chunk_serial", "mp4_frame_idx"]]
+                all_merged["mp4_file"] = mp4_path
+            if isinstance(context.ns5, NsxTimeBounds):
+                ns5_start = context.ns5.start_timestamp
+                ns5_stride = context.ns5.clk_per_sample
+                if (joined_frames["TimeStamps"] > context.ns5.end_timestamp).any():
+                    raise ValueError(
+                        f"matched timestamp exceeds NS5 bounds: {context.segment.ns5_path}"
+                    )
+            else:
+                ns5_start = context.ns5.timeStamp
+                ns5_stride = context.ns5.clk_per_samp
             frame_mapping = build_frame_mapping(
                 joined_frames,
                 camera_serial=str(camera_serial),
-                ns5_start_timestamp=context.ns5.timeStamp,
-                ns5_clk_per_sample=context.ns5.clk_per_samp,
-                ns5_path=context.ns5.path,
+                ns5_start_timestamp=ns5_start,
+                ns5_clk_per_sample=ns5_stride,
+                ns5_path=str(context.segment.ns5_path),
             )
             fragments.append(
                 _AlignedFragment(
                     mp4_path=str(mp4_path),
                     all_merged=all_merged,
                     frame_mapping=frame_mapping,
+                    serial_csv=serial_csv,
                 )
             )
 
@@ -599,7 +643,10 @@ def _process_job(job, run_spec, video_file_pool_cache, logger):
         raise RuntimeError(f"No camera files found for {job.name}")
 
     selected_segments = _select_neural_segments(job, logger)
-    contexts = [_load_neural_context(segment, logger) for segment in selected_segments]
+    contexts = [
+        _load_neural_context(segment, logger, load_signals=not run_spec.csv_only)
+        for segment in selected_segments
+    ]
     timestamps = _camera_timestamps(job, camera_files, contexts[0], logger)
     if not timestamps:
         raise RuntimeError(f"No camera recordings overlap the window for {job.name}")
@@ -609,7 +656,7 @@ def _process_job(job, run_spec, video_file_pool_cache, logger):
 
     output_dir = os.path.join(str(run_spec.output_dir), job.name)
     os.makedirs(output_dir, exist_ok=True)
-    if run_spec.ns3_sidecar:
+    if run_spec.ns3_sidecar and not run_spec.csv_only:
         if job.window == "video":
             logger.warning("NS3 sidecars are skipped for video-window jobs")
         else:
@@ -633,11 +680,19 @@ def _process_job(job, run_spec, video_file_pool_cache, logger):
             str(camera_serial),
             run_spec.channel_name,
             logger,
+            csv_patient_dir=run_spec.patient_dir if run_spec.csv_only else None,
         )
         if not fragments or mapping.empty:
             raise RuntimeError(
                 f"No synchronized fragments produced for camera {camera_serial}"
             )
+        if run_spec.csv_only:
+            camera_mappings.append(
+                pd.concat(
+                    [fragment.serial_csv for fragment in fragments], ignore_index=True
+                )
+            )
+            continue
         final_path, intermediate_dir = _render_camera(
             job,
             str(camera_serial),
@@ -650,13 +705,18 @@ def _process_job(job, run_spec, video_file_pool_cache, logger):
             _cleanup_intermediates(intermediate_dir, logger)
         camera_mappings.append(mapping)
 
-    combined_mapping = combine_frame_mappings(camera_mappings)
-    mapping_path = os.path.join(output_dir, f"{job.name}_frame_mapping.csv")
+    if run_spec.csv_only:
+        combined_mapping = pd.concat(camera_mappings, ignore_index=True)
+        suffix, camera_column = "serial_sync", "camera"
+    else:
+        combined_mapping = combine_frame_mappings(camera_mappings)
+        suffix, camera_column = "frame_mapping", "camera_serial"
+    mapping_path = os.path.join(output_dir, f"{job.name}_{suffix}.csv")
     combined_mapping.to_csv(mapping_path, index=False)
     logger.info(
-        f"Wrote frame mapping: {mapping_path} "
-        f"({len(combined_mapping)} frames across "
-        f"{combined_mapping['camera_serial'].nunique()} cameras)"
+        f"Wrote {suffix} CSV: {mapping_path} "
+        f"({len(combined_mapping)} rows across "
+        f"{combined_mapping[camera_column].nunique()} cameras)"
     )
 
 

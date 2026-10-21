@@ -9,6 +9,7 @@ from typing import Literal
 
 from pyvideosync.data_pool import VideoFilesPool, resolve_nsp_file
 from pyvideosync.utils import extract_cam_serial
+from pyvideosync.serial_csv import patient_id_from_directory, patient_relative_path
 
 AnchorKind = Literal[
     "paired_ns5",
@@ -200,6 +201,8 @@ class RunSpec:
     ns3_sidecar: bool = False
     gpu_enabled: bool = False
     gpu_type: str = "nvidia"
+    csv_only: bool = False
+    patient_dir: Path | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "output_dir", Path(self.output_dir))
@@ -208,7 +211,22 @@ class RunSpec:
         names = [job.name for job in self.jobs]
         if len(names) != len(set(names)):
             raise ValueError("job names must be unique")
-        if not self.channel_name:
+        if not isinstance(self.csv_only, bool):
+            raise ValueError("csv_only must be true or false")
+        if self.csv_only:
+            if self.patient_dir is None:
+                raise ValueError("csv_only requires patient_dir")
+            object.__setattr__(self, "patient_dir", Path(self.patient_dir))
+            patient_id_from_directory(self.patient_dir)
+            if any(
+                segment.time_anchor.kind == "serial_only"
+                for job in self.jobs
+                for segment in job.neural_segments
+            ):
+                raise ValueError(
+                    "CSV export requires a UTC anchor; serial_only cannot provide Blackrock UTC"
+                )
+        elif not self.channel_name:
             raise ValueError("channel_name cannot be empty")
 
     @property
@@ -784,6 +802,8 @@ def resolve_run_spec(pathutils) -> RunSpec:
         ns3_sidecar=bool(config.get("ns3_sidecar", False)),
         gpu_enabled=bool(config.get("gpu_enabled", False)),
         gpu_type=config.get("gpu_type", "nvidia"),
+        csv_only=config.get("csv_only", False),
+        patient_dir=config.get("patient_dir"),
     )
     _validate_run_paths(run_spec)
     return run_spec
@@ -791,6 +811,8 @@ def resolve_run_spec(pathutils) -> RunSpec:
 
 def _validate_run_paths(run_spec: RunSpec) -> None:
     """Fail configuration preflight before any expensive processing starts."""
+    if run_spec.csv_only and not run_spec.patient_dir.is_dir():
+        raise ValueError(f"patient_dir does not exist: {run_spec.patient_dir}")
     checked_videos = set()
     for job in run_spec.jobs:
         for segment in job.neural_segments:
@@ -803,6 +825,8 @@ def _validate_run_paths(run_spec: RunSpec) -> None:
             if segment.time_anchor.reference_path is not None:
                 required_files["time anchor"] = segment.time_anchor.reference_path
             for label, path in required_files.items():
+                if run_spec.csv_only:
+                    patient_relative_path(path, run_spec.patient_dir)
                 if not path.is_file():
                     raise ValueError(f"{label} file does not exist: {path}")
 
@@ -810,6 +834,8 @@ def _validate_run_paths(run_spec: RunSpec) -> None:
             continue
         checked_videos.add(job.video)
         if job.video.kind == "discover":
+            if run_spec.csv_only:
+                patient_relative_path(job.video.recording_dir, run_spec.patient_dir)
             if not job.video.recording_dir.is_dir():
                 raise ValueError(
                     "video recording directory does not exist: "
@@ -817,5 +843,7 @@ def _validate_run_paths(run_spec: RunSpec) -> None:
                 )
         else:
             for path in (*job.video.json_paths, *job.video.mp4_paths):
+                if run_spec.csv_only:
+                    patient_relative_path(path, run_spec.patient_dir)
                 if not path.is_file():
                     raise ValueError(f"explicit video file does not exist: {path}")
