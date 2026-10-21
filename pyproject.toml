@@ -25,7 +25,6 @@ dev = [
 
 [project.scripts]
 stitch-videos = "pyvideosync.main:main"
-submit-sync = "pyvideosync.slurm:main"
 plot-nev-cam-exposure = "profiler.plot_nev_cam_exposure:main"
 profile-cam-json = "profiler.profile_camera_jsons:main"
 benchmark-nevs = "profiler.benchmark_nevs:main"
