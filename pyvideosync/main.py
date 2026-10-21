@@ -741,8 +741,7 @@ def main():
     logger = configure_logging(pathutils.output_dir)
 
     if not pathutils.is_config_valid():
-        logger.error("Config not valid, exiting to inital screen...")
-        return
+        raise ValueError("Config is missing required fields")
 
     run_spec = resolve_run_spec(pathutils)
     jobs = run_spec.jobs

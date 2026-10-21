@@ -1,0 +1,9 @@
+# One-time setup in your checkout: uv sync --locked --inexact
+# Submit: uv run --no-sync submit-sync --config /path/to/patient.yaml
+# Each submission creates a private run below the config's output_dir/runs/.
+# Resource requests can be overridden with --partition, --cpus, --mem, --time.
+# CSV export runs on CPUs; no GPU is requested.
+partition: chipmunk
+cpus: 1
+mem: 8G
+time: "08:00:00"
