@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from fnmatch import fnmatchcase
 from pathlib import Path
+import re
 from typing import Literal
 
 from pyvideosync.data_pool import VideoFilesPool, resolve_nsp_file
@@ -393,6 +394,27 @@ def _legacy_video_selection(config: dict) -> VideoSelection:
     )
 
 
+def _discover_first_raw_nev(nev_path: Path) -> Path:
+    """Resolve a standard raw split to its same-folder, same-NSP first split.
+
+    This only selects a path. Recording-start and clock validation still run
+    when the NEV timing is read.
+    """
+    match = re.fullmatch(r"(NSP[0-9]+-[0-9]{8}-[0-9]{6})-[0-9]{3}", nev_path.stem)
+    if match is None:
+        raise ValueError(
+            f"cannot discover first raw NEV for {nev_path}; expected "
+            "NSP<number>-YYYYMMDD-HHMMSS-NNN.nev; set reference_path explicitly"
+        )
+    reference = nev_path.with_name(f"{match.group(1)}-001{nev_path.suffix}")
+    if not reference.is_file():
+        raise ValueError(
+            f"first raw NEV reference does not exist: {reference}; "
+            "restore the matching first split or set reference_path explicitly"
+        )
+    return reference
+
+
 def _parse_neural_segments(config, default_name: str | None) -> list[NeuralSegmentSpec]:
     if not isinstance(config, dict):
         raise ValueError("neural selection must be a mapping")
@@ -489,10 +511,12 @@ def _parse_neural_segments(config, default_name: str | None) -> list[NeuralSegme
         if anchor_kind == "first_raw_nev":
             reference_path = shared_reference or reference_paths.get(name)
             if not reference_path:
-                raise ValueError(
-                    "neural.time_anchor.reference_paths is missing selected "
-                    f"segment: {name}"
-                )
+                if shared_reference is not None or reference_paths:
+                    raise ValueError(
+                        "neural.time_anchor.reference_paths is missing selected "
+                        f"segment: {name}"
+                    )
+                reference_path = _discover_first_raw_nev(files[".nev"])
             anchor = TimeAnchor(
                 kind="first_raw_nev", reference_path=Path(reference_path)
             )
